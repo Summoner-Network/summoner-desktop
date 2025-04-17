@@ -84,7 +84,7 @@ You should see a desktop app open with a login screen. After logging in, you’l
 ### ✨ Preview
 
 <p align="center">
-  <img src="assets/demo.gif" width="500" style="border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);" />
+  <img src="assets/demo.gif" width="500" style="border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);"/>
 </p>
 
 <!-- <p align="center">
