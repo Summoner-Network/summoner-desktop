@@ -1,0 +1,23 @@
+    {
+    "name": "summoner-desktop",
+    "version": "1.0.0",
+    "description": "Desktop app for summoner",
+    "main": "main.js",
+    "scripts": {
+        "start": "electron ."
+        },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Summoner-Network/summoner-desktop.git"
+        },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/Summoner-Network/summoner-desktop/issues"
+        },
+    "homepage": "https://github.com/Summoner-Network/summoner-desktop#readme",
+    "devDependencies": {
+        "electron": "^35.1.5"
+        }
+    }
