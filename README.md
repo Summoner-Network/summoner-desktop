@@ -84,7 +84,7 @@ You should see a desktop app open with a login screen. After logging in, you’l
 ### ✨ Preview
 
 <p align="center">
-<img width="350px" src="assets/login-page.png" alt="Login Page"/>
+  <img src="assets/demo.gif" width="500" />
 </p>
 
 ---
