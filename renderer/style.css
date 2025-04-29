@@ -1,15 +1,182 @@
-/* Global styles */
-body {
-  margin: 0;
-  font-family: sans-serif;
-  background: linear-gradient(to bottom right, #ffffff, #f2f2f2);
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+/*========================================
+=            CSS VARIABLES              =
+========================================*/
+:root {
+  font-family: Arial, sans-serif;
+  --page-padding:   20px;        /* gutter around everything */
+  --intro-max:      600px;       /* max width of your intro text */
+  --grid-gap:       16px;        /* gap between buttons */
+  --grid-min:       140px;       /* min button-cell width */
+  --btn-pad-v:      12px;        /* button padding vertical */
+  --btn-pad-h:      24px;        /* button padding horizontal */
+  --border:         1px solid #ccc;
+  --border-radius:  8px;
+  --shadow:         0 2px 4px rgba(0,0,0,0.1);
+  --bg-page:        linear-gradient(to bottom right, #ffffff, #f2f2f2);
+  --bg-btn:         #ddd;
+  --bg-btn-hover:   #ccc;
+  --font-main:      sans-serif;
+  --font-size:      16px;
+  --text-color:     #333;
+  --line-height:    1.6;
 }
 
-/* Login page */
+/*========================================
+=               RESETS                  =
+========================================*/
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/*========================================
+=            GLOBAL STYLES              =
+========================================*/
+body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;     /* default: center if no intro */
+  align-items: center;
+  min-height: 100vh;
+  padding: var(--page-padding);
+  background: var(--bg-page);
+  font-family: var(--font-main);
+  font-size: var(--font-size);
+  line-height: var(--line-height);
+  color: var(--text-color);
+}
+
+/*========================================
+=       INTRO vs NO-INTRO STATES        =
+========================================*/
+/* When intro is present: intro at top, grid below */
+body.has-intro {
+  justify-content: flex-start;
+}
+body.has-intro .page-intro {
+  width: 100%;
+  max-width: var(--intro-max);
+  margin-top: 2em;
+  margin-bottom: 1.5em;
+  text-align: left;
+}
+body.has-intro .feature-grid {
+  margin-bottom: auto; /* push grid down if tall */
+}
+
+/* When no intro: grid pushed toward bottom */
+body.no-intro {
+  justify-content: flex-end;
+}
+body.no-intro .feature-grid {
+  margin-top: auto;
+  margin-bottom: 2em;
+}
+
+/*========================================
+=         INTRO AND GRID LAYOUT         =
+========================================*/
+.page-intro {
+  /* placeholder to avoid empty‐rule warnings */
+  display: block;
+}
+/* small, readable “readme” block at top */
+.page-intro.readme {
+  max-width:    600px;
+  width:        100%;
+  margin:       1.5em auto;
+  font-size:    0.85rem;      /* smaller for tight windows */
+  line-height:  1.4;
+  text-align:   left;
+  margin-top: 1em;          /* half the previous space */
+  margin-bottom: 1.5em;
+}
+
+/* tighter spacing for lists */
+.page-intro.readme h1 {
+  font-size: 1.2rem;
+  margin-bottom: 0.75em;
+}
+
+.page-intro.readme ol {
+  padding-left: 1.2em;
+}
+
+.page-intro.readme li {
+  margin-bottom: 0.6em;
+}
+
+.page-intro.readme ul {
+  padding-left: 1em;
+  list-style-type: disc;
+  margin-top: 0.3em;
+}
+
+.page-intro.readme ul li {
+  margin-bottom: 0.4em;
+  font-size: 0.83rem;
+}
+
+
+/* smaller, gray-boxed code blocks */
+.page-intro.readme pre {
+  background-color: #f5f5f5;  /* light gray background */
+  border: 1px solid #ddd;     /* subtle border */
+  border-radius: 4px;
+  padding: 8px;
+  font-size: 0.75rem;         /* slightly smaller code font */
+  line-height: 1.4;
+  overflow-x: auto;           /* horizontal scroll if needed */
+  margin: 0.8em 0;            /* space around the block */
+}
+
+.feature-grid {
+  display: grid;
+  grid-gap: var(--grid-gap);
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(var(--grid-min), 1fr)
+  );
+  width: 100%;
+  justify-content: center;
+  align-items: start;
+}
+
+/*========================================
+=     INPUTS, BUTTONS & FORM STYLES      =
+========================================*/
+input, button {
+  font-family: var(--font-main);
+  font-size: var(--font-size);
+  border: var(--border);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  outline: none;
+}
+
+input {
+  padding: 10px 20px; /* separate if you like different sizing */
+}
+
+button {
+  padding: var(--btn-pad-v) var(--btn-pad-h);
+  background-color: var(--bg-btn);
+  cursor: pointer;
+  text-transform: capitalize;
+  transition: background-color 0.3s ease;
+  position: relative;    /* preserve if later you readd tooltips */
+}
+
+button:hover {
+  background-color: var(--bg-btn-hover);
+}
+
+/*========================================
+=          LOGIN PAGE OVERRIDES         =
+========================================*/
 .login-box {
   display: flex;
   flex-direction: column;
@@ -21,32 +188,4 @@ body {
 .logo {
   width: 300px;
   margin-bottom: 20px;
-}
-
-/* Inputs and Buttons */
-input, button {
-  padding: 10px 20px;
-  font-size: 16px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  outline: none;
-}
-
-button {
-  background-color: #ddd;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-button:hover {
-  background-color: #ccc;
-}
-
-/* Landing page */
-.feature-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  align-items: center;
 }

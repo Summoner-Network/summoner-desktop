@@ -1,90 +1,68 @@
-<p align="center">
-<img width="500px" src="assets/logo.png" />
+<p align="center">  
+<img width="500px" src="assets/logo.png" />  
 </p>
 
 # 🧱 Summoner Desktop
 
 A modular Electron desktop app designed for rapid prototyping and collaboration.
 
+---
+
 ## 📦 Features
 
-- Clean login screen with customizable logo
-- Modular landing page where each feature is its own folder
-- Automatically generated buttons based on feature folders
-- Elegant, minimal white UI with subtle gradients
-- Designed for collaborative team workflows (main devs + interns)
+- Clean login screen with customizable logo  
+- Modular landing page where each feature is its own folder  
+- Automatically generated buttons based on **folder names** or **`button_*.js`** files  
+- Coordinate-driven grid layout (e.g. `n_m_<feature-name>` for row *n*, column *m*)  
+- Template folder (`1_3_template_button`) with built-in Back/landing logic  
+- Elegant, minimal white UI with subtle gradients  
 
 ---
 
 ## 🚀 Getting Started
 
-This guide helps you set up and run the app locally, even if you’re new to Node.js or Electron.
+Even if you’re new to Node.js or Electron, you’ll be up and running in minutes.
 
----
+### 🛠 1. Prerequisites
 
-### 🛠 1. Prerequisites: Install Node.js + npm
+- **Node.js v18+** and **npm**  
+  ```bash
+  node -v  
+  npm -v
+  ```
+- macOS via Homebrew:  
+  ```bash
+  brew install node
+  ```
+- Ubuntu/Debian:  
+  ```bash
+  sudo apt update && sudo apt install nodejs npm
+  ```
+- (Optional) Use [nvm](https://github.com/nvm-sh/nvm) to manage multiple Node versions.
 
-You’ll need **Node.js (v18 or later)** and **npm** (Node package manager). You can check if they're already installed:
-
-```bash
-node -v
-npm -v
-```
-
-If either command is not found, install them:
-
-#### 👉 macOS (recommended via [Homebrew](https://brew.sh)):
-
-```bash
-brew install node
-```
-
-#### 👉 Linux (Debian/Ubuntu):
+### 📥 2. Clone & Install
 
 ```bash
-sudo apt update
-sudo apt install nodejs npm
-```
-
-> 💡 Tip: You can also use [nvm](https://github.com/nvm-sh/nvm) to manage multiple Node.js versions if you're working on different projects.
-
----
-
-### 📦 2. Clone the repository
-
-```bash
-git clone https://github.com/Summoner-Network/summoner-desktop.git
-cd summoner-desktop
-```
-
----
-
-### 📥 3. Install project dependencies
-
-This installs Electron and other packages listed in `package.json`.
-
-```bash
+git clone https://github.com/Summoner-Network/summoner-desktop.git  
+cd summoner-desktop  
 npm install
 ```
 
-If you see a `package-lock.json` file appear — that's expected. It tracks exact versions of dependencies for reproducibility.
-
----
-
-### 🧪 4. Start the app
+### 🧪 3. Start the App
 
 ```bash
 npm start
 ```
 
-You should see a desktop app open with a login screen. After logging in, you’ll be taken to the landing page.
+Log in, and you’ll land on a dynamically generated feature grid.
 
 ---
 
 ### ✨ Preview
 
-<p align="center">
-  <img src="assets/demo.gif" width="500" style="border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);"/>
+<p align="center">  
+  <img src="assets/demo2.gif" width="500"  
+       style="border:1px solid #ddd;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.1)"/>  
 </p>
 
 ---
@@ -94,75 +72,90 @@ You should see a desktop app open with a login screen. After logging in, you’l
 ```
 renderer/
 ├── features/
-│   ├── my-feature/
-│   │   └── index.html
-│   └── another-feature/
-│       └── index.html
+│   ├── 1_1_hosting/
+│   │   ├── 1_1_button_open_router.js   # JS-based button at row 1, col 1
+│   │   ├── 1_2_back/                   # “Back” folder with empty index.html
+│   │   │   └── index.html
+│   │   ├── index.html                  # hosting landing page
+│   │   └── landing.js
+│   ├── 1_2_quit/
+│   │   └── index.html                  # quit button
+│   └── 1_3_template_button/            # template with Back & landing logic
+│       ├── 1_1_back/
+│       │   └── index.html
+│       ├── index.html
+│       └── landing.js
 ├── landing/
 │   ├── landing.html
 │   └── landing.js
 ├── login/
 │   └── login.html
-├── style.css
+└── style.css
 main.js
 package.json
 ```
 
-### 🔁 How It Works
+---
 
-- Every **folder inside `renderer/features/`** becomes a button on the landing page.
-- Clicking a button loads that folder's `index.html`.
-- The button name is the folder name (e.g. `quit`, `my-feature`, `analytics`).
-- Special folders (like `quit`) can be treated uniquely in the routing logic.
+## 🔁 How It Works
+
+1. **Folder → Button**  
+   Any **directory** named  
+   ```
+   n_m_<feature-name>/
+   ```  
+   under `renderer/features/` produces a grid button at **row n**, **column m**, labeled `<feature-name>`.  
+   Clicking it loads `n_m_<feature-name>/index.html`.
+
+2. **JS File → Button**  
+   Any **file** named  
+   ```
+   n_m_button_<action>.js
+   ```  
+   in a feature folder produces a button at **row n**, **column m**, labeled `<action>`.  
+   Clicking it `require()`s and runs that script.
+
+3. **Back Button**  
+   To get a **Back** button, create a folder  
+   ```
+   n_m_back/
+   ```  
+   with an **empty** `index.html` inside. Clicking it returns to the main landing page.  
+   The `1_3_template_button` folder shows this pattern in action.
 
 ---
 
-## 👩‍💻 For Contributors
+## 👩‍💻 Contributing
 
-### ➕ Adding a Feature
+### ➕ Add a Top-Level Feature
 
-To add a new top-level feature:
+1. Create `renderer/features/n_m_<feature-name>/`  
+2. Add an `index.html` (and `landing.js` if needed).  
+3. Restart the app—your new button appears at (n,m).
 
-1. Create a new folder under `renderer/features/`
-2. Add an `index.html` file (you can use the template below)
-3. Restart the app — a new button will appear automatically on the landing page!
+### 🌳 Add a JS-Triggered Button
 
-#### Example
-
-```
-renderer/features/user-dashboard/index.html
-```
-
-This will show a **"user-dashboard"** button on the landing page.
-
-### 🌳 Adding a Subfeature
-
-If you're collaborating as an intern or contributing a submodule, follow the same rule — just nest your folder under the appropriate parent:
-
-```
-renderer/features/user-dashboard/stats/index.html
-```
-
-You can then add routing logic to `user-dashboard/index.html` to handle navigation to its subfeatures.
+1. Place `n_m_button_<action>.js` in any feature folder.  
+2. On launch, a button labeled `<action>` appears at (n,m) and executes your code.
 
 ---
 
 ## 🎨 Styling & Assets
 
-- Shared styles live in `renderer/style.css`
-- You can add images and logos under `renderer/assets/`
-- Backgrounds and buttons use a white + light-gray palette with soft shadows
+- Shared styles in `renderer/style.css`  
+- Assets (logo, demo.gif) in `assets/`  
+- White + light-gray palette, soft shadows, and Inter or system-sans fonts  
 
 ---
 
 ## 📌 Notes
 
-- The app is frontend-only for now. No authentication or database logic has been implemented.
-- All navigation is handled through static HTML files and JS.
-- Designed to simulate the UX shell before plugging in backend logic.
+- Frontend only—no backend or database.  
+- Navigation entirely via static HTML, JS, and Electron.  
+- Designed to mock up UX before wiring in real logic.  
 
 ---
 
 ## 📬 Contact
 
-For questions or contributions, open an issue or tag a teammate in Slack.
+Questions or suggestions? [Open an issue](https://github.com/Summoner-Network/summoner-desktop/issues) or ping the team on Slack.

@@ -3,14 +3,18 @@ const path = require('path');
 
 function createWindow() {
   const win = new BrowserWindow({
-    width: 900,
-    height: 600,
-    resizable: false,
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false
-    }
-  });
+  width: 900,
+  height: 600,
+  resizable: true,       // allow the user to resize
+  minimizable: true,     // optional: let them minimize
+  maximizable: true,     // optional: let them maximize
+  minWidth: 400,         // optional: enforce a sensible minimum
+  minHeight: 300,
+  webPreferences: {
+    nodeIntegration: true,
+    contextIsolation: false
+  }
+});
 
   win.loadFile(path.join(__dirname, 'renderer/login/login.html'));
 }

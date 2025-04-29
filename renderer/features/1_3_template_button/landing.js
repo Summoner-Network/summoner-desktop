@@ -1,13 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
-// Get the name of the current folder (basename of the current directory)
-const currentFolderName = path.basename(__dirname);
-
-console.log(`Page ${currentFolderName} loaded`);  // Log the current folder name
-
-const featuresDir = path.join(__dirname, '..', 'features');
-const grid = document.getElementById('feature-grid');
+const featuresDir = __dirname;
+const grid       = document.getElementById('feature-grid');
 const entries    = fs.readdirSync(featuresDir, { withFileTypes: true });
 
 // 1) parse every entry that matches "row_col_rest(.js)?"
@@ -42,15 +37,15 @@ positioned.forEach(({ dirent, row, col, baseName, isDir, isJS }) => {
                             .replace(/_/g, ' ');
 
   // special back-folder case
-  if (isDir && dirent.name.endsWith('_quit')) {
+  if (isDir && dirent.name.endsWith('_back')) {
     btn.addEventListener('click', () => {
-      window.location.href = '../login/login.html';
+      window.location.href = '../../landing/landing.html';
     });
   }
   // directory → load index.html
   else if (isDir) {
     btn.addEventListener('click', () => {
-      window.location.href = `../features/${dirent.name}/index.html`;
+      window.location.href = `${dirent.name}/index.html`;
     });
   }
   // js file → require() it
