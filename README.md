@@ -21,40 +21,66 @@ A modular Electron desktop app designed for rapid prototyping and collaboration.
 
 ## 🚀 Getting Started
 
-Even if you’re new to Node.js or Electron, you’ll be up and running in minutes.
+This guide helps you set up and run the app locally, even if you’re new to Node.js or Electron.
 
-### 🛠 1. Prerequisites
+---
 
-- **Node.js v18+** and **npm**  
-  ```bash
-  node -v  
-  npm -v
-  ```
-- macOS via Homebrew:  
-  ```bash
-  brew install node
-  ```
-- Ubuntu/Debian:  
-  ```bash
-  sudo apt update && sudo apt install nodejs npm
-  ```
-- (Optional) Use [nvm](https://github.com/nvm-sh/nvm) to manage multiple Node versions.
+### 🛠 1. Prerequisites: Install Node.js + npm
 
-### 📥 2. Clone & Install
+You’ll need **Node.js (v18 or later)** and **npm** (Node package manager). You can check if they're already installed:
 
 ```bash
-git clone https://github.com/Summoner-Network/summoner-desktop.git  
-cd summoner-desktop  
+node -v
+npm -v
+```
+
+If either command is not found, install them:
+
+#### 👉 macOS (recommended via [Homebrew](https://brew.sh)):
+
+```bash
+brew install node
+```
+
+#### 👉 Linux (Debian/Ubuntu):
+
+```bash
+sudo apt update
+sudo apt install nodejs npm
+```
+
+> 💡 Tip: You can also use [nvm](https://github.com/nvm-sh/nvm) to manage multiple Node.js versions if you're working on different projects.
+
+---
+
+### 📦 2. Clone the repository
+
+```bash
+git clone https://github.com/Summoner-Network/summoner-desktop.git
+cd summoner-desktop
+```
+
+---
+
+### 📥 3. Install project dependencies
+
+This installs Electron and other packages listed in `package.json`.
+
+```bash
 npm install
 ```
 
-### 🧪 3. Start the App
+If you see a `package-lock.json` file appear — that's expected. It tracks exact versions of dependencies for reproducibility.
+
+---
+
+### 🧪 4. Start the app
 
 ```bash
 npm start
 ```
 
-Log in, and you’ll land on a dynamically generated feature grid.
+You should see a desktop app open with a login screen. After logging in, you’ll be taken to the landing page.
 
 ---
 
