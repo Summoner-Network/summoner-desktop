@@ -2,6 +2,7 @@
 *.mov
 start_app_*.sh
 working_space/
+todo.txt
 
 # Logs
 logs

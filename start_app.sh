@@ -36,9 +36,17 @@ bootstrap() {
   echo "🔧 Installing build requirements..."
   pip install --upgrade pip setuptools wheel maturin
 
+  # Create the .env file
+  cat <<EOF > "$SRC/.env"
+LOG_LEVEL=INFO
+ENABLE_CONSOLE_LOG=true
+DATABASE_URL=postgres://user:pass@localhost:5432/mydb
+SECRET_KEY=supersecret
+EOF
+
   # Reinstall Python & Rust SDK via backend scripts
   echo "🔁 Reinstalling Python & Rust SDK..."
-  bash "$SRC/reinstall_python_sdk.sh"
+  bash "$SRC/reinstall_python_sdk.sh" rust_server_sdk
 }
 
 # ─────────────────────────────────────────────────────
@@ -81,7 +89,7 @@ case "$1" in
     else
       . "$VENVDIR/bin/activate"
     fi
-    bash "$SRC/reinstall_python_sdk.sh"
+    bash "$SRC/reinstall_python_sdk.sh" rust_server_sdk
     echo "✅ Dependencies reinstalled"
     exit 0
     ;;
