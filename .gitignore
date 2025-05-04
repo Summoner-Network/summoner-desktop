@@ -1,5 +1,7 @@
 .DS_Store
 *.mov
+start_app_*.sh
+working_space/
 
 # Logs
 logs

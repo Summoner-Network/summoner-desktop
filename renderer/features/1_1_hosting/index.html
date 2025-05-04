@@ -10,44 +10,20 @@
 <link rel="stylesheet" href="../../style.css">
 </head>
 <body>
-
-
-
-<div class="page-intro readme">
-  <h1>Network Settings &amp; Port Forwarding</h1>
-  <ol>
-    <li>
-      <strong>Find your LAN IP</strong><br>
-      On macOS &amp; most Linux distros:
-      <pre>ifconfig | grep "inet " | grep -v 127.0.0.1</pre>
-      This shows only your non-loopback IPv4 address.  
-      If your Linux box doesn’t have <code>ifconfig</code>, try:
-      <pre>ip addr show | grep "inet " | grep -v 127.0.0.1</pre>
-    </li>
-    <li>
-      In your router UI, go to <strong>Network Settings &gt; NAT</strong>  
-      (sometimes called “Virtual Servers” or “Port Forwarding”).
-    </li>
-    <li>Click <strong>Add New Rule</strong> (or “Create”), then fill in:</li>
-    <ul>
-      <li><strong>Service Name</strong>: e.g. “MyServer”.</li>
-      <li><strong>Obtain WAN IP Automatically</strong>: keep checked.</li>
-      <li><strong>Start/End Port</strong>: the external port (e.g. 8888).</li>
-      <li><strong>Translation Start/End Port</strong>: same as above (unless remapping).</li>
-      <li><strong>Server IP Address</strong>: your LAN IP from step 1 (not 127.0.0.1).</li>
-      <li><strong>Protocol</strong>: select TCP (or TCP/UDP).</li>
-      <li>Leave “Configure Originating IP” blank to allow any source.</li>
-    </ul>
-    <li>Enable the rule, Save/Apply (and reboot if required).</li>
-    <li>Test by browsing: <code>http://&lt;Your WAN IP&gt;:8888</code></li>
-  </ol>
+<div class="page-intro">
+  <h1>Summoner Server Setup</h1>
 </div>
 
+<div class="config-form">
+  <form id="server-form" class="feature-form"></form>
+</div>
 
+  <!-- Buttons grid: generate_and_run, NAT_setup, back -->
+  <div id="feature-grid" class="feature-grid"></div>
 
-
-<div id="feature-grid" class="feature-grid"></div>
+<script src="setup.js"></script>
 <script src="landing.js"></script>
+
 </body>
 </html>
 

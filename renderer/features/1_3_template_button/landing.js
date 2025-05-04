@@ -33,7 +33,6 @@ grid.style.gridTemplateColumns = `repeat(${maxCols}, auto)`;
 positioned.forEach(({ dirent, row, col, baseName, isDir, isJS }) => {
   const btn = document.createElement('button');
   btn.textContent = baseName.replace(/^button_/, '')    // strip off “button_”
-                            .replace(/\.js$/, '')       // strip off “.js”
                             .replace(/_/g, ' ');
 
   // special back-folder case

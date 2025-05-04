@@ -4,7 +4,8 @@
     "description": "Desktop app for summoner",
     "main": "main.js",
     "scripts": {
-        "start": "electron ."
+        "prestart": "bash ./start_app.sh setup",
+        "start":    "electron ."
         },
     "repository": {
         "type": "git",
