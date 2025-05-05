@@ -1,29 +1,43 @@
-/*========================================
-=            CSS VARIABLES              =
-========================================*/
+/*=========================================================================*/
+/*  0.  DESIGN‑SYSTEM TOKENS (CSS CUSTOM PROPERTIES)                        */
+/*      -----------------------------------------------------------------  */
+/*      Centralised “design variables” so colours, spacing, typography,    */
+/*      etc. can be changed in one place.                                  */
+/*=========================================================================*/
 :root {
+  /* typeface used for everything (fallback stack) */
   font-family: Arial, sans-serif;
-  --page-padding:   20px;        /* gutter around everything */
-  --intro-max:      600px;       /* max width of your intro text */
-  --grid-gap:       16px;        /* gap between buttons */
-  --grid-min:       140px;       /* min button-cell width */
-  --btn-pad-v:      12px;        /* button padding vertical */
-  --btn-pad-h:      24px;        /* button padding horizontal */
+
+  /* --- layout spacers -------------------------------------------------- */
+  --page-padding:   20px;   /* gutter around <body> content                */
+  --intro-max:      600px;  /* max‑width for the intro paragraph           */
+  --grid-gap:       16px;   /* gap between feature buttons                 */
+  --grid-min:       140px;  /* min width for each auto‑fit grid column     */
+  --btn-pad-v:      12px;   /* button padding ‑ vertical                   */
+  --btn-pad-h:      24px;   /* button padding ‑ horizontal                 */
+
+  /* --- primitives ------------------------------------------------------ */
   --border:         1px solid #ccc;
   --border-radius:  8px;
   --shadow:         0 2px 4px rgba(0,0,0,0.1);
+
+  /* --- colours --------------------------------------------------------- */
   --bg-page:        linear-gradient(to bottom right, #ffffff, #f2f2f2);
   --bg-btn:         #ddd;
   --bg-btn-hover:   #ccc;
+  --text-color:     #333;
+
+  /* --- typography ------------------------------------------------------ */
   --font-main:      sans-serif;
   --font-size:      16px;
-  --text-color:     #333;
   --line-height:    1.6;
 }
 
-/*========================================
-=               RESETS                  =
-========================================*/
+/*=========================================================================*/
+/*  1.  GLOBAL RESET                                                       */
+/*      -----------------------------------------------------------------  */
+/*      Strip default margins / paddings and use border‑box for layout.    */
+/*=========================================================================*/
 *,
 *::before,
 *::after {
@@ -32,206 +46,342 @@
   padding: 0;
 }
 
-/*========================================
-=            GLOBAL STYLES              =
-========================================*/
+/*=========================================================================*/
+/*  2.  GLOBAL LAYOUT & TYPOGRAPHY                                         */
+/*=========================================================================*/
 body {
+  /* flex layout -------------------------------------------------------- */
   display: flex;
   flex-direction: column;
-  justify-content: center;     /* default: center if no intro */
+  justify-content: center;      /* overridden by .has-intro               */
   align-items: center;
+
+  /* sizing / spacing --------------------------------------------------- */
   min-height: 100vh;
   padding: var(--page-padding);
+
+  /* visual ------------------------------------------------------------- */
   background: var(--bg-page);
+  color: var(--text-color);
+
+  /* typography --------------------------------------------------------- */
   font-family: var(--font-main);
   font-size: var(--font-size);
   line-height: var(--line-height);
-  color: var(--text-color);
 }
 
-/*========================================
-=       INTRO vs NO-INTRO STATES        =
-========================================*/
-/* When intro is present: intro at top, grid below */
+/*=========================================================================*/
+/*  3.  CONDITIONAL LAYOUT STATES                                          */
+/*=========================================================================*/
+/* 3a.  Body when an intro paragraph is present ------------------------- */
 body.has-intro {
-  justify-content: flex-start;
+  justify-content: flex-start;           /* push content to top           */
 }
 body.has-intro .page-intro {
+  /* layout */
   width: 100%;
   max-width: var(--intro-max);
+
+  /* spacing */
   margin-top: 2em;
   margin-bottom: 1.5em;
+
+  /* text */
   text-align: left;
 }
 body.has-intro .feature-grid {
-  margin-bottom: auto; /* push grid down if tall */
+  margin-bottom: auto;                   /* grid grows downward           */
 }
 
-/* When no intro: grid pushed toward bottom */
-/* body.no-intro {
-  justify-content: flex-end;
-}
+/* 3b.  Body with no intro — kept for future use ------------------------ */
+/*
+body.no-intro          { justify-content: flex-end; }
 body.no-intro .feature-grid {
   margin-top: auto;
   margin-bottom: 2em;
-} */
+}
+*/
 
-/*========================================
-=         INTRO AND GRID LAYOUT         =
-========================================*/
+/*=========================================================================*/
+/*  4.  INTRO / README BLOCK                                              */
+/*=========================================================================*/
 .page-intro {
-  /* placeholder to avoid empty‐rule warnings */
-  display: block;
+  display: block;                         /* ensure element participates   */
 }
-/* small, readable “readme” block at top */
+
+/* “readme” flavour of intro ------------------------------------------- */
 .page-intro.readme {
-  max-width:    600px;
-  width:        100%;
-  margin:       1.5em auto;
-  font-size:    0.85rem;      /* smaller for tight windows */
-  line-height:  1.4;
-  text-align:   left;
-  margin-top: 1em;          /* half the previous space */
-  margin-bottom: 1.5em;
-}
+  /* layout */
+  width: 100%;
+  max-width: 600px;
 
-/* tighter spacing for lists */
-.page-intro.readme h1 {
-  font-size: 1.2rem;
-  margin-bottom: 0.75em;
-}
+  /* spacing */
+  margin-block: 1em 1.5em;                /* top  bottom                  */
+  margin-inline: auto;                    /* left right (centred)         */
 
-.page-intro.readme ol {
-  padding-left: 1.2em;
-}
-
-.page-intro.readme li {
-  margin-bottom: 0.6em;
-}
-
-.page-intro.readme ul {
-  padding-left: 1em;
-  list-style-type: disc;
-  margin-top: 0.3em;
-}
-
-.page-intro.readme ul li {
-  margin-bottom: 0.4em;
-  font-size: 0.83rem;
-}
-
-
-/* smaller, gray-boxed code blocks */
-.page-intro.readme pre {
-  background-color: #f5f5f5;  /* light gray background */
-  border: 1px solid #ddd;     /* subtle border */
-  border-radius: 4px;
-  padding: 8px;
-  font-size: 0.75rem;         /* slightly smaller code font */
+  /* typography */
+  font-size: 0.85rem;
   line-height: 1.4;
-  overflow-x: auto;           /* horizontal scroll if needed */
-  margin: 0.8em 0;            /* space around the block */
+
+  /* text alignment */
+  text-align: left;
 }
 
+/*  tighter spacing for headings & lists inside .readme ---------------- */
+.page-intro.readme h1   { font-size: 1.2rem; margin-bottom: 0.75em; }
+.page-intro.readme ol   { padding-left: 1.2em; }
+.page-intro.readme li   { margin-bottom: 0.6em; }
+.page-intro.readme ul   { padding-left: 1em; margin-top: 0.3em; list-style: disc; }
+.page-intro.readme ul li{ margin-bottom: 0.4em; font-size: 0.83rem; }
+
+/* code snippets inside .readme ---------------------------------------- */
+.page-intro.readme pre {
+  /* visual */
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: none;
+
+  /* spacing / sizing */
+  padding: 8px;
+  margin: 0.8em 0;
+  overflow-x: auto;
+
+  /* typography */
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+/*=========================================================================*/
+/*  5.  FEATURE GRID                                                      */
+/*=========================================================================*/
 .feature-grid {
+  /* CSS‑grid layout */
   display: grid;
   grid-gap: var(--grid-gap);
-  grid-template-columns: repeat(
-    auto-fill,
-    minmax(var(--grid-min), 1fr)
-  );
-  width: 100%;
+  grid-template-columns: repeat(auto-fill, minmax(var(--grid-min), 1fr));
+
+  /* alignment */
   justify-content: center;
   align-items: start;
+
+  /* sizing */
+  width: 100%;
 }
 
-/*========================================
-=     INPUTS, BUTTONS & FORM STYLES      =
-========================================*/
-input, button {
+/*=========================================================================*/
+/*  6.  BASE FORM CONTROLS (INPUTS & BUTTONS)                              */
+/*=========================================================================*/
+input,
+button {
+  /* typography */
   font-family: var(--font-main);
   font-size: var(--font-size);
+
+  /* box model */
   border: var(--border);
   border-radius: var(--border-radius);
   box-shadow: var(--shadow);
   outline: none;
 }
 
-input {
-  padding: 10px 20px; /* separate if you like different sizing */
-}
+/* individual inputs --------------------------------------------------- */
+input { padding: 10px 20px; }
 
+/* interactive button -------------------------------------------------- */
 button {
+  /* box model */
   padding: var(--btn-pad-v) var(--btn-pad-h);
+
+  /* visual */
   background-color: var(--bg-btn);
   cursor: pointer;
-  text-transform: capitalize;
   transition: background-color 0.3s ease;
-  position: relative;    /* preserve if later you readd tooltips */
-}
 
-button:hover {
-  background-color: var(--bg-btn-hover);
-}
+  /* behaviour ‑ tooltip stacking context */
+  position: relative;
 
+  /* text */
+  text-transform: capitalize;
+}
+button:hover { background-color: var(--bg-btn-hover); }
+
+/*=========================================================================*/
+/*  7.  CONFIG‑FORM WRAPPERS (SCROLLABLE FORM MODULE)                      */
+/*=========================================================================*/
+/* 7a.  Outer shell — provides outside margin and prevents clipping ------ */
 .config-form {
-  max-height: 50vh;      /* leave room for buttons below */
+  margin: 2rem 0;          /* vertical breathing room */
+  overflow: visible;       /* tool‑tips may overflow */
+}
+
+/* 7b.  Inner wrapper — scrollable box with border & padding ------------- */
+.scroll-wrapper {
+  /* layout */
+  max-height: 50vh;
   overflow-y: auto;
-  margin-bottom: 1rem;
-  padding: 0.5rem;
-  border: 1px solid #ddd;
+
+  /* box model */
+  padding: 1.5rem;
+  border: 1.5px solid #00008169;
+  border-radius: 8px;
+  box-sizing: border-box;
+
+  /* visual */
+  box-shadow: inset 0 0 8px #00008132;
+
+  width: 100%;        /* full width */
+  min-width: 650px;   /* width of form window */
 }
 
-/* 1) Thicker, more spaced‐out border */
-.config-form {
-  padding: 1.5rem;               /* ↑ room between border and inputs */
-  margin: 2rem 0;                /* ↑ vertical breathing room around the box */
-  border: 1.5px solid #00008169;        /* ↑ thicker, slightly darker border */
-  border-radius: 8px;            /* softened corners */
-  
-  /* 2) Gentle drop‐shadow for a lifted look */
-  box-shadow: inset 0 0px 8px #00008132;  /* inner shadow */
-}
-
+/*=========================================================================*/
+/*  8.  FORM‑GROUP (LABEL + FIELD ROWS)                                    */
+/*=========================================================================*/
 .feature-form .form-group {
-  display: flex;
+  /* grid layout for label / input */
+  display: grid;
+  grid-template-columns: max-content auto 1fr;
+  grid-column-gap: 8px;
   align-items: center;
-  margin-bottom: 0.5rem;
+
+  /* spacing */
+  margin-bottom: 0.75rem;
+
+  /* stacking context for tooltip */
+  position: relative;
+  z-index: 1;
 }
 
+/* label <span> inside the group --------------------------------------- */
 .feature-form .form-group > span {
-  flex: 0 0 150px;       /* label column */
+  flex: 0 0 150px;    /* fixed label width */
   padding-right: 0.5rem;
 }
 
-/* Give each fieldset some padding so the box sits around its contents */
+/* fieldsets ----------------------------------------------------------- */
 .feature-form fieldset {
-  padding: 1rem;           /* space inside the box */
-  margin: 1rem 0;          /* vertical spacing between groups */
-  border: 0.8px solid #00008169;  /* match your existing borders */
-  border-radius: 6px;      /* soften the corners */
+  /* box model */
+  padding: 1rem;
+  margin: 1rem 0;
+  border: 0.8px solid #00008169;
+  border-radius: 6px;
 }
-
-/* Push the legend label inward so it doesn’t collide with the border */
 .feature-form fieldset legend {
-  padding: 0 0.5rem;       /* space left/right of the text */
-  margin-left: 1rem;       /* move it right of the box’s left edge */
-  font-weight: 600;        /* stand out a bit */
-  background: white;       /* cover the border behind */
+  /* spacing */
+  padding: 0 0.5rem;
+  margin-left: 1rem;
+
+  /* typography */
+  font-weight: 600;
 }
 
-/*========================================
-=          LOGIN PAGE OVERRIDES         =
-========================================*/
+/* individual inputs in the form -------------------------------------- */
+.feature-form input {
+  width: 200px;          /* text / number inputs */
+  box-sizing: border-box;
+  justify-self: end;
+}
+/* checkbox tweaks ----------------------------------------------------- */
+.feature-form input[type="checkbox"] {
+  width: auto;
+  margin-right: 90px;
+}
+
+/*=========================================================================*/
+/*  9.  TOOLTIP ICON & FLYOUT                                              */
+/*=========================================================================*/
+.tooltip-icon {
+  /* interaction */
+  cursor: help;
+
+  /* layout */
+  position: relative;
+  margin-left: 4px;
+
+  /* text */
+  font-size: 0.9em;
+  color: #666;
+}
+
+/* floating tooltip element ------------------------------------------- */
+.tooltip-box {
+  /* positioning */
+  position: fixed;
+  z-index: 10000;
+
+  /* box model */
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+
+  /* visual */
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,.20);
+  opacity: 0;                        /* initial state (hidden) */
+  transition: opacity .12s ease;
+
+  /* text */
+  font-size: 0.85rem;
+  white-space: nowrap;
+
+  /* misc */
+  pointer-events: none;              /* ignore mouse            */
+}
+.tooltip-box.show { opacity: 1; }
+
+/*=========================================================================*/
+/*  10. LOGIN PAGE OVERRIDES                                              */
+/*=========================================================================*/
 .login-box {
+  /* flex layout */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  /* spacing between stacked items */
+  gap: 12px;
+}
+.logo {
+  width: 300px;
+  margin-bottom: 20px;
+}
+
+/*=========================================================================*/
+/*=========================================================================*/
+/*=========================================================================*/
+
+/* centred translucent overlay */
+#busy-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(255,255,255,0.6);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 12px;
+  z-index: 20000;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #000081;
 }
 
-.logo {
-  width: 300px;
-  margin-bottom: 20px;
+/* simple spinner */
+#busy-overlay .spinner {
+  width: 48px;
+  height: 48px;
+  border: 6px solid #d0d3ff;
+  border-top-color: #000081;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+
+.agents-panel {
+  /* visual grouping without touching .page-intro or .feature-grid */
+  padding: 1rem 0;
+  border-top: 1px solid #eee;   /* thin separator line */
+  margin-top: 1rem;
 }

@@ -1,4 +1,4 @@
-// renderer/features/1_1_hosting/setup.js
+// renderer/features/hosting/setup.js
 ;(async function(){
   const { initForm } = require('../../common/form-builder');
 

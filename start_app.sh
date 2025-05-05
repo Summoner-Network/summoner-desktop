@@ -4,11 +4,23 @@ set -e
 # ─────────────────────────────────────────────────────
 #               Variables & Paths
 # ─────────────────────────────────────────────────────
-ROOT="$(cd "$(dirname "$0")" && pwd)"
-WORKSPACE="$ROOT/working_space"
-SRC="$WORKSPACE/summoner-src"
-VENVDIR="$WORKSPACE/venv"
-DATA="$SRC/desktop_data"
+# ROOT="$(cd "$(dirname "$0")" && pwd)"
+# WORKSPACE="$ROOT/working_space"
+# SRC="$WORKSPACE/summoner-src"
+# VENVDIR="$WORKSPACE/venv"
+# DATA="$SRC/desktop_data"
+# ─────────────────────────────────────────────────────
+#               Variables & Paths
+# ─────────────────────────────────────────────────────
+# Use $XDG_DATA_HOME if defined, else fall back to ~/.local/share
+DATAROOT="${XDG_DATA_HOME:-$HOME/.local/share}"
+WORKSPACE="$DATAROOT/summoner"         # hidden per‑user dir
+
+ROOT="$(cd "$(dirname "$0")" && pwd)"  # directory containing this script
+SRC="$WORKSPACE/summoner-src"          # shallow clone of SDK
+VENVDIR="$WORKSPACE/venv"              # python virtualenv
+DATA="$SRC/desktop_data"               # default JSON shipped in repo
+
 
 # ─────────────────────────────────────────────────────
 # Bootstrap: clone repo, create venv, reinstall SDK & Rust
@@ -70,6 +82,13 @@ case "$1" in
       . "$VENVDIR/bin/activate"
     fi
     echo "✅ Workspace ready at $WORKSPACE"
+    exit 0
+    ;;
+
+  delete)
+    echo "🔄 Deleting workspace..."
+    rm -rf "$WORKSPACE"
+    echo "✅ Deletion complete"
     exit 0
     ;;
 

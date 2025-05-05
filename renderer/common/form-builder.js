@@ -1,32 +1,57 @@
 // renderer/common/form-builder.js
-// Shared form builder: fetches JSON defaults/tooltips and populates a form container.
-
 const { ipcRenderer } = require('electron');
 
-/**
- * Fetch configuration JSON from the main process via IPC.
- * Returns an object with { defaults, tooltips }.
- */
 async function fetchConfig() {
   let defaults, tooltips;
   try {
     defaults = await ipcRenderer.invoke('load-defaults');
     tooltips = await ipcRenderer.invoke('load-tooltips');
   } catch (e) {
-    console.warn('Could not load SDK JSON, using minimal defaults', e);
+    console.warn('Could not load SDK JSON; using minimal defaults.', e);
     defaults = { version: 'rss_2', hyper_parameters: {} };
     tooltips = {};
   }
   return { defaults, tooltips };
 }
 
-/**
- * Recursively build form fields based on a defaults object and tooltips.
- * @param {HTMLElement} container - The <form> or container element
- * @param {object} obj - The defaults object hierarchy
- * @param {object} tipObj - The tooltips hierarchy
- * @param {string} prefix - Internal: dot-prefixed path for nested keys
- */
+// -------- simple portal tooltip -------------------------------------------
+function attachTooltip(icon) {
+  const txt = icon.getAttribute('data-tip');
+  if (!txt) return;                       // nothing to show
+
+  function show() {
+    // 1) create
+    const tip = document.createElement('div');
+    tip.className = 'tooltip-box';
+    tip.textContent = txt;
+    document.body.appendChild(tip);
+
+    // 2) position (centered above the icon, 6 px gap)
+    const r   = icon.getBoundingClientRect();
+    const tr  = tip.getBoundingClientRect();      // width after paint
+    const left = Math.round(r.left + r.width/2 - tr.width/2);
+    const top  = Math.round(r.top  - tr.height - 6);
+    tip.style.left = `${Math.max(4, Math.min(left, window.innerWidth - tr.width - 4))}px`;
+    tip.style.top  = `${Math.max(4, top)}px`;
+
+    // 3) fade in
+    requestAnimationFrame(() => tip.classList.add('show'));
+    icon._tip = tip;
+  }
+
+  function hide() {
+    if (icon._tip) {
+      icon._tip.remove();
+      icon._tip = null;
+    }
+  }
+
+  icon.addEventListener('mouseenter', show);
+  icon.addEventListener('mouseleave', hide);
+  icon.addEventListener('blur',      hide);   // keyboard support
+}
+
+
 function buildFields(container, obj, tipObj, prefix = '') {
   Object.entries(obj).forEach(([key, val]) => {
     const name = prefix ? `${prefix}.${key}` : key;
@@ -39,14 +64,29 @@ function buildFields(container, obj, tipObj, prefix = '') {
       fieldset.appendChild(legend);
       buildFields(fieldset, val, tipObj ? tipObj[key] : {}, name);
       container.appendChild(fieldset);
+
     } else {
+      // --- primitive field ---
       const label = document.createElement('label');
       label.classList.add('form-group');
-      if (tip) label.title = tip;
+      if (tip) {
+        label.setAttribute('data-tip', tip);        // tooltip on the label
+      }
 
       const span = document.createElement('span');
       span.textContent = key.replace(/_/g, ' ');
       label.appendChild(span);
+
+    // if we have a tip, add an explicit icon with data-tip
+    if (tip) {
+        const icon = document.createElement('span');
+        icon.classList.add('tooltip-icon');
+        icon.setAttribute('data-tip', tip);
+        icon.textContent = 'ℹ️';          // or any small “i” icon you like
+        label.appendChild(icon);
+
+        attachTooltip(icon);
+    }
 
       const input = document.createElement('input');
       if (typeof val === 'boolean') {
@@ -60,16 +100,16 @@ function buildFields(container, obj, tipObj, prefix = '') {
         input.value = val;
       }
       input.name = name;
+      if (tip) {
+        input.setAttribute('data-tip', tip);        // **also** tooltip on the input
+      }
+
       label.appendChild(input);
       container.appendChild(label);
     }
   });
 }
 
-/**
- * Initialize and render a form in the given selector.
- * @param {string} formSelector - CSS selector for the form container (e.g., '#server-form')
- */
 async function initForm(formSelector) {
   const { defaults, tooltips } = await fetchConfig();
   const form = document.querySelector(formSelector);
