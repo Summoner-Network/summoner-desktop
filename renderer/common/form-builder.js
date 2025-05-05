@@ -1,6 +1,8 @@
 // renderer/common/form-builder.js
 // Shared form builder: fetches JSON defaults/tooltips and populates a form container.
 
+const { ipcRenderer } = require('electron');
+
 /**
  * Fetch configuration JSON from the main process via IPC.
  * Returns an object with { defaults, tooltips }.
@@ -8,8 +10,8 @@
 async function fetchConfig() {
   let defaults, tooltips;
   try {
-    defaults = await window.api.loadDefaults();
-    tooltips = await window.api.loadTooltips();
+    defaults = await ipcRenderer.invoke('load-defaults');
+    tooltips = await ipcRenderer.invoke('load-tooltips');
   } catch (e) {
     console.warn('Could not load SDK JSON, using minimal defaults', e);
     defaults = { version: 'rss_2', hyper_parameters: {} };
@@ -68,7 +70,7 @@ function buildFields(container, obj, tipObj, prefix = '') {
  * Initialize and render a form in the given selector.
  * @param {string} formSelector - CSS selector for the form container (e.g., '#server-form')
  */
-export async function initForm(formSelector) {
+async function initForm(formSelector) {
   const { defaults, tooltips } = await fetchConfig();
   const form = document.querySelector(formSelector);
   if (!form) {
@@ -77,3 +79,5 @@ export async function initForm(formSelector) {
   }
   buildFields(form, defaults, tooltips);
 }
+
+module.exports = { initForm };

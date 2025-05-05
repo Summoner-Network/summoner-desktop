@@ -37,6 +37,22 @@ app.whenReady().then(() => {
     execSync(cmd, { stdio: 'inherit' });
   });
 
+    // === Load defaults and tooltips for form-builder.js ===
+  ipcMain.handle('load-defaults', () => {
+    const root    = app.getAppPath();
+    const dataDir = path.join(root, 'working_space', 'summoner-src', 'desktop_data');
+    const cfgPath = path.join(dataDir, 'default_config.json');
+    return JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
+  });
+
+  ipcMain.handle('load-tooltips', () => {
+    const root    = app.getAppPath();
+    const dataDir = path.join(root, 'working_space', 'summoner-src', 'desktop_data');
+    const tipPath = path.join(dataDir, 'tooltips.json');
+    return JSON.parse(fs.readFileSync(tipPath, 'utf-8'));
+  });
+
+
   // === end IPC handler ===
 
   app.on('activate', () => {

@@ -182,6 +182,17 @@ button:hover {
   border: 1px solid #ddd;
 }
 
+/* 1) Thicker, more spaced‐out border */
+.config-form {
+  padding: 1.5rem;               /* ↑ room between border and inputs */
+  margin: 2rem 0;                /* ↑ vertical breathing room around the box */
+  border: 1.5px solid #00008169;        /* ↑ thicker, slightly darker border */
+  border-radius: 8px;            /* softened corners */
+  
+  /* 2) Gentle drop‐shadow for a lifted look */
+  box-shadow: inset 0 0px 8px #00008132;  /* inner shadow */
+}
+
 .feature-form .form-group {
   display: flex;
   align-items: center;
@@ -191,6 +202,22 @@ button:hover {
 .feature-form .form-group > span {
   flex: 0 0 150px;       /* label column */
   padding-right: 0.5rem;
+}
+
+/* Give each fieldset some padding so the box sits around its contents */
+.feature-form fieldset {
+  padding: 1rem;           /* space inside the box */
+  margin: 1rem 0;          /* vertical spacing between groups */
+  border: 0.8px solid #00008169;  /* match your existing borders */
+  border-radius: 6px;      /* soften the corners */
+}
+
+/* Push the legend label inward so it doesn’t collide with the border */
+.feature-form fieldset legend {
+  padding: 0 0.5rem;       /* space left/right of the text */
+  margin-left: 1rem;       /* move it right of the box’s left edge */
+  font-weight: 600;        /* stand out a bit */
+  background: white;       /* cover the border behind */
 }
 
 /*========================================
