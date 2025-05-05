@@ -130,15 +130,15 @@ EOF
       echo "❌ Default config missing: $DEFAULT_CFG"
       exit 1
     fi
-    cp "$DEFAULT_CFG" "$WORKSPACE/server_config.json"
+    cp "$DEFAULT_CFG" "$WORKSPACE/default_config.json"
     cat > "$WORKSPACE/test_server.py" <<'EOF'
 from summoner.server import SummonerServer
 
 if __name__ == "__main__":
     srv = SummonerServer(name="ElectronTestServer")
-    srv.run(config_path="server_config.json")
+    srv.run(config_path="default_config.json")
 EOF
-    LAUNCH_CMD="source \"$VENVDIR/bin/activate\" && python test_server.py --config server_config.json"
+    LAUNCH_CMD="source \"$VENVDIR/bin/activate\" && python test_server.py --config default_config.json"
     bash "$SRC/open_server.sh" "$WORKSPACE" "$LAUNCH_CMD"
     ;;
 

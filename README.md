@@ -1,4 +1,4 @@
-<p align="center">  
+<p style="text-align: center;">  
 <img width="500px" src="assets/logo.png" />  
 </p>
 
@@ -79,7 +79,7 @@ You should see a desktop app open with a login screen. After logging in, you’l
 
 ### ✨ Preview
 
-<p align="center">  
+<p style="text-align: center;">  
   <img src="assets/demo2.gif" width="500"  
        style="border:1px solid #ddd;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.1)"/>  
 </p>

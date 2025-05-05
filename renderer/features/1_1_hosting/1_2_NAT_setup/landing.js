@@ -1,75 +1,18 @@
-const fs = require('fs');
-const path = require('path');
+;(function(){
+  const path           = require('path');
+  const { renderGrid } = require('../../../common/scanner');
 
-const featuresDir = __dirname;
-const grid       = document.getElementById('feature-grid');
-const entries    = fs.readdirSync(featuresDir, { withFileTypes: true });
+  const featuresDir = __dirname;
+  const grid        = document.getElementById('feature-grid');
 
-// 1) parse every entry that matches "row_col_rest(.js)?"
-const positioned = entries
-.map(dirent => {
-const m = dirent.name.match(
-/^(\d+)_(\d+)_(.+?)(?:\.js)?$/   // row_col_base[.js]
-);
-if (!m) return null;
-return {
-dirent,
-row      : +m[1],
-col      : +m[2],
-baseName : m[3],
-isDir    : dirent.isDirectory(),
-isJS     : dirent.isFile() && dirent.name.endsWith('.js')
-};
-})
-.filter(x => x !== null);
-
-// 2) compute how many columns we need
-const maxCols = Math.max(...positioned.map(p => p.col), 0);
-
-// 3) set up the grid
-grid.style.gridTemplateColumns = `repeat(${maxCols}, auto)`;
-
-// 4) create buttons in any order (CSS-Grid will place them)
-positioned.forEach(({ dirent, row, col, baseName, isDir, isJS }) => {
-    const btn = document.createElement('button');
-    
-    btn.textContent = baseName
-    .replace(/^button_/, '')    // strip off “button_”
-    .replace(/_/g, ' ');        // turn underscores into spaces
-
-    // special back-folder case
-    if (isDir && dirent.name.endsWith('_back')) {
-        btn.addEventListener('click', () => {
-        window.location.href = '../../1_1_hosting/index.html';
-        });
-        }
-    // directory → load index.html
-    else if (isDir) {
-        btn.addEventListener('click', () => {
-        window.location.href = `${dirent.name}/index.html`;
-        });
-        }
-    // js file → require() it
-    else if (isJS) {
-        btn.addEventListener('click', () => {
-        try {
-            require(path.join(featuresDir, dirent.name))();
-        } catch (e) {
-            console.error('Error executing', dirent.name, e);
-            alert('Failed to run ' + dirent.name);
-            }
-        });
-        }
-
-    // place it in the grid
-    btn.style.gridRowStart    = row;
-    btn.style.gridColumnStart = col;
-    grid.appendChild(btn);
-
-    if ( document.querySelector('.page-intro') ) {
-    document.body.classList.add('has-intro');
-    } else {
-    document.body.classList.add('no-intro');
+  renderGrid(grid, featuresDir, {
+    baseUrl: '..',
+    onDir: (name) => {
+      if (name.endsWith('_back')) {
+        window.location.href = '../index.html';
+      } else {
+        window.location.href = `${name}/index.html`;
+      }
     }
-    
-});
+  });
+})();

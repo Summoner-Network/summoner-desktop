@@ -68,13 +68,13 @@ body.has-intro .feature-grid {
 }
 
 /* When no intro: grid pushed toward bottom */
-body.no-intro {
+/* body.no-intro {
   justify-content: flex-end;
 }
 body.no-intro .feature-grid {
   margin-top: auto;
   margin-bottom: 2em;
-}
+} */
 
 /*========================================
 =         INTRO AND GRID LAYOUT         =
