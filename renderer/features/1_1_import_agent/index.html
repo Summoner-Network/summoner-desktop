@@ -1,13 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Click Me</title>
+  <title>Import an Agent</title>
   <link rel="stylesheet" href="../../style.css">
 </head>
+
 <body>
+<!-- 
+<div class="title-wrapper">
+<span style="font-size: 180%;">
+<img 
+src="../../../assets/mage_1.gif" 
+class="logo" 
+alt="App Logo"
+style="height: 2em; vertical-align: middle; width: auto; margin: 0;"
+>
+<span style="
+font-weight: 700;
+color: #000081;
+font-size: 120%;
+">
+Add Local or GitHub Agent
+</span>
+</span>
+<div style="color: #00008163; margin-top: -0.2em;">
+<em>Choose an import method to bring an agent into your local workspace.</em>
+</div>
+</div> -->
+
+
+<body>
+  <div class="feature-header" style="margin-top: -3rem;">
+    <span style="font-size: 180%">
+      <img src="../../../assets/mage_1.gif" class="logo" alt="App Logo"
+           style="height:2em; vertical-align:middle; width:auto; margin:0">
+      <span style="font-weight:700; color:#000081; font-size:120%">
+       Add Local or GitHub Agent
+      </span>
+    </span>
+    <div style="color: #00008163; margin-top:0.25rem">
+      <em>Choose an import method to bring an agent into your local workspace.</em>
+    </div>
+  </div>
+
+
+  <!-- GitHub import form -->
+  <div class="feature-form agent-import-form">
+        <fieldset>
+        <legend>
+        <img 
+          src="../../../assets/github-mark.svg" 
+          alt="" 
+          style="width:2em; vertical-align:middle; margin-right:0.1em">
+        GitHub Imports
+      </legend>
+      <div class="form-group">
+        <span>GitHub User</span>
+        <input id="github-user" type="text" placeholder="GitHub username (e.g. octocat)">
+      </div>
+      <div class="form-group">
+        <span>Repository</span>
+        <input id="github-repo" type="text" placeholder="Repo name (e.g. hello-world)">
+      </div>
+      <div class="form-group">
+        <span>Branch (optional)</span>
+        <input id="github-branch" type="text" placeholder="Git branch (defaults to main)">
+      </div>
+      <div class="form-group">
+        <span>Subpath (optional)</span>
+        <input id="github-path" type="text" placeholder="Optional subfolder path (e.g. src/agents/demo)">
+      </div>
+      <div class="form-group">
+        <span>Agent Name</span>
+        <input id="github-name" type="text" placeholder="Assign a reference name (e.g. demo_agent)">
+      </div>
+    </fieldset>
+  </div>
+
+  <!-- Scanner will render "Add Locally", "Import from GitHub", and "Back" buttons -->
   <div id="feature-grid" class="feature-grid"></div>
+
   <script src="landing.js"></script>
 </body>
 </html>

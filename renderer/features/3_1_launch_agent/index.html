@@ -3,24 +3,47 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Launch Agent</title>
-
-  <!-- your shared styles -->
+  <title>Build Agents</title>
   <link rel="stylesheet" href="../../style.css" />
 </head>
 <body>
-  <div class="page-intro agents-panel">
-    <h1>Installed agents</h1>
+
+<body>
+  <div class="feature-header" style="margin-top: 3rem;">
+    <span style="font-size: 180%">
+      <img src="../../../assets/mage_1.gif" class="logo" alt="App Logo"
+           style="height:2em; vertical-align:middle; width:auto; margin:0">
+      <span style="font-weight:700; color:#000081; font-size:120%">
+      Summoner's Agent Portal
+      </span>
+    </span>
+    <div style="color: #00008163; margin-top:0.25rem">
+      <em>Pick one or more agents and hit <b>Launch</b> to start them running immediately.</em>
+    </div>
+  </div>
+
+  <!-- 1) Scrollable agent list -->
+  <div id="agent-list" class="agent-list"></div>
+
+  <!-- 2) API Key field (asterisk inside legend) -->
+  <div class="feature-form agent-build-form">
+    <fieldset>
+      <legend>Summoner API Key <span style="color:red">*</span></legend>
+      <div class="form-group">
+        <span>API Key</span>
+        <input id="api-key" type="password"
+               placeholder="Enter your Summoner API key">
+      </div>
+      <p class="legend-note">
+        <span style="color:red">*</span> Required for cloud or remote agents
+      </p>
+    </fieldset>
   </div>
 
   <div id="feature-grid" class="feature-grid"></div>
 
-
-  <!--  page logic (runs first)  -->
-  <script src="agents.js"></script>
-  <!--  generic grid‑scanner (runs second, reuses feature-grid styles) -->
+  <!-- 4) List logic and scanner wiring -->
+  <script src="list_agents.js"></script>
   <script src="landing.js"></script>
 </body>
-
 </html>
-

@@ -2,13 +2,16 @@
 set -e
 
 # ─────────────────────────────────────────────────────
-#               Variables & Paths
+# PATH safeguard – works even from GUI shells / cron
 # ─────────────────────────────────────────────────────
-# ROOT="$(cd "$(dirname "$0")" && pwd)"
-# WORKSPACE="$ROOT/working_space"
-# SRC="$WORKSPACE/summoner-src"
-# VENVDIR="$WORKSPACE/venv"
-# DATA="$SRC/desktop_data"
+export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
+# quick sanity-check (coreutils + git + python must exist)
+for bin in mkdir git python3; do
+  command -v "$bin" >/dev/null || {
+    echo "❌ '$bin' not found in PATH – current PATH is: $PATH"
+    exit 1
+  }
+done
 # ─────────────────────────────────────────────────────
 #               Variables & Paths
 # ─────────────────────────────────────────────────────
