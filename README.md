@@ -152,25 +152,79 @@ You should see a desktop app open with a login screen. After logging in, you’l
 ## 🧩 Project Structure
 
 ```
-renderer/
-├── features/
-│   ├── 1_1_hosting/
-│   │   ├── 1_1_button_open_router.js   # JS-based button at row 1, col 1
-│   │   ├── 1_2_back/                   # “Back” folder with empty index.html
+renderer
+├── common
+│   ├── custom-alert.html
+│   ├── form-builder.js
+│   ├── overlay.js
+│   └── scanner.js
+├── features
+│   ├── 1_1_import_agent
+│   │   ├── 1_1_button_use_github.js        # JS-based button at row 1, col 1
+│   │   ├── 1_2_button_add_locally.js
+│   │   ├── 1_3_back                        # “Back” folder with empty index.html
 │   │   │   └── index.html
-│   │   ├── index.html                  # hosting landing page
+│   │   ├── index.html                      # hosting landing page
 │   │   └── landing.js
-│   ├── 1_2_quit/
-│   │   └── index.html                  # quit button
-│   └── 1_3_template_button/            # template with Back & landing logic
-│       ├── 1_1_back/
-│       │   └── index.html
-│       ├── index.html
-│       └── landing.js
-├── landing/
+│   ├── 1_2_host_server
+│   │   ├── 1_1_button_generate_and_run.js
+│   │   ├── 1_2_NAT_setup
+│   │   │   ├── 1_1_button_open_router.js
+│   │   │   ├── 1_2_back
+│   │   │   │   └── index.html
+│   │   │   ├── index.html
+│   │   │   └── landing.js
+│   │   ├── 1_3_back
+│   │   │   └── index.html
+│   │   ├── index.html
+│   │   ├── landing.js
+│   │   └── setup.js
+│   ├── 1_3_newsfeed
+│   │   ├── 1_1_back
+│   │   │   └── index.html
+│   │   ├── index.html
+│   │   └── landing.js
+│   ├── 2_1_build_agent
+│   │   ├── 1_1_button_generate.js
+│   │   ├── 1_2_button_recombine.js
+│   │   ├── 1_3_button_optimize.js
+│   │   ├── 1_4_back
+│   │   │   └── index.html
+│   │   ├── index.html
+│   │   ├── landing.js
+│   │   └── list_agents.js
+│   ├── 2_2_management
+│   │   ├── 1_1_back
+│   │   │   └── index.html
+│   │   ├── index.html
+│   │   └── landing.js
+│   ├── 2_3_settings
+│   │   ├── 1_1_button_reset_app.js
+│   │   ├── 1_2_back
+│   │   │   └── index.html
+│   │   ├── index.html
+│   │   └── landing.js
+│   ├── 3_1_launch_agent
+│   │   ├── 1_1_button_launch.js
+│   │   ├── 1_2_back
+│   │   │   └── index.html
+│   │   ├── index.html
+│   │   ├── landing.js
+│   │   └── list_agents.js
+│   ├── 3_2_performance
+│   │   ├── 1_1_back
+│   │   │   └── index.html
+│   │   ├── index.html
+│   │   └── landing.js
+│   └── 3_3_quit                            # quit button
+│       └── index.html
+├── landing
 │   ├── landing.html
 │   └── landing.js
-├── login/
+├── login
+│   ├── 1_1_button_login.js
+│   ├── index.html
+│   ├── landing.js
 │   └── login.html
 └── style.css
 main.js
