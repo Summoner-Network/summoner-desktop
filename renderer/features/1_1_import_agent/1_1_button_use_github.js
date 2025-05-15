@@ -10,7 +10,7 @@ module.exports = async function importFromGithub() {
   const name    = document.getElementById('github-name').value.trim();
 
   if (!user || !repo) {
-    return alert('Please provide both GitHub user and repository.');
+    return showAlert('Please provide both GitHub user and repository.');
   }
 
   showOverlay('Importing from GitHub…');
@@ -22,10 +22,10 @@ module.exports = async function importFromGithub() {
       path: subpath,
       name
     });
-    alert('Agent imported successfully.');
+    showAlert('Agent imported successfully.');
   } catch (err) {
     console.error('Failed to import agent:', err);
-    alert('Import failed. See console for details.');
+    showAlert('Import failed. See console for details.');
   } finally {
     hideOverlay();
   }

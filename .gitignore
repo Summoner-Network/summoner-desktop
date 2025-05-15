@@ -3,6 +3,9 @@
 start_app_*.sh
 working_space/
 todo.txt
+*.version_js
+*.version_sh
+main_*.js
 
 # Logs
 logs

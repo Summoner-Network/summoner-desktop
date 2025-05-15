@@ -1,24 +1,67 @@
-    {
+{
     "name": "summoner-desktop",
     "version": "1.0.0",
-    "description": "Desktop app for summoner",
+    "description": "Desktop GUI for Summoner",
     "main": "main.js",
-    "scripts": {
-        "prestart": "bash ./start_app.sh setup",
-        "start":    "electron ."
-        },
+    "author": "Remy Tuyeras <rtuyeras@summoner.to>",
+    "license": "UNLICENSED",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/Summoner-Network/summoner-desktop.git"
-        },
-    "keywords": [],
-    "author": "",
-    "license": "ISC",
+        "url": "https://github.com/Summoner-Network/summoner-desktop.git"
+    },
     "bugs": {
         "url": "https://github.com/Summoner-Network/summoner-desktop/issues"
-        },
+    },
     "homepage": "https://github.com/Summoner-Network/summoner-desktop#readme",
-    "devDependencies": {
-        "electron": "^35.1.5"
+    "scripts": {
+        "inject-alert": "node scripts/inject-alert.js",
+        "start": "npm run build:dev",
+        "build": "npm run dist",
+        "build:dev": "npm run inject-alert && electron .",
+        "pack": "npm run inject-alert && electron-builder --dir",
+        "dist": "npm run inject-alert && electron-builder --publish never"
+    },
+    "build": {
+        "appId": "com.remytuyeras.summoner",
+        "productName": "Summoner Desktop",
+        "asar": true,
+        "files": [
+            "**/*",
+            "!scripts/**"
+        ],
+        "extraResources": [
+            {
+                "from": "scripts",
+                "to": "scripts",
+                "filter": [
+                    "**/*.sh"
+                ]
+            }
+        ],
+        "mac": {
+            "icon": "assets/mage_gif/logo_mage.icns",
+            "target": [
+                "dmg",
+                "zip"
+            ]
+        },
+        "win": {
+            "icon": "assets/mage_gif/logo_mage.ico",
+            "target": [
+                "nsis"
+            ]
+        },
+        "linux": {
+            "icon": "assets/mage_gif/logo_mage.png",
+            "target": [
+                "AppImage",
+                "deb"
+            ]
         }
+    },
+    "devDependencies": {
+        "electron": "^35.1.5",
+        "electron-builder": "^26.0.12",
+        "glob": "^11.0.2"
     }
+}

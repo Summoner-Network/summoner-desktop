@@ -1,13 +1,42 @@
+<!-- renderer/login/index.html -->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Settings</title>
-  <link rel="stylesheet" href="../../style.css">
+  <title>Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=Arvo:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../style.css">
 </head>
-<body>
-  <div id="feature-grid" class="feature-grid"></div>
+<body class="login">
+  <div class="login-box">
+    <!-- <img src="../../assets/logo.png" class="logo" alt="App Logo"> -->
+
+    <p style="text-align: center;">
+      <div style="line-height: 1; margin-bottom: 0;">
+        <span style="font-size: 230%;">
+          <img src="../../assets/mage_1.gif" class="logo" alt="App Logo"
+              style="height: 2em; vertical-align: middle; width: auto; margin: 0;">
+          <span style="
+            font-family: 'Arvo', serif;
+            font-weight: 700;
+            color: #000081;
+            font-size: 120%;
+            letter-spacing: -0.02em;
+            text-transform: uppercase;
+          ">
+            SUMMONER
+          </span>
+          <sup><span style="font-size: 70%;color: #000081;">&reg;</span></sup>
+        </span>
+      </div>
+    </p>
+
+    <input id="username" name="username" type="text" placeholder="Username">
+    <input id="password" name="password" type="password" placeholder="Password">
+    <div id="feature-grid" class="feature-grid"></div>
+  </div>
   <script src="landing.js"></script>
 <!-- custom-alert.html -->
 <style>
@@ -96,7 +125,7 @@
 <div id="custom-alert">
   <div class="title-bar">Alert</div>
   <div class="content">
-    <img src="../../../assets/mage_3.gif" alt="icon" />
+    <img src="../../assets/mage_3.gif" alt="icon" />
     <p id="alert-text"></p>
   </div>
   <div class="button-bar">

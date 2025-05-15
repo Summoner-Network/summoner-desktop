@@ -10,7 +10,7 @@
     onDir: (name) => {
       if (name.endsWith('_quit')) {
         // “Quit” goes back to login
-        window.location.href = '../login/login.html';
+        window.location.href = '../login/index.html';
       } else {
         // Normal feature: open its index.html
         window.location.href = `../features/${name}/index.html`;

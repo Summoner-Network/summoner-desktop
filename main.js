@@ -1,29 +1,99 @@
-/* ─── top of main.js ──────────────────────────────────────────────── */
-const { app, BrowserWindow, ipcMain, shell } = require('electron');
-const path      = require('path');
-const fs        = require('fs');
-const { execSync, spawn } = require('child_process');   // keep both helpers
-/* ─────────────────────────────────────────────────────────────────── */
+'use strict';
 
+// main.js - Electron entry point for Summoner app
 
-const os   = require('os');
-function getWorkspaceDir() {
-  const dataRoot = process.env.XDG_DATA_HOME ||
-                   path.join(os.homedir(), '.local', 'share');
-  return path.join(dataRoot, 'summoner');   // same as $WORKSPACE
+// Core modules
+const { app, BrowserWindow, ipcMain, shell, dialog } = require('electron');
+const path = require('path');
+const fs = require('fs');
+const { spawn } = require('child_process');
+const os = require('os');
+
+// Logging utility for consistent prefixes
+function log(...args) {
+  console.log('[main]', ...args);
 }
 
-// main.js
+// Constants for paths and UI
+const WORKSPACE_SUBDIR = 'summoner';
+const SCRIPTS_SUBDIR = 'scripts';
+const AGENTS_DIRNAME = 'agents';
+const DEFAULT_WIDTH = 1000;
+const DEFAULT_HEIGHT = Math.round(DEFAULT_WIDTH / Math.SQRT2);
+
+// Determine the user's data directory (XDG_DATA_HOME or ~/.local/share)
+function getWorkspaceDir() {
+  const dataRoot = process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share');
+  const workspace = path.join(dataRoot, WORKSPACE_SUBDIR);
+  log('Workspace directory set to', workspace);
+  return workspace;
+}
+
+// Locate a shell script, whether in development or packaged mode
+function resolveScript(scriptName) {
+  const baseDir = app.isPackaged
+    ? path.join(process.resourcesPath, SCRIPTS_SUBDIR)
+    : path.join(__dirname, SCRIPTS_SUBDIR);
+  const fullPath = path.join(baseDir, scriptName);
+  log(`Resolving script: ${scriptName} -> ${fullPath}`);
+  if (!fs.existsSync(fullPath)) {
+    const errMsg = `Script not found: ${fullPath}`;
+    log(errMsg);
+    throw new Error(errMsg);
+  }
+  return fullPath;
+}
+
+// Spawn a bash process to execute the given script with arguments
+function runScript(scriptName, args = [], opts = {}) {
+  const scriptPath = resolveScript(scriptName);
+  const cwd = opts.cwd || process.cwd();
+  const env = opts.env || process.env;
+
+  log('Running script:', 'bash', scriptPath, ...args);
+  return new Promise((resolve, reject) => {
+    const child = spawn('bash', [scriptPath, ...args], { stdio: 'inherit', cwd, env });
+
+    child.on('exit', code => {
+      if (code === 0) {
+        log(`${scriptName} completed successfully (code 0)`);
+        resolve();
+      } else {
+        const err = new Error(`${scriptName} exited with code ${code}`);
+        log(err.message);
+        reject(err);
+      }
+    });
+
+    child.on('error', err => {
+      log(`Error spawning ${scriptName}:`, err);
+      reject(err);
+    });
+  });
+}
+
+// Map high-level agent actions to script verbs
+const ACTION_VERBS = {
+  generate:  'install',
+  launch:    'launch',
+  recombine: 'recombine',
+  optimize:  'optimize'
+};
+
+function mapActionToVerb(action) {
+  const verb = ACTION_VERBS[action];
+  if (!verb) {
+    throw new Error(`Unknown action: ${action}`);
+  }
+  return verb;
+}
+
+// Create the main application window
 function createWindow() {
-  // pick a comfortable width
-  const width = 1000;
-
-  // √2 ≈ 1.4142, so height = width / √2
-  const height = Math.round(width / Math.SQRT2);
-
+  log('Creating main window with size', DEFAULT_WIDTH, 'x', DEFAULT_HEIGHT);
   const win = new BrowserWindow({
-    width,
-    height,
+    width: DEFAULT_WIDTH,
+    height: DEFAULT_HEIGHT,
     resizable: true,
     minimizable: true,
     maximizable: true,
@@ -31,117 +101,98 @@ function createWindow() {
     minHeight: 300,
     webPreferences: {
       nodeIntegration: true,
-      contextIsolation: false,
+      contextIsolation: false
     }
   });
-
-  win.loadFile(path.join(__dirname, 'renderer/login/login.html'));
+  win.loadFile(path.join(__dirname, 'renderer', 'login', 'index.html'));
 }
 
-
-app.whenReady().then(() => {
-  createWindow();
-
-  // === IPC handler ===
-
-  ipcMain.handle('import-from-github', async (_, config) => {
-    const { user, repo, path: subpath = '', branch = 'main', name } = config;
-    const script = path.join(app.getAppPath(), 'handle_agent.sh');
-
-    // build download command
-    const args = ['download', '--user', user, '--repo', repo];
-    if (subpath) args.push('--path', subpath);
-    if (branch)  args.push('--branch', branch);
-    if (name)    args.push('--name', name);
-
-    const cmd = `bash "${script}" ${args.map(arg => `"${arg}"`).join(' ')}`;
+// Register IPC handlers for renderer-main communication
+function setupIPCHandlers() {
+  ipcMain.handle('run-setup', async () => {
+    log('IPC: run-setup');
+    const workspace = getWorkspaceDir();
+    fs.mkdirSync(workspace, { recursive: true });
     try {
-      execSync(cmd, { stdio: 'inherit' });
-      // Open the agents folder after import completes
-      const agentsDir = path.join(getWorkspaceDir(), 'agents');
-      shell.openPath(agentsDir);
+      await runScript('start_app.sh', ['setup'], { cwd: workspace });
       return { success: true };
     } catch (err) {
-      console.error('import-from-github failed:', err);
+      dialog.showErrorBox('Setup Error', err.message);
       throw err;
     }
   });
 
-  // === Agent actions (generate, recombine, optimize, launch) ===
-  ipcMain.handle('agent-action', async (_, { action, name, apiKey }) => {
-    const script     = path.join(app.getAppPath(), 'handle_agent.sh');
-    const args       = [];
-    // Map action to CLI verb
-    switch (action) {
-      case 'generate': args.push('install', '--name', name); break;
-      case 'launch':    args.push('launch', '--name', name); break;
-      case 'recombine': args.push('recombine', '--name', name); break;
-      case 'optimize':  args.push('optimize', '--name', name); break;
-      default:
-        throw new Error(`Unknown agent action: ${action}`);
-    }
-    // Prefix API key if provided
-    let cmd = `bash "${script}" ${args.map(a => `"${a}"`).join(' ')}`;
-    if (apiKey) cmd = `API_KEY="${apiKey}" ` + cmd;
-    // Execute
-    execSync(cmd, { stdio: 'inherit' });
+  ipcMain.handle('import-from-github', async (_, cfg) => {
+    log('IPC: import-from-github', cfg);
+    const args = ['download', '--user', cfg.user, '--repo', cfg.repo];
+    if (cfg.path)   args.push('--path',   cfg.path);
+    if (cfg.branch) args.push('--branch', cfg.branch);
+    if (cfg.name)   args.push('--name',   cfg.name);
+
+    await runScript('handle_agent.sh', args);
+    const agentsDir = path.join(getWorkspaceDir(), AGENTS_DIRNAME);
+    shell.openPath(agentsDir);
     return { success: true };
   });
 
-
-
-  ipcMain.handle('generate-and-run', (_, config) => {
-    const root       = app.getAppPath();
-    const starter    = path.join(root, 'start_app.sh');
-    const payload    = JSON.stringify(config);
-    const cmd        = `bash "${starter}" run '${payload}'`;
-
-    // this will clone/reinstall if needed, write myserver.py + config,
-    // and pop open a new Terminal window running your server
-    execSync(cmd, { stdio: 'inherit' });
+  ipcMain.handle('agent-action', async (_, { action, name, apiKey }) => {
+    log('IPC: agent-action', action, name);
+    const verb = mapActionToVerb(action);
+    const env = apiKey ? { ...process.env, API_KEY: apiKey } : process.env;
+    await runScript('handle_agent.sh', [verb, '--name', name], { env });
+    return { success: true };
   });
 
-  ipcMain.handle('reset-env', () => {
-    return new Promise((resolve, reject) => {
-      const starter = path.join(app.getAppPath(), 'start_app.sh');
-      const child   = spawn('bash', [starter, 'reset'], { stdio: 'inherit' });
+  ipcMain.handle('generate-and-run', async (_, cfg) => {
+    log('IPC: generate-and-run', cfg);
+    const payload = JSON.stringify(cfg);
+    await runScript('start_app.sh', ['run', payload], { cwd: getWorkspaceDir() });
+    return { success: true };
+  });
 
-      child.on('exit',   code => code === 0 ? resolve() : reject(new Error(`exit ${code}`)));
-      child.on('error',  reject);
-    });
+  ipcMain.handle('reset-env', async () => {
+    log('IPC: reset-env');
+    await runScript('start_app.sh', ['reset'], { cwd: getWorkspaceDir() });
+    return { success: true };
   });
 
   ipcMain.handle('open-agents-folder', () => {
-    const agentsDir = path.join(getWorkspaceDir(), 'agents');
-    fs.mkdirSync(agentsDir, { recursive: true });
-    shell.openPath(agentsDir);
+    log('IPC: open-agents-folder');
+    const dir = path.join(getWorkspaceDir(), AGENTS_DIRNAME);
+    fs.mkdirSync(dir, { recursive: true });
+    shell.openPath(dir);
   });
 
-    // === Load defaults and tooltips for form-builder.js ===
   ipcMain.handle('load-defaults', () => {
-    const root    = app.getAppPath();
-    // const dataDir = path.join(root, 'working_space', 'summoner-src', 'desktop_data');
-    const dataDir = path.join(getWorkspaceDir(), 'summoner-src', 'desktop_data');
-    const cfgPath = path.join(dataDir, 'default_config.json');
-    return JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
+    log('IPC: load-defaults');
+    const file = path.join(getWorkspaceDir(), 'summoner-src', 'desktop_data', 'default_config.json');
+    return JSON.parse(fs.readFileSync(file, 'utf-8'));
   });
 
   ipcMain.handle('load-tooltips', () => {
-    const root    = app.getAppPath();
-    // const dataDir = path.join(root, 'working_space', 'summoner-src', 'desktop_data');
-    const dataDir = path.join(getWorkspaceDir(), 'summoner-src', 'desktop_data');
-    const tipPath = path.join(dataDir, 'tooltips_short.json');
-    return JSON.parse(fs.readFileSync(tipPath, 'utf-8'));
+    log('IPC: load-tooltips');
+    const file = path.join(getWorkspaceDir(), 'summoner-src', 'desktop_data', 'tooltips_short.json');
+    return JSON.parse(fs.readFileSync(file, 'utf-8'));
   });
+}
 
+// Application lifecycle
+app.whenReady()
+  .then(() => {
+    createWindow();
+    setupIPCHandlers();
 
-  // === end IPC handler ===
-
-app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
+  })
+  .catch(err => {
+    log('Error initializing app:', err);
   });
-});
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
+  if (process.platform !== 'darwin') {
+    log('All windows closed. Quitting app.');
+    app.quit();
+  }
 });

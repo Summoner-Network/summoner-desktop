@@ -6,20 +6,20 @@ module.exports = async function () {
   const selected = Array.from(
     document.querySelectorAll('#agent-list input:checked')
   ).map(i => i.value);
-  if (!selected.length) return alert('Select at least one agent.');
+  if (!selected.length) return showAlert('Select at least one agent.');
 
   const apiKey = document.getElementById('api-key').value.trim();
-  if (!apiKey) return alert('API key required.');
+  if (!apiKey) return showAlert('API key required.');
 
   showOverlay('Recombining agents…');
   try {
     for (const name of selected) {
       await ipcRenderer.invoke('agent-action', { action: 'recombine', name, apiKey });
     }
-    alert('Recombine completed.');
+    showAlert('Recombine completed.');
   } catch (err) {
     console.error(err);
-    alert('Failed to recombine. Check console.');
+    showAlert('Failed to recombine. Check console.');
   } finally {
     hideOverlay();
   }

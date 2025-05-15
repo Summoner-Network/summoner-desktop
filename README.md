@@ -59,14 +59,78 @@ cd summoner-desktop
 
 ### 📥 3. Install project dependencies
 
-This installs Electron and other packages listed in `package.json`.
+Install all project dependencies and dev-only tools:
 
 ```bash
-npm install
+npm install && npm install glob electron-builder --save-dev
 ```
 
-If you see a `package-lock.json` file appear — that's expected. It tracks exact versions of dependencies for reproducibility.
+> 💡 glob is used by `scripts/inject-alert.js` to automatically find and modify all `renderer/**/index.html` pages before launching or packaging the app.
 
+
+### ⚙️ 4. Update your package.json scripts
+A build-time injection step has been added to insert a custom alert modal into every page, along with a setup hook that prepares user folders on first launch. Make sure your `"scripts"` section in `package.json` includes the following:
+
+```jsonc
+{
+    "name": "summoner-desktop",
+    // ...
+    "description": "Desktop GUI for Summoner",
+    "main": "main.js",
+    // ...
+    "scripts": {
+        "inject-alert": "node scripts/inject-alert.js",
+        "start": "npm run build:dev",
+        "build": "npm run dist",
+        "build:dev": "npm run inject-alert && electron .",
+        "pack": "npm run inject-alert && electron-builder --dir",
+        "dist": "npm run inject-alert && electron-builder --publish never"
+    },
+    "build": {
+        // ...
+        "productName": "Summoner Desktop",
+        "asar": true,
+        "files": [
+            "**/*",
+            "!scripts/**"
+        ],
+        "extraResources": [
+            {
+                "from": "scripts",
+                "to": "scripts",
+                "filter": [
+                    "**/*.sh"
+                ]
+            }
+        ],
+        "mac": {
+            "icon": "assets/mage_gif/logo_mage.icns",
+            "target": [
+                "dmg",
+                "zip"
+            ]
+        },
+        "win": {
+            "icon": "assets/mage_gif/logo_mage.ico",
+            "target": [
+                "nsis"
+            ]
+        },
+        "linux": {
+            "icon": "assets/mage_gif/logo_mage.png",
+            "target": [
+                "AppImage",
+                "deb"
+            ]
+        }
+    },
+    "devDependencies": {
+        "electron": "^35.1.5",
+        "electron-builder": "^26.0.12",
+        "glob": "^11.0.2"
+    }
+}
+```
 
 ### 🧪 4. Start the app
 

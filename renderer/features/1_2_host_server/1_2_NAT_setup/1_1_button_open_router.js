@@ -33,7 +33,7 @@ async function openRouter() {
 
   // none succeeded
   console.error("❌ No reachable router IP found");
-  alert("Could not detect any reachable router IP.");
+  showAlert("Could not detect any reachable router IP.");
 }
 
 // expose for require(…)  
