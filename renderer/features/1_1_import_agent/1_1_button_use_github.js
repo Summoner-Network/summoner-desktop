@@ -25,7 +25,7 @@ module.exports = async function importFromGithub() {
     showAlert('Agent imported successfully.');
   } catch (err) {
     console.error('Failed to import agent:', err);
-    showAlert('Import failed. See console for details.');
+    showAlert('Import failed. Please check your inputs. If the problem persists, open an issue on our GitHub.');
   } finally {
     hideOverlay();
   }

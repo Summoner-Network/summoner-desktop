@@ -109,6 +109,7 @@ function createWindow() {
 
 // Register IPC handlers for renderer-main communication
 function setupIPCHandlers() {
+
   ipcMain.handle('run-setup', async () => {
     log('IPC: run-setup');
     const workspace = getWorkspaceDir();
@@ -121,6 +122,26 @@ function setupIPCHandlers() {
       throw err;
     }
   });
+
+    ipcMain.handle('reset-env', async () => {
+    log('IPC: reset-env');
+    // ensure workspace exists so the script can cd into it
+    const workspace = getWorkspaceDir();
+    fs.mkdirSync(workspace, { recursive: true });
+    try {
+      await runScript('start_app.sh', ['reset'], { cwd: workspace });
+      return { success: true };
+    } catch (err) {
+      dialog.showErrorBox('Reset Error', err.message);
+      throw err;
+    }
+  });
+
+  // ipcMain.handle('reset-env', async () => {
+  //   log('IPC: reset-env');
+  //   await runScript('start_app.sh', ['reset'], { cwd: getWorkspaceDir() });
+  //   return { success: true };
+  // });
 
   ipcMain.handle('import-from-github', async (_, cfg) => {
     log('IPC: import-from-github', cfg);
@@ -150,11 +171,57 @@ function setupIPCHandlers() {
     return { success: true };
   });
 
-  ipcMain.handle('reset-env', async () => {
-    log('IPC: reset-env');
-    await runScript('start_app.sh', ['reset'], { cwd: getWorkspaceDir() });
-    return { success: true };
-  });
+  // ipcMain.handle('reset-env', async () => {
+  //   log('IPC: reset-env');
+  //   // ensure workspace exists so the script can cd into it
+  //   const workspace = getWorkspaceDir();
+  //   fs.mkdirSync(workspace, { recursive: true });
+  //   try {
+  //     await runScript('start_app.sh', ['reset'], { cwd: workspace });
+  //     return { success: true };
+  //   } catch (err) {
+  //     dialog.showErrorBox('Reset Error', err.message);
+  //     throw err;
+  //   }
+  // });
+
+  // ipcMain.handle('reset-env', async () => {
+  //   log('IPC: reset-env');
+  //   await runScript('start_app.sh', ['reset']);
+  //   return { success: true };
+  // });
+//   ipcMain.handle('reset-env', async () => {
+//   log('IPC: reset-env');
+//   // force cwd to the folder where start_app.sh actually lives
+//   const scriptDir = app.isPackaged
+//     ? path.join(process.resourcesPath, 'scripts')
+//     : path.join(__dirname, 'scripts');
+//   await runScript('start_app.sh', ['reset'], { cwd: scriptDir });
+//   return { success: true };
+// });
+// ipcMain.handle('reset-env', async () => {
+//   log('IPC: reset-env');
+//  const workspace = getWorkspaceDir();
+//  fs.mkdirSync(workspace, { recursive: true });      // make the dir so spawn can chdir
+//  await runScript('start_app.sh', ['reset'], { cwd: workspace });
+//   return { success: true };
+// });
+// ipcMain.handle('reset-env', async () => {
+//   log('IPC: reset-env');
+
+//   // 1. guarantee we start in an existing folder
+//   const scriptDir = app.isPackaged
+//     ? path.join(process.resourcesPath, 'scripts') // always exists in asar build
+//     : path.join(__dirname, 'scripts');
+
+//   try {
+//     await runScript('start_app.sh', ['reset'], { cwd: scriptDir });
+//     return { success: true };
+//   } catch (err) {
+//     dialog.showErrorBox('Reset Error', err.message);
+//     throw err;
+//   }
+// });
 
   ipcMain.handle('open-agents-folder', () => {
     log('IPC: open-agents-folder');

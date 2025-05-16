@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
+# ─────────────────────────────────────────────────────
+# Ensure $HOME is defined (macOS GUI apps lose it)
+# ─────────────────────────────────────────────────────
+if [ -z "${HOME:-}" ] || [ ! -d "$HOME" ]; then
+  # Use macOS directory service to find the user’s home
+  export HOME="$(dscl . -read /Users/$(whoami) NFSHomeDirectory | awk '{print $2}')"
+  echo "⚠️  \$HOME was unset; now set to: $HOME"
+fi
+
+
 # ════════════════════════════════════════════════════════
 #                 Paths & Constants
 # ════════════════════════════════════════════════════════
@@ -107,19 +117,18 @@ case "$CMD" in
     echo "▶ delete"
     cd "$HOME"
     rm -rf "$WORKSPACE"
-    mkdir -p "$WORKSPACE"
-    setup_logging
+    # mkdir -p "$WORKSPACE"
+    # setup_logging
     echo "✅ delete complete"
     ;;
 
-
   reset)
-    echo "▶ reset"
     # ensure we’re not inside the soon-to-be-deleted folder
     cd "$HOME"
     rm -rf "$WORKSPACE"
     mkdir -p "$WORKSPACE"
     setup_logging
+    echo "▶ reset"
     require_rust "reset"
     bootstrap
     echo "✅ reset complete"
@@ -127,8 +136,8 @@ case "$CMD" in
 
   setup)
     setup_logging
-    require_rust "setup"
     echo "▶ setup"
+    require_rust "setup"
     if [ ! -d "$VENVDIR" ]; then
       bootstrap
     else
@@ -139,14 +148,14 @@ case "$CMD" in
 
   deps)
     setup_logging
-    require_rust "deps"
     echo "▶ deps"
+    require_rust "deps"
     if [ ! -d "$VENVDIR" ]; then
       bootstrap
     else
       . "$VENVDIR/bin/activate"
+      bash "$SRC/reinstall_python_sdk.sh" rust_server_sdk
     fi
-    bash "$SRC/reinstall_python_sdk.sh" rust_server_sdk
     echo "✅ deps complete"
     ;;
 
@@ -177,8 +186,8 @@ EOF
 
   test_server)
     setup_logging
-    require_rust "test_server"
     echo "▶ test_server"
+    require_rust "test_server"
     if [ ! -d "$VENVDIR" ]; then
       bootstrap
     else
@@ -199,6 +208,7 @@ EOF
     ;;
 
   clean)
+    setup_logging
     echo "▶ clean"
     rm -f "$WORKSPACE"/test_*.{log,py,json}
     echo "✅ clean complete"

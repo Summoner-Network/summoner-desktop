@@ -7,7 +7,7 @@ module.exports = async function () {
     await ipcRenderer.invoke('reset-env');
   } catch (err) {
     console.error('Failed to reset Summoner:', err);
-    showAlert('Reset failed – see console for details.');
+    showAlert('Reset failed. If the problem persists, open an issue on our GitHub.');
   } finally {
     hideOverlay();
   }

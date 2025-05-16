@@ -16,7 +16,7 @@ module.exports = async function () {
     await ipcRenderer.invoke('open-agents-folder');  // no payload
   } catch (err) {
     console.error('Failed to open agents folder:', err);
-    showAlert('Could not open the agents folder. See console for details.');
+    showAlert('Could not open the agents folder. If the problem persists, open an issue on our GitHub.');
   } finally {
     hideOverlay();
   }

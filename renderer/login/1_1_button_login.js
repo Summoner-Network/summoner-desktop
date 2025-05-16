@@ -22,7 +22,7 @@ module.exports = async function () {
     
   } catch (err) {
     console.error('Setup failed:', err);
-    showAlert('Setup failed – see console for details.');
+    showAlert('Setup failed. If the problem persists, open an issue on our GitHub.');
   } finally {
     hideOverlay();
   }
