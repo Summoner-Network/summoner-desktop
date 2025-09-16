@@ -78,7 +78,7 @@ npm install && npm install glob electron-builder --save-dev
 A build-time injection step has been added to insert a custom alert modal into every page, along with a setup hook that prepares user folders on first launch. Make sure your `"scripts"` section in `package.json` includes the following:
 
 <details>
-<summary><b>(Click to expand)</b>JSON format:</summary>
+<summary><b>(Click to expand)</b> JSON format:</summary>
 
 ```jsonc
 {
@@ -168,7 +168,7 @@ Then install by opening the generated file for your platform:
 ## Project Structure
 
 <details>
-<summary><b>(Click to expand)</b>Tree structure of the project:</summary>
+<summary><b>(Click to expand)</b> Tree structure of the project:</summary>
 
 ```
 renderer
