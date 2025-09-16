@@ -142,21 +142,28 @@ A build-time injection step has been added to insert a custom alert modal into e
 ```
 </details>
 
-### 4. Start the app
+### 4. Run the app
 
-To start the app in dev-mode:
+**Dev mode (launches Electron):**
 
 ```bash
 npm start
 ```
 
-To build and install the application as an executable on your machine:
+**Build installers (output in `dist/`):**
 
 ```bash
-npm build
+npm run build
 ```
 
-You should see a desktop app open with a login screen. After logging in, you will be taken to the landing page.
+Then install by opening the generated file for your platform:
+
+* macOS: `dist/*.dmg` or `*.pkg`
+* Windows: `dist/*.exe`
+* Linux: `dist/*.AppImage` or `*.deb`/`*.rpm` (depending on config)
+
+> [!TIP]
+> `npm run pack` builds an unpacked app directory in `dist/` without creating an installer.
 
 ## Project Structure
 
