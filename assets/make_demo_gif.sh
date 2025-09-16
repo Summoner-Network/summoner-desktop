@@ -2,6 +2,11 @@
 set -euo pipefail
 
 if [ $# -ne 1 ]; then
+  echo "$ cd zzz/"
+  echo "$ ls"
+  echo "$0"
+  echo "assets/<movie_basename>"
+  echo ""
   echo "Usage: $0 <movie_basename>"
   echo "Example: $0 merchants_demo"
   exit 1

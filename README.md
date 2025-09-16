@@ -2,12 +2,12 @@
 <img width="500px" src="assets/logo.png" />  
 </p>
 
-# 🧱 Summoner Desktop
+# Summoner Desktop
 
 A modular Electron desktop app designed for rapid prototyping and collaboration.
 
 
-## 📦 Features
+## Features
 
 - Clean login screen with customizable logo  
 - Modular landing page where each feature is its own folder  
@@ -17,12 +17,12 @@ A modular Electron desktop app designed for rapid prototyping and collaboration.
 - Elegant, minimal white UI with subtle gradients  
 
 
-## 🚀 Getting Started
+## Getting Started
 
 This guide helps you set up and run the app locally, even if you’re new to Node.js or Electron.
 
 
-### 🛠 1. Prerequisites: Install Node.js + npm
+### 1. Prerequisites: Install Node.js + npm
 
 You’ll need **Node.js (v18 or later)** and **npm** (Node package manager). You can check if they're already installed:
 
@@ -33,13 +33,13 @@ npm -v
 
 If either command is not found, install them:
 
-#### 👉 macOS (recommended via [Homebrew](https://brew.sh)):
+#### macOS (recommended via [Homebrew](https://brew.sh)):
 
 ```bash
 brew install node
 ```
 
-#### 👉 Linux (Debian/Ubuntu):
+#### Linux (Debian/Ubuntu):
 
 ```bash
 sudo apt update
@@ -49,7 +49,7 @@ sudo apt install nodejs npm
 > 💡 Tip: You can also use [nvm](https://github.com/nvm-sh/nvm) to manage multiple Node.js versions if you're working on different projects.
 
 
-### 📦 2. Clone the repository
+### 2. Clone the repository
 
 ```bash
 git clone https://github.com/Summoner-Network/summoner-desktop.git
@@ -57,7 +57,7 @@ cd summoner-desktop
 ```
 
 
-### 📥 3. Install project dependencies
+### 3. Install project dependencies
 
 Install all project dependencies and dev-only tools:
 
@@ -68,8 +68,11 @@ npm install && npm install glob electron-builder --save-dev
 > 💡 glob is used by `scripts/inject-alert.js` to automatically find and modify all `renderer/**/index.html` pages before launching or packaging the app.
 
 
-### ⚙️ 4. Update your package.json scripts
+### 4. Update your package.json scripts
 A build-time injection step has been added to insert a custom alert modal into every page, along with a setup hook that prepares user folders on first launch. Make sure your `"scripts"` section in `package.json` includes the following:
+
+<details>
+<summary><b>(Click to expand)</b>JSON format:</summary>
 
 ```jsonc
 {
@@ -131,17 +134,26 @@ A build-time injection step has been added to insert a custom alert modal into e
     }
 }
 ```
+</details>
 
-### 🧪 4. Start the app
+### 4. Start the app
+
+To the app in dev-mode:
 
 ```bash
 npm start
 ```
 
+To build and install the application as an executable on your machine:
+
+```bash
+npm build
+```
+
 You should see a desktop app open with a login screen. After logging in, you’ll be taken to the landing page.
 
 
-### ✨ Preview
+### Preview
 
 <p style="text-align: center;">  
   <img src="assets/demo2.gif" width="500"  
@@ -149,7 +161,10 @@ You should see a desktop app open with a login screen. After logging in, you’l
 </p>
 
 
-## 🧩 Project Structure
+## Project Structure
+
+<details>
+<summary><b>(Click to expand)</b>Tree structure of the project:</summary>
 
 ```
 renderer
@@ -231,8 +246,9 @@ main.js
 package.json
 ```
 
+</details>
 
-## 🔁 How It Works
+## How It Works
 
 1. **Folder → Button**  
    Any **directory** named  
@@ -259,34 +275,34 @@ package.json
    The `1_3_template_button` folder shows this pattern in action.
 
 
-## 👩‍💻 Contributing
+## Contributing
 
-### ➕ Add a Top-Level Feature
+### Add a Top-Level Feature
 
 1. Create `renderer/features/n_m_<feature-name>/`  
 2. Add an `index.html` (and `landing.js` if needed).  
 3. Restart the app—your new button appears at (n,m).
 
-### 🌳 Add a JS-Triggered Button
+### Add a JS-Triggered Button
 
 1. Place `n_m_button_<action>.js` in any feature folder.  
 2. On launch, a button labeled `<action>` appears at (n,m) and executes your code.
 
 
-## 🎨 Styling & Assets
+## Styling & Assets
 
 - Shared styles in `renderer/style.css`  
 - Assets (logo, demo.gif) in `assets/`  
 - White + light-gray palette, soft shadows, and Inter or system-sans fonts  
 
 
-## 📌 Notes
+## Notes
 
 - Frontend only—no backend or database.  
 - Navigation entirely via static HTML, JS, and Electron.  
 - Designed to mock up UX before wiring in real logic.  
 
 
-## 📬 Contact
+## Contact
 
-Questions or suggestions? [Open an issue](https://github.com/Summoner-Network/summoner-desktop/issues) or ping the team on Slack.
+Questions or suggestions? [Open an issue](https://github.com/Summoner-Network/summoner-desktop/issues) or ping the team on [Discord](https://discord.gg/9HMeXnMycE) or [Reddit](https://www.reddit.com/r/SummonerOfficial/).
