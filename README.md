@@ -1,5 +1,5 @@
 <p style="text-align: center;">  
-<img width="500px" src="assets/logo.png" />  
+<img width="500px" src="assets/summoner-logo-mark-trns.png" />  
 </p>
 
 # Summoner Desktop
