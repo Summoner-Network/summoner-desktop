@@ -1,6 +1,7 @@
-<p style="text-align: center;">  
-<img width="500px" src="assets/summoner-logo-mark-trns.png" />  
+<p align="center">
+  <img width="500px" src="assets/summoner-logo-mark-trns.png" />
 </p>
+
 
 # Summoner Desktop
 
@@ -8,9 +9,8 @@ A modular Electron desktop app designed for rapid prototyping and collaboration.
 
 ### Preview
 
-<p style="text-align: center;">  
-  <img src="assets/demo_desktop_github.gif" width="500"  
-       style="border:1px solid #ddd;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.1)"/>  
+<p align="center">
+  <img src="assets/demo_desktop_github.gif" width="500"  style="border:1px solid #ddd;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.1)">  
 </p>
 
 ## Features
