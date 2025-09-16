@@ -101,7 +101,7 @@ SECRET_KEY=supersecret
 EOF
 
   echo "🔁 Running reinstall_python_sdk.sh"
-  bash "$SRC/reinstall_python_sdk.sh" rust_server_sdk
+  bash "$SRC/reinstall_python_sdk.sh" rust_server_v1_0_0
   echo "✅ Bootstrap complete"
 }
 
@@ -154,7 +154,7 @@ case "$CMD" in
       bootstrap
     else
       . "$VENVDIR/bin/activate"
-      bash "$SRC/reinstall_python_sdk.sh" rust_server_sdk
+      bash "$SRC/reinstall_python_sdk.sh" rust_server_v1_0_0
     fi
     echo "✅ deps complete"
     ;;
