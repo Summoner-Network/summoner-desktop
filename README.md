@@ -6,6 +6,12 @@
 
 A modular Electron desktop app designed for rapid prototyping and collaboration.
 
+### Preview
+
+<p style="text-align: center;">  
+  <img src="assets/demo_desktop_github.gif" width="500"  
+       style="border:1px solid #ddd;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.1)"/>  
+</p>
 
 ## Features
 
@@ -19,12 +25,12 @@ A modular Electron desktop app designed for rapid prototyping and collaboration.
 
 ## Getting Started
 
-This guide helps you set up and run the app locally, even if you’re new to Node.js or Electron.
+This guide helps you set up and run the app locally, even if you are new to Node.js or Electron.
 
 
 ### 1. Prerequisites: Install Node.js + npm
 
-You’ll need **Node.js (v18 or later)** and **npm** (Node package manager). You can check if they're already installed:
+You will need **Node.js (v18 or later)** and **npm** (Node package manager). You can check if they're already installed:
 
 ```bash
 node -v
@@ -138,7 +144,7 @@ A build-time injection step has been added to insert a custom alert modal into e
 
 ### 4. Start the app
 
-To the app in dev-mode:
+To start the app in dev-mode:
 
 ```bash
 npm start
@@ -150,16 +156,7 @@ To build and install the application as an executable on your machine:
 npm build
 ```
 
-You should see a desktop app open with a login screen. After logging in, you’ll be taken to the landing page.
-
-
-### Preview
-
-<p style="text-align: center;">  
-  <img src="assets/demo2.gif" width="500"  
-       style="border:1px solid #ddd;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.1)"/>  
-</p>
-
+You should see a desktop app open with a login screen. After logging in, you will be taken to the landing page.
 
 ## Project Structure
 
@@ -281,7 +278,7 @@ package.json
 
 1. Create `renderer/features/n_m_<feature-name>/`  
 2. Add an `index.html` (and `landing.js` if needed).  
-3. Restart the app—your new button appears at (n,m).
+3. Restart the app so that you can see your new button appear at (n,m).
 
 ### Add a JS-Triggered Button
 
@@ -298,7 +295,7 @@ package.json
 
 ## Notes
 
-- Frontend only—no backend or database.  
+- Frontend only; no backend or database.  
 - Navigation entirely via static HTML, JS, and Electron.  
 - Designed to mock up UX before wiring in real logic.  
 
