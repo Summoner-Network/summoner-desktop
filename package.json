@@ -1,6 +1,6 @@
 {
     "name": "summoner-desktop",
-    "version": "1.0.0",
+    "version": "alpha.1.0.0",
     "description": "Desktop GUI for Summoner",
     "main": "main.js",
     "author": "Remy Tuyeras <rtuyeras@summoner.to>",

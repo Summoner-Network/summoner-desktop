@@ -1,11 +1,8 @@
 .DS_Store
-*.mov
-start_app_*.sh
-working_space/
+old/
 todo.txt
-*.version_js
-*.version_sh
-main_*.js
+*.mov
+
 
 # Logs
 logs
