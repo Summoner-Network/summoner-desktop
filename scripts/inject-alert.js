@@ -28,7 +28,7 @@ glob.sync(TARGET_GLOB, { cwd: ROOT }).forEach(relPath => {
   const relCss    = hrefMatch ? hrefMatch[1] : '../../style.css';
   const upLevels  = (relCss.match(/\.\.\//g) || []).length;
 
-  // Compute relative path to assets/mage_3.gif
+  // Compute relative path to assets/icon2gif/gifs/mage_2.gif
   const assetPath = Array(upLevels + 1).fill('..').join('/') + '/assets';
   const gifUri    = `${assetPath}/${GIF_NAME}`;
 
