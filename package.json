@@ -1,6 +1,6 @@
 {
     "name": "summoner-desktop",
-    "version": "alpha.1.0.0",
+    "version": "1.0.0-alpha.2",
     "description": "Desktop GUI for Summoner",
     "main": "main.js",
     "author": "Remy Tuyeras <rtuyeras@summoner.to>",
@@ -39,20 +39,20 @@
             }
         ],
         "mac": {
-            "icon": "assets/mage_gif/logo_mage.icns",
+            "icon": "assets/icons/logo_mage.icns",
             "target": [
                 "dmg",
                 "zip"
             ]
         },
         "win": {
-            "icon": "assets/mage_gif/logo_mage.ico",
+            "icon": "assets/icons/logo_mage.ico",
             "target": [
                 "nsis"
             ]
         },
         "linux": {
-            "icon": "assets/mage_gif/logo_mage.png",
+            "icon": "assets/icons/logo_mage.png",
             "target": [
                 "AppImage",
                 "deb"

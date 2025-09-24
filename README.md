@@ -1,5 +1,5 @@
 <p align="center">
-  <img width="500px" src="assets/summoner-logo-mark-trns.png" />
+  <img width="500px" src="assets/originals/summoner-logo-mark-gold-type.png" />
 </p>
 
 
@@ -10,7 +10,7 @@ A modular Electron desktop app designed for rapid prototyping and collaboration.
 ### Preview
 
 <p align="center">
-  <img src="assets/demo_desktop_github.gif" width="500"  style="border:1px solid #ddd;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.1)">  
+  <img src="assets/mov2gif/gifs/demo_desktop_github.gif" width="500"  style="border:1px solid #ddd;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.1)">  
 </p>
 
 ## Features
@@ -113,20 +113,20 @@ A build-time injection step has been added to insert a custom alert modal into e
             }
         ],
         "mac": {
-            "icon": "assets/mage_gif/logo_mage.icns",
+            "icon": "assets/icons/logo_mage.icns",
             "target": [
                 "dmg",
                 "zip"
             ]
         },
         "win": {
-            "icon": "assets/mage_gif/logo_mage.ico",
+            "icon": "assets/icons/logo_mage.ico",
             "target": [
                 "nsis"
             ]
         },
         "linux": {
-            "icon": "assets/mage_gif/logo_mage.png",
+            "icon": "assets/icons/logo_mage.png",
             "target": [
                 "AppImage",
                 "deb"
