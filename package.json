@@ -3,8 +3,8 @@
   "version": "1.0.0-alpha.2",
   "description": "Desktop GUI for Summoner",
   "main": "main.js",
-  "author": "Remy Tuyeras <rtuyeras@summoner.to>",
-  "license": "UNLICENSED",
+  "author": "Remy Tuyeras <rtuyeras@summoner.org>",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/Summoner-Network/summoner-desktop.git"
@@ -26,7 +26,8 @@
     "dist:linux": "npm run inject-alert && electron-builder --linux --publish never"
   },
   "build": {
-    "appId": "com.remytuyeras.summoner",
+    "copyright": "Copyright © 2025 Summoner Corp.",
+    "appId": "org.summoner.desktop",
     "productName": "Summoner Desktop",
     "asar": true,
     "directories": {
