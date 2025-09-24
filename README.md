@@ -7,6 +7,8 @@
 
 A modular Electron desktop app designed for rapid prototyping and collaboration.
 
+[![Build & Release (mac + linux)](https://github.com/Summoner-Network/summoner-desktop/actions/workflows/build-and-release.yml/badge.svg)](https://github.com/Summoner-Network/summoner-desktop/actions/workflows/build-and-release.yml)
+
 ### Preview
 
 <p align="center">
