@@ -1,70 +1,80 @@
 {
-    "name": "summoner-desktop",
-    "version": "1.0.0-alpha.2",
-    "description": "Desktop GUI for Summoner",
-    "main": "main.js",
-    "author": "Remy Tuyeras <rtuyeras@summoner.to>",
-    "license": "UNLICENSED",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/Summoner-Network/summoner-desktop.git"
+  "name": "summoner-desktop",
+  "version": "1.0.0-alpha.2",
+  "description": "Desktop GUI for Summoner",
+  "main": "main.js",
+  "author": "Remy Tuyeras <rtuyeras@summoner.to>",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Summoner-Network/summoner-desktop.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Summoner-Network/summoner-desktop/issues"
+  },
+  "homepage": "https://github.com/Summoner-Network/summoner-desktop#readme",
+  "scripts": {
+    "inject-alert": "node scripts/inject-alert.js",
+
+    "start": "npm run build:dev",
+    "build": "npm run dist",
+
+    "build:dev": "npm run inject-alert && electron .",
+    "pack": "npm run inject-alert && electron-builder --dir",
+    "dist": "npm run inject-alert && electron-builder --publish never",
+
+    "dist:mac:arm64": "npm run inject-alert && electron-builder --mac --arm64 --publish never",
+    "dist:mac:x64":   "npm run inject-alert && electron-builder --mac --x64   --publish never",
+    "dist:mac:both":  "npm run dist:mac:arm64 && npm run dist:mac:x64",
+
+    "dist:linux": "npm run inject-alert && electron-builder --linux --publish never"
     },
-    "bugs": {
-        "url": "https://github.com/Summoner-Network/summoner-desktop/issues"
+  "build": {
+    "appId": "com.remytuyeras.summoner",
+    "productName": "Summoner Desktop",
+    "asar": true,
+    "directories": { "output": "release" },
+    "files": [
+        "main.js",
+        "dist/**",
+        "renderer/**",
+        "assets/**",
+        "!**/*.map",
+        "!**/node_modules/**/{test,__tests__,example,examples,docs}/**",
+        "!**/.git/**",
+        "!scripts/**"
+    ],
+    "extraResources": [
+      {
+        "from": "scripts",
+        "to": "scripts",
+        "filter": ["**/*.sh"]
+      }
+    ],
+    "mac": {
+      "icon": "assets/icons/logo_mage.icns",
+      "target": ["dmg", "zip"],
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
+      "hardenedRuntime": false
     },
-    "homepage": "https://github.com/Summoner-Network/summoner-desktop#readme",
-    "scripts": {
-        "inject-alert": "node scripts/inject-alert.js",
-        "start": "npm run build:dev",
-        "build": "npm run dist",
-        "build:dev": "npm run inject-alert && electron .",
-        "pack": "npm run inject-alert && electron-builder --dir",
-        "dist": "npm run inject-alert && electron-builder --publish never"
+    "win": {
+      "icon": "assets/icons/logo_mage.ico",
+      "target": ["nsis"],
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
     },
-    "build": {
-        "appId": "com.remytuyeras.summoner",
-        "productName": "Summoner Desktop",
-        "asar": true,
-        "files": [
-            "**/*",
-            "!scripts/**"
-        ],
-        "extraResources": [
-            {
-                "from": "scripts",
-                "to": "scripts",
-                "filter": [
-                    "**/*.sh"
-                ]
-            }
-        ],
-        "mac": {
-            "icon": "assets/icons/logo_mage.icns",
-            "target": [
-                "dmg",
-                "zip"
-            ]
-        },
-        "win": {
-            "icon": "assets/icons/logo_mage.ico",
-            "target": [
-                "nsis"
-            ]
-        },
-        "linux": {
-            "icon": "assets/icons/logo_mage.png",
-            "target": [
-                "AppImage",
-                "deb"
-            ]
-        }
-    },
-    "devDependencies": {
-        "electron": "^35.1.5",
-        "electron-builder": "^26.0.12",
-        "glob": "^11.0.2"
-    },
-    "dependencies": {
-        "electron-log": "^5.4.0"
+    "linux": {
+      "icon": "assets/icons/logo_mage.png",
+      "target": ["AppImage", "deb"],
+      "category": "Utility",
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
     }
+  },
+  "devDependencies": {
+    "electron": "^35.1.5",
+    "electron-builder": "^26.0.12",
+    "glob": "^11.0.2"
+  },
+  "dependencies": {
+    "electron-log": "^5.4.0"
+  }
 }

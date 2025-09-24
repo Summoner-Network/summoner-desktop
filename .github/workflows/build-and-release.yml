@@ -1,0 +1,104 @@
+name: Build & Release (mac + linux)
+
+on:
+  workflow_dispatch: {}      # run manually from the Actions tab
+
+permissions:
+  contents: write            # needed to create releases
+
+concurrency:
+  group: build-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  mac:
+    name: macOS (x64 + arm64)
+    runs-on: macos-13         # Intel mac runner (can build both x64 and arm64)
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, arm64]    # build both CPU variants
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+
+      # optional: ensure your "release" output dir exists clean
+      - run: rm -rf release || true
+
+      # Build (targets come from package.json "build.mac.target": ["dmg","zip"])
+      - name: Build macOS ${{ matrix.arch }}
+        run: |
+          npm run inject-alert
+          npx electron-builder --mac --${{ matrix.arch }} --publish never
+
+      - name: Upload mac artifacts (${{ matrix.arch }})
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-${{ matrix.arch }}
+          path: |
+            release/*.dmg
+            release/*.zip
+            release/*.blockmap
+            release/latest-mac.yml
+            release/builder-effective-config.yaml
+          if-no-files-found: ignore
+
+  linux:
+    name: Linux (x86_64)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+
+      # Build (targets come from package.json "build.linux.target": ["AppImage","deb"])
+      - name: Build Linux
+        run: |
+          npm run inject-alert
+          npx electron-builder --linux --publish never
+
+      - name: Upload linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: |
+            release/*.AppImage
+            release/*.deb
+            release/builder-effective-config.yaml
+          if-no-files-found: ignore
+
+  release:
+    name: Create GitHub Release (draft)
+    runs-on: ubuntu-latest
+    needs: [mac, linux]
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: collected
+      # read version from package.json (e.g., 1.0.0-alpha.2)
+      - id: read_version
+        run: echo "version=$(node -p \"require('./package.json').version\")" >> "$GITHUB_OUTPUT"
+
+      # flatten files into ./release_upload for easy glob attach
+      - name: Prepare files
+        run: |
+          mkdir -p release_upload
+          find collected -type f -maxdepth 3 -print -exec cp {} release_upload/ \;
+
+      - name: Create draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          tag_name: v${{ steps.read_version.outputs.version }}
+          name: Summoner Desktop v${{ steps.read_version.outputs.version }}
+          files: |
+            release_upload/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
