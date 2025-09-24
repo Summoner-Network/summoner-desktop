@@ -3,6 +3,8 @@
 old/
 todo.txt
 *.mov
+*.old
+release/
 
 
 # Logs
