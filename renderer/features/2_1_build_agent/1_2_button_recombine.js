@@ -1,5 +1,4 @@
 // 1_2_button_recombine.js
-const { ipcRenderer } = require('electron');
 const { showOverlay, hideOverlay } = require('../../common/overlay');
 
 module.exports = async function () {
@@ -14,7 +13,7 @@ module.exports = async function () {
   showOverlay('Recombining agents…');
   try {
     for (const name of selected) {
-      await ipcRenderer.invoke('agent-action', { action: 'recombine', name, apiKey });
+      await window.summoner.agentAction({ action: 'recombine', name, apiKey });
     }
     showAlert('Recombine completed.');
   } catch (err) {

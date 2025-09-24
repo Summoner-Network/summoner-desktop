@@ -1,5 +1,4 @@
 // 1_3_button_optimize.js
-const { ipcRenderer } = require('electron');
 const { showOverlay, hideOverlay } = require('../../common/overlay');
 
 module.exports = async function () {
@@ -14,7 +13,7 @@ module.exports = async function () {
   showOverlay('Optimizing agents…');
   try {
     for (const name of selected) {
-      await ipcRenderer.invoke('agent-action', { action: 'optimize', name, apiKey });
+      await window.summoner.agentAction({ action: 'optimize', name, apiKey });
     }
     showAlert('Optimize completed.');
   } catch (err) {

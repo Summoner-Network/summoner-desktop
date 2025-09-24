@@ -100,15 +100,53 @@ function createWindow() {
     minWidth: 400,
     minHeight: 300,
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false
+      // nodeIntegration: true,
+      // contextIsolation: false
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false
     }
   });
-  win.loadFile(path.join(__dirname, 'renderer', 'login', 'index.html'));
+  win.loadFile(path.join(__dirname, 'renderer', 'login', 'login.html'));
 }
 
 // Register IPC handlers for renderer-main communication
 function setupIPCHandlers() {
+
+// --- add near top of file if not present ---
+const { spawn } = require('child_process');
+
+  // --- inside setupIPCHandlers() ---
+  ipcMain.handle('open-router', async () => {
+    const commonIPs = [
+      "192.168.1.1","192.168.0.1","10.0.0.1","172.16.1.1",
+      "192.168.1.254","192.168.0.254","10.0.1.1","172.16.0.1"
+    ];
+
+    function ping(ip, timeoutMs = 1200) {
+      return new Promise((resolve) => {
+        const child = spawn('ping', ['-c', '1', ip], { stdio: 'ignore' });
+        let done = false;
+        const finish = (ok) => { if (!done) { done = true; try { child.kill('SIGKILL'); } catch {} resolve(ok); } };
+        child.on('error', () => finish(false));
+        child.on('close', (code) => finish(code === 0));
+        setTimeout(() => finish(false), timeoutMs);
+      });
+    }
+
+    for (const ip of commonIPs) {
+      log(`Pinging ${ip}…`);
+      if (await ping(ip)) {
+        const url = `http://${ip}`;
+        log(`✅ Router reachable at ${url}`);
+        shell.openExternal(url);
+        return { success: true, ip };
+      }
+    }
+    log("❌ No reachable router IP found");
+    return { success: false };
+  });
+
 
   ipcMain.handle('run-setup', async () => {
     log('IPC: run-setup');

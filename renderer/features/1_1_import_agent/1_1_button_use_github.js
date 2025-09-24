@@ -1,5 +1,4 @@
 // 1_1_button_use_github.js
-const { ipcRenderer }       = require('electron');
 const { showOverlay, hideOverlay } = require('../../common/overlay');
 
 module.exports = async function importFromGithub() {
@@ -15,7 +14,7 @@ module.exports = async function importFromGithub() {
 
   showOverlay('Importing from GitHub…');
   try {
-    await ipcRenderer.invoke('import-from-github', {
+    await window.summoner.importFromGithub({
       user,
       repo,
       branch,

@@ -1,7 +1,6 @@
 // 1_1_button_generate_and_run.js
 const fs            = require('fs');
 const path          = require('path');
-const { ipcRenderer } = require('electron');
 
 module.exports = function() {
   // 1) Gather all form values into a nested `config` object
@@ -24,7 +23,6 @@ module.exports = function() {
   });
 
   // 2) Send it to main.js for venv/install/write/run
-  ipcRenderer
-    .invoke('generate-and-run', config)
+  window.summoner.generateAndRun(config)
     .catch(err => console.error('Failed to start server:', err));
 };

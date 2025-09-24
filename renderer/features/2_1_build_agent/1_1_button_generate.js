@@ -1,5 +1,4 @@
 // 1_1_button_generate.js
-const { ipcRenderer } = require('electron');
 const { showOverlay, hideOverlay } = require('../../common/overlay');
 
 module.exports = async function () {
@@ -11,7 +10,7 @@ module.exports = async function () {
   showOverlay('Generating agents…');
   try {
     for (const name of selected) {
-      await ipcRenderer.invoke('agent-action', { action: 'generate', name });
+      await window.summoner.agentAction({ action: 'generate', name });
     }
     showAlert('Generate completed.');
   } catch (err) {

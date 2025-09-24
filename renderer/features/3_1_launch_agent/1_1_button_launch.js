@@ -1,5 +1,4 @@
 // 1_1_button_launch.js
-const { ipcRenderer }       = require('electron');
 const { showOverlay, hideOverlay } = require('../../common/overlay');
 
 module.exports = async function launchAgents() {
@@ -11,7 +10,7 @@ module.exports = async function launchAgents() {
   showOverlay('Launching agents…');
   try {
     for (const name of selected) {
-      await ipcRenderer.invoke('agent-action', { action: 'launch', name });
+      await window.summoner.agentAction({ action: 'launch', name });
     }
     showAlert('Agents launched successfully.');
   } catch (err) {

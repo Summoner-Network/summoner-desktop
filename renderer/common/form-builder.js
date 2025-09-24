@@ -1,11 +1,10 @@
 // renderer/common/form-builder.js
-const { ipcRenderer } = require('electron');
 
 async function fetchConfig() {
   let defaults, tooltips;
   try {
-    defaults = await ipcRenderer.invoke('load-defaults');
-    tooltips = await ipcRenderer.invoke('load-tooltips');
+    defaults = await window.summoner.loadDefaults();
+    tooltips = await window.summoner.loadTooltips();
   } catch (e) {
     console.warn('Could not load SDK JSON; using minimal defaults.', e);
     defaults = { version: 'rss_2', hyper_parameters: {} };

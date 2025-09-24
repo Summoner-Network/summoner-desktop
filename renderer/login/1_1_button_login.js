@@ -1,4 +1,3 @@
-const { ipcRenderer } = require('electron');
 const { showOverlay, hideOverlay } = require('../common/overlay');
 
 module.exports = async function () {
@@ -17,7 +16,7 @@ module.exports = async function () {
       return;
     }
 
-    await ipcRenderer.invoke('run-setup');
+    await window.summoner.runSetup();
     window.location.href = '../landing/landing.html';
     
   } catch (err) {
