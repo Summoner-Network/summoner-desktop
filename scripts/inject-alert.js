@@ -9,7 +9,7 @@ const glob = require('glob');
 const ROOT        = path.resolve(__dirname, '..');
 const COMMON      = path.join(ROOT, 'renderer/common/custom-alert.html');
 const TARGET_GLOB = 'renderer/**/index.html';
-const GIF_NAME    = 'mage_3.gif';
+const GIF_NAME    = 'mage_2.gif';
 
 // Read and trim the HTML snippet once
 const rawSnippet  = fs.readFileSync(COMMON, 'utf8');
@@ -29,7 +29,7 @@ glob.sync(TARGET_GLOB, { cwd: ROOT }).forEach(relPath => {
   const upLevels  = (relCss.match(/\.\.\//g) || []).length;
 
   // Compute relative path to assets/icon2gif/gifs/mage_2.gif
-  const assetPath = Array(upLevels + 1).fill('..').join('/') + '/assets';
+  const assetPath = Array(upLevels + 1).fill('..').join('/') + '/assets/icon2gif/gifs';
   const gifUri    = `${assetPath}/${GIF_NAME}`;
 
   // Inject new snippet
