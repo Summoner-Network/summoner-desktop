@@ -1,5 +1,5 @@
 // renderer/features/hosting/button_open_router.js
-const { exec } = require('child_process');
+const { spawn } = require('child_process');
 const { shell } = require('electron');
 
 // list of common LAN router IPs
@@ -11,11 +11,21 @@ const commonIPs = [
 ];
 
 // ping an IP once, resolve true if we got a response
-function ping(ip) {
-  return new Promise(resolve => {
-    exec(`ping -c1 -W1 ${ip}`, (err, stdout, stderr) => {
-      resolve(!err);  // no error → reachable
-    });
+function ping(ip, timeoutMs = 1200) {
+  return new Promise((resolve) => {
+    const child = spawn('ping', ['-c', '1', ip], { stdio: 'ignore' });
+    let done = false;
+
+    const finish = (ok) => {
+      if (done) return;
+      done = true;
+      try { child.kill('SIGKILL'); } catch (_) {}
+      resolve(ok);
+    };
+
+    child.on('error', () => finish(false));
+    child.on('close', (code) => finish(code === 0));
+    setTimeout(() => finish(false), timeoutMs);
   });
 }
 
@@ -36,5 +46,5 @@ async function openRouter() {
   showAlert("Could not detect any reachable router IP.");
 }
 
-// expose for require(…)  
+// expose for require(…)
 module.exports = openRouter;
