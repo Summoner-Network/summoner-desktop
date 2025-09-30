@@ -94,8 +94,6 @@ bootstrap() {
   pip install --upgrade pip setuptools wheel maturin
 
   cat <<EOF > "$SRC/.env"
-LOG_LEVEL=INFO
-ENABLE_CONSOLE_LOG=true
 DATABASE_URL=postgres://user:pass@localhost:5432/mydb
 SECRET_KEY=supersecret
 EOF
@@ -177,7 +175,7 @@ case "$CMD" in
 from summoner.server import SummonerServer
 
 if __name__ == "__main__":
-    srv = SummonerServer(name="ElectronServer")
+    srv = SummonerServer(name="DesktopServer")
     srv.run(config_path="server_config.json")
 EOF
 
@@ -200,11 +198,11 @@ EOF
 from summoner.server import SummonerServer
 
 if __name__ == "__main__":
-    srv = SummonerServer(name="test_ElectronServer")
+    srv = SummonerServer(name="test_DesktopServer")
     srv.run(config_path="test_server_config.json")
 EOF
 
-    bash "$SRC/open_client.sh" "$WORKSPACE" "source \"$VENVDIR/bin/activate\" && python test_server.py --config test_server_config.json"
+    bash "$SRC/open_server.sh" "$WORKSPACE" "source \"$VENVDIR/bin/activate\" && python test_server.py --config test_server_config.json"
     ;;
 
   clean)
