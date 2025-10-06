@@ -3,6 +3,7 @@
 old/
 todo.txt
 *.mov
+*_palette.png
 *.old
 release/
 
