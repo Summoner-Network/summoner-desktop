@@ -1,8 +1,8 @@
 *.DS_Store
-.DS_Store
 old/
 todo.txt
 *.mov
+*_palette.png
 *.old
 release/
 
