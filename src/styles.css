@@ -125,14 +125,14 @@ body {
 }
 
 .sidebar-header .fw700 {
-  font-size: 14px;
-  color: var(--ink);
+  font-size: 13px;
+  color: #6f6255;
 }
 
 .sidebar > .fw700 {
-  font-size: 12px;
+  font-size: 13px;
   letter-spacing: 0.02em;
-  color: #7f7263;
+  color: #6f6255;
 }
 
 .ghost-btn {

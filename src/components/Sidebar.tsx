@@ -40,9 +40,6 @@ export default function Sidebar(props: {
     <div className="sidebar">
       <div className="sidebar-header">
         <div className="fw700">My Servers</div>
-        <button className="ghost-btn" type="button">
-          +
-        </button>
       </div>
       <div className="list">
         {servers.map((s) => {
