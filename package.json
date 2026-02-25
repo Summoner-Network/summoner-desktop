@@ -1,8 +1,9 @@
 {
   "name": "summoner-desktop",
-  "version": "1.0.0-alpha.3",
+  "private": true,
+  "version": "1.1.0-alpha.1",
   "description": "Desktop GUI for Summoner",
-  "main": "main.js",
+  "main": "dist/electron/main.js",
   "author": "Remy Tuyeras <rtuyeras@summoner.org>",
   "license": "Apache-2.0",
   "repository": {
@@ -13,44 +14,41 @@
     "url": "https://github.com/Summoner-Network/summoner-desktop/issues"
   },
   "homepage": "https://github.com/Summoner-Network/summoner-desktop#readme",
+  "type": "commonjs",
   "scripts": {
-    "inject-alert": "node scripts/inject-alert.js",
-    "start": "npm run build:dev",
-    "build": "npm run dist",
-    "build:dev": "npm run inject-alert && electron .",
-    "pack": "npm run inject-alert && electron-builder --dir",
-    "dist": "npm run inject-alert && electron-builder --publish never",
-    "dist:mac:arm64": "npm run inject-alert && electron-builder --mac --arm64 --publish never",
-    "dist:mac:x64": "npm run inject-alert && electron-builder --mac --x64   --publish never",
-    "dist:mac:both": "npm run dist:mac:arm64 && npm run dist:mac:x64",
-    "dist:linux": "npm run inject-alert && electron-builder --linux --publish never"
+    "dev": "concurrently -k \"vite\" \"tsc -p tsconfig.electron.json -w\" \"wait-on http://localhost:5173 dist/electron/main.js && cross-env ELECTRON_RENDERER_URL=http://localhost:5173 electron .\"",
+    "build": "tsc -p tsconfig.electron.json && vite build",
+    "start": "electron .",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.electron.json --noEmit",
+    "dist": "npm run build && electron-builder --publish never",
+    "dist:mac": "npm run build && xattr -cr release dist assets || true && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --publish never"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "@types/react": "^18.2.79",
+    "@types/react-dom": "^18.2.25",
+    "@vitejs/plugin-react": "^4.3.1",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "electron": "^40.6.1",
+    "electron-builder": "^26.8.1",
+    "typescript": "^5.6.3",
+    "vite": "^7.3.1",
+    "wait-on": "^7.2.0"
   },
   "build": {
-    "copyright": "Copyright © 2025 Summoner Corp.",
-    "appId": "org.summoner.desktop",
+    "appId": "com.summoner.desktop",
     "productName": "Summoner Desktop",
-    "asar": true,
     "directories": {
       "output": "release"
     },
     "files": [
-      "main.js",
       "dist/**",
-      "renderer/**",
-      "assets/**",
-      "!**/*.map",
-      "!**/node_modules/**/{test,__tests__,example,examples,docs}/**",
-      "!**/.git/**",
-      "!scripts/**"
-    ],
-    "extraResources": [
-      {
-        "from": "scripts",
-        "to": "scripts",
-        "filter": [
-          "**/*.sh"
-        ]
-      }
+      "package.json"
     ],
     "mac": {
       "icon": "assets/icons/logo_mage.icns",
@@ -58,36 +56,23 @@
         "dmg",
         "zip"
       ],
-      "artifactName": "${productName}-${version}-${arch}.${ext}",
-      "hardenedRuntime": false
+      "identity": null,
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false
     },
     "win": {
       "icon": "assets/icons/logo_mage.ico",
       "target": [
-        "nsis"
-      ],
-      "artifactName": "${productName}-${version}-${arch}.${ext}"
+        "nsis",
+        "zip"
+      ]
     },
     "linux": {
       "icon": "assets/icons/logo_mage.png",
       "target": [
         "AppImage",
         "deb"
-      ],
-      "category": "Utility",
-      "artifactName": "${productName}-${version}-${arch}.${ext}"
+      ]
     }
-  },
-  "devDependencies": {
-    "electron": "^35.7.5",
-    "electron-builder": "^26.0.12",
-    "glob": "^11.0.2"
-  },
-  "dependencies": {
-    "electron-log": "^5.4.0"
-  },
-  "overrides": {
-    "form-data": "^4.0.4",
-    "tmp": "^0.2.4"
   }
 }
