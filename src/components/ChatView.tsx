@@ -61,11 +61,13 @@ export default function ChatView(props: {
             typed: parsed.typed
           };
         }
+        const parsedOut = parseServerMessage(item.raw);
         return {
           id: `${item.ts}-${idx}`,
           direction: "out" as const,
           ts: item.ts,
-          raw: item.raw
+          raw: parsedOut.text,
+          typed: parsedOut.typed
         };
       });
       setMessages(history);
