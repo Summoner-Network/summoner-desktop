@@ -17,6 +17,9 @@ export default function Sidebar(props: {
   >;
   selectedRemoteAddr: string | null;
   onSelectRemoteAddr: (addr: string) => void;
+  runningAgents: { projectName: string; name: string; folderName: string }[];
+  selectedAgentKey: string | null;
+  onSelectAgent: (agent: { projectName: string; name: string; folderName: string }) => void;
   identities: Identity[];
   selectedIdentityId: string | null;
   onSelectIdentityId: (id: string | null) => void;
@@ -30,6 +33,9 @@ export default function Sidebar(props: {
     remoteByAddr,
     selectedRemoteAddr,
     onSelectRemoteAddr,
+    runningAgents,
+    selectedAgentKey,
+    onSelectAgent,
     identities,
     selectedIdentityId,
     onSelectIdentityId
@@ -69,7 +75,23 @@ export default function Sidebar(props: {
       </div>
 
       <div className="fw700 mt18">My Agents</div>
-      <div className="small mt6">No local agents detected yet.</div>
+      <div className="list mt6">
+        {runningAgents.length === 0 ? <div className="small">No active agents.</div> : null}
+        {runningAgents.map((agent) => (
+          <div
+            key={`${agent.projectName}:${agent.folderName}`}
+            className={`list-item clickable ${
+              selectedAgentKey === `${agent.projectName}:${agent.folderName}` ? "selected" : ""
+            }`}
+            onClick={() => onSelectAgent(agent)}
+            role="button"
+            tabIndex={0}
+          >
+            <div className="fw600">{agent.name}</div>
+            <div className="small mt6">{agent.projectName}</div>
+          </div>
+        ))}
+      </div>
 
       <div className="fw700 mt18">My Network</div>
       <div className="list mt6">
@@ -90,6 +112,15 @@ export default function Sidebar(props: {
 
       <div className="fw700 mt18">My IDs</div>
       <div className="list mt6">
+        <div
+          className={`list-item clickable ${selectedIdentityId === null ? "selected" : ""}`}
+          onClick={() => onSelectIdentityId(null)}
+          role="button"
+          tabIndex={0}
+        >
+          <div className="fw600">None</div>
+          <div className="small mt6">Do not set "from"</div>
+        </div>
         {identities.map((id) => (
           <div
             key={id.id}
@@ -102,15 +133,6 @@ export default function Sidebar(props: {
             <div className="small mt6">{typeof id.value === "object" ? "JSON payload" : String(id.value)}</div>
           </div>
         ))}
-        <div
-          className={`list-item clickable ${selectedIdentityId === null ? "selected" : ""}`}
-          onClick={() => onSelectIdentityId(null)}
-          role="button"
-          tabIndex={0}
-        >
-          <div className="fw600">None</div>
-          <div className="small mt6">Do not set "from"</div>
-        </div>
       </div>
     </div>
   );

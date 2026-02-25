@@ -6,14 +6,16 @@ type RemoteAgent = {
   firstSeen: number;
   lastSeen: number;
   lastContent?: unknown;
+  lastSeenServerId?: string;
 };
 
 export default function NetworkPage(props: {
   remoteByAddr: Record<string, RemoteAgent>;
   selectedRemoteAddr: string | null;
   onSelectRemoteAddr: (addr: string) => void;
+  serverById: Record<string, { name: string; host: string; port: number }>;
 }) {
-  const { remoteByAddr, selectedRemoteAddr, onSelectRemoteAddr } = props;
+  const { remoteByAddr, selectedRemoteAddr, onSelectRemoteAddr, serverById } = props;
   const agents = Object.values(remoteByAddr).sort((a, b) => b.lastSeen - a.lastSeen);
   const selected = selectedRemoteAddr ? remoteByAddr[selectedRemoteAddr] : agents[0];
 
@@ -63,6 +65,14 @@ export default function NetworkPage(props: {
               <div className="detail-row">
                 <span className="detail-label">Last seen</span>
                 <span className="detail-value">{new Date(selected.lastSeen).toLocaleString()}</span>
+              </div>
+              <div className="detail-row">
+                <span className="detail-label">Last seen on server</span>
+                <span className="detail-value">
+                  {selected.lastSeenServerId && serverById[selected.lastSeenServerId]
+                    ? `${serverById[selected.lastSeenServerId].name} (${serverById[selected.lastSeenServerId].host}:${serverById[selected.lastSeenServerId].port})`
+                    : selected.lastSeenServerId ?? "Unknown"}
+                </span>
               </div>
               <div className="detail-row">
                 <span className="detail-label">Last content</span>

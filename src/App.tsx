@@ -5,6 +5,7 @@ import ServersPage from "./components/ServersPage";
 import AgentsPage from "./components/AgentsPage";
 import NetworkPage from "./components/NetworkPage";
 import IdentitiesPage from "./components/IdentitiesPage";
+import ProjectsPage, { ProjectItem, ProjectSpec } from "./components/ProjectsPage";
 import HelpPage from "./components/HelpPage";
 import { formatValue, parseServerMessage } from "./utils/message";
 import logoMage from "../assets/icons/logo_mage.png";
@@ -18,12 +19,14 @@ export type ServerProfile = {
 
 export type ConnectionStatus = "disconnected" | "connecting" | "connected";
 export type Identity = { id: string; name: string; value: unknown };
-type View = "chat" | "servers" | "agents" | "network" | "identities" | "help";
+type View = "chat" | "servers" | "projects" | "agents" | "network" | "identities" | "help";
 type RemoteAgent = {
   addr: string;
   firstSeen: number;
   lastSeen: number;
+  lastMessage: string;
   lastContent?: unknown;
+  lastSeenServerId?: string;
 };
 
 export default function App() {
@@ -69,8 +72,16 @@ export default function App() {
   const [selectedIdentityId, setSelectedIdentityId] = useState<string | null>(null);
   const selectedIdentity = identities.find((id) => id.id === selectedIdentityId) ?? null;
 
-  const [toMode, setToMode] = useState<"none" | "null" | "remote">("none");
+  const [projects, setProjects] = useState<ProjectItem[]>([]);
+
+  const [toMode, setToMode] = useState<"none" | "null" | "remote" | "agent">("none");
   const [selectedToKey, setSelectedToKey] = useState<string>("from");
+  const [agentToValue, setAgentToValue] = useState<unknown | null>(null);
+  const [agentToLabel, setAgentToLabel] = useState<string | null>(null);
+  const [selectedAgentKey, setSelectedAgentKey] = useState<string | null>(null);
+  const [runningAgents, setRunningAgents] = useState<
+    { projectName: string; name: string; folderName: string; path: string; startedAt: number }[]
+  >([]);
 
   useEffect(() => {
     const off1 = window.api.tcp.onConnection((state) => {
@@ -81,6 +92,37 @@ export default function App() {
     });
     return () => {
       off1();
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    window.api.projects.list().then((res) => {
+      if (!mounted) return;
+      if (!res.ok) return;
+      setProjects(
+        res.items.map((p) => ({
+          ...p,
+          status: "ready" as const
+        }))
+      );
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    window.api.agents.listRunning().then((res) => {
+      if (res.ok) setRunningAgents(res.items);
+    });
+    const off = window.api.agents.onExit(() => {
+      window.api.agents.listRunning().then((res) => {
+        if (res.ok) setRunningAgents(res.items);
+      });
+    });
+    return () => {
+      off();
     };
   }, []);
 
@@ -128,6 +170,42 @@ export default function App() {
     }
   }
 
+  async function handleCreateProject(spec: ProjectSpec) {
+    const createdAt = Date.now();
+    setProjects((prev) => {
+      const existing = prev.find((p) => p.name === spec.name);
+      if (existing) {
+        return prev.map((p) =>
+          p.name === spec.name
+            ? { ...p, ...spec, createdAt, status: "installing", error: undefined }
+            : p
+        );
+      }
+      return [...prev, { ...spec, createdAt, status: "installing" }];
+    });
+
+    const res = await window.api.projects.create(spec);
+    setProjects((prev) =>
+      prev.map((p) =>
+        p.name === spec.name
+          ? { ...p, status: res.ok ? "ready" : "error", error: res.ok ? undefined : res.error }
+          : p
+      )
+    );
+    return res;
+  }
+
+  async function handleResetProject(args: { name: string; serverVersion: string }) {
+    return window.api.projects.reset(args);
+  }
+
+  async function handleDeleteProject(name: string) {
+    const res = await window.api.projects.remove({ name });
+    if (!res.ok) return res;
+    setProjects((prev) => prev.filter((p) => p.name !== name));
+    return res;
+  }
+
   function handleAddIdentity(next: { name: string; value: unknown }) {
     const id = `${next.name}-${Date.now()}`.replace(/\s+/g, "-").toLowerCase();
     const identity: Identity = { id, ...next };
@@ -142,20 +220,23 @@ export default function App() {
   useEffect(() => {
     const off = window.api.tcp.onMessage((msg) => {
       const parsed = parseServerMessage(msg.raw);
-      if (!parsed.remoteAddr) return;
+      if (typeof parsed.remoteAddr !== "string") return;
+      const addr = parsed.remoteAddr;
       setRemoteByAddr((prev) => {
-        const existing = prev[parsed.remoteAddr];
+        const existing = prev[addr];
         return {
           ...prev,
-          [parsed.remoteAddr]: {
-            addr: parsed.remoteAddr,
+          [addr]: {
+            addr,
             firstSeen: existing?.firstSeen ?? msg.ts,
             lastSeen: msg.ts,
-            lastContent: parsed.content
+            lastMessage: parsed.text,
+            lastContent: parsed.content,
+            lastSeenServerId: msg.serverId
           }
         };
       });
-      setSelectedRemoteAddr((prev) => prev ?? parsed.remoteAddr);
+      setSelectedRemoteAddr((prev) => prev ?? addr);
     });
     return () => off();
   }, []);
@@ -234,15 +315,19 @@ export default function App() {
     } else if (selectedRemote.lastContent !== undefined) {
       toValue = getValueAtPath(selectedRemote.lastContent, selectedToKey);
     }
+  } else if (toMode === "agent") {
+    toValue = agentToValue;
   }
   const toLabel =
     toMode === "none"
       ? "none"
       : toMode === "null"
         ? "null"
-        : toValue === null || toValue === undefined
-          ? "unavailable"
-          : formatValue(toValue);
+        : toMode === "agent"
+          ? agentToLabel ?? "agent"
+          : toValue === null || toValue === undefined
+            ? "unavailable"
+            : formatValue(toValue);
 
   useEffect(() => {
     if (toMode === "remote" && availableToKeys.length === 0) {
@@ -284,6 +369,13 @@ export default function App() {
           type="button"
         >
           Servers
+        </button>
+        <button
+          className={`rail-btn ${view === "projects" ? "active" : ""}`}
+          onClick={() => setView("projects")}
+          type="button"
+        >
+          Projects
         </button>
         <button
           className={`rail-btn ${view === "agents" ? "active" : ""}`}
@@ -330,6 +422,20 @@ export default function App() {
           setToMode("remote");
           setSelectedToKey("remote_addr");
         }}
+        runningAgents={runningAgents}
+        selectedAgentKey={selectedAgentKey}
+        onSelectAgent={async (agent) => {
+          const res = await window.api.agents.getIdentity({
+            projectName: agent.projectName,
+            agentName: agent.name
+          });
+          if (!res.ok) return;
+          setAgentToValue(res.value);
+          setAgentToLabel(typeof res.value === "string" ? res.value : `agent:${agent.name}`);
+          setSelectedAgentKey(`${agent.projectName}:${agent.folderName}`);
+          setToMode("agent");
+          setView("chat");
+        }}
         identities={identities}
         selectedIdentityId={selectedIdentityId}
         onSelectIdentityId={setSelectedIdentityId}
@@ -370,12 +476,60 @@ export default function App() {
                 lastConnectedAt={lastConnectedAt}
               />
             ) : null}
-            {view === "agents" ? <AgentsPage /> : null}
+            {view === "agents" ? (
+              <AgentsPage
+                projects={projects}
+                onImport={(args) => window.api.agents.import(args)}
+                onList={(args) => window.api.agents.list(args)}
+                onStart={async (args) => {
+                  const res = await window.api.agents.start(args);
+                  if (res.ok) {
+                    const running = await window.api.agents.listRunning();
+                    if (running.ok) setRunningAgents(running.items);
+                  }
+                  return res;
+                }}
+                onStop={async (args) => {
+                  const res = await window.api.agents.stop(args);
+                  if (res.ok) {
+                    const running = await window.api.agents.listRunning();
+                    if (running.ok) setRunningAgents(running.items);
+                  }
+                  return res;
+                }}
+                onRemove={async (args) => {
+                  const res = await window.api.agents.remove(args);
+                  if (res.ok) {
+                    const running = await window.api.agents.listRunning();
+                    if (running.ok) setRunningAgents(running.items);
+                  }
+                  return res;
+                }}
+                runningAgents={runningAgents}
+              />
+            ) : null}
+            {view === "projects" ? (
+              <ProjectsPage
+                projects={projects}
+                onCreate={handleCreateProject}
+                onReset={handleResetProject}
+                onDelete={handleDeleteProject}
+                onReadEnv={(args) => window.api.projects.envRead(args)}
+                onWriteEnv={(args) => window.api.projects.envWrite(args)}
+              />
+            ) : null}
             {view === "network" ? (
               <NetworkPage
                 remoteByAddr={remoteByAddr}
                 selectedRemoteAddr={selectedRemoteAddr}
                 onSelectRemoteAddr={setSelectedRemoteAddr}
+                serverById={servers.reduce<Record<string, { name: string; host: string; port: number }>>(
+                  (acc, s) => {
+                    acc[s.id] = { name: s.name, host: s.host, port: s.port };
+                    return acc;
+                  },
+                  {}
+                )}
               />
             ) : null}
             {view === "identities" ? (

@@ -10,7 +10,8 @@ export default function IdentitiesPage(props: {
   onUpdateIdentity: (id: string, next: { name: string; value: unknown }) => void;
 }) {
   const { identities, selectedIdentityId, onSelectIdentityId, onAddIdentity, onUpdateIdentity } = props;
-  const selected = identities.find((id) => id.id === selectedIdentityId) ?? identities[0];
+  const selected = selectedIdentityId ? identities.find((id) => id.id === selectedIdentityId) ?? null : null;
+  const isNoneSelected = selectedIdentityId === null;
   const [draftName, setDraftName] = useState<string>(selected?.name ?? "");
   const [draftJson, setDraftJson] = useState<string>(selected ? formatValue(selected.value) : "{}");
   const [error, setError] = useState<string | null>(null);
@@ -57,9 +58,18 @@ export default function IdentitiesPage(props: {
       </div>
 
       <div className="page-grid">
-        <div className="panel">
+        <div className="panel panel-fixed">
           <div className="panel-title">My IDs</div>
           <div className="panel-list">
+            <div
+              className={`panel-item ${selectedIdentityId === null ? "selected" : ""}`}
+              onClick={() => onSelectIdentityId(null)}
+              role="button"
+              tabIndex={0}
+            >
+              <div className="fw600">None</div>
+              <div className="small">Do not set "from"</div>
+            </div>
             {identities.map((id) => (
               <div
                 key={id.id}
@@ -92,7 +102,24 @@ export default function IdentitiesPage(props: {
               </button>
             </div>
           ) : (
-            <div className="small">Select an identity to view details.</div>
+            <div className="detail-grid">
+              <label className="form-field">
+                <span className="detail-label">Name</span>
+                <input value="" placeholder={isNoneSelected ? "None" : ""} disabled />
+              </label>
+              <label className="form-field">
+                <span className="detail-label">JSON Payload</span>
+                <textarea
+                  rows={8}
+                  value=""
+                  placeholder={isNoneSelected ? "No payload. The 'from' field will be omitted." : "Select an identity"}
+                  disabled
+                />
+              </label>
+              <button className="primary" type="button" disabled>
+                Save Identity
+              </button>
+            </div>
           )}
         </div>
       </div>

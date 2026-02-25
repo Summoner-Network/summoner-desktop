@@ -11,9 +11,9 @@ export default function ChatView(props: {
   onConnect: (server: ServerProfile) => Promise<void>;
   onDisconnect: (serverId: string) => Promise<void>;
   toValue: unknown | null;
-  toMode: "none" | "null" | "remote";
+  toMode: "none" | "null" | "remote" | "agent";
   toLabel: string;
-  onSetToMode: (mode: "none" | "null" | "remote") => void;
+  onSetToMode: (mode: "none" | "null" | "remote" | "agent") => void;
   onSetToKey: (key: string) => void;
   availableToKeys: string[];
   selectedToKey: string;
@@ -103,9 +103,9 @@ export default function ChatView(props: {
     let display = text;
     let typed: UiMessage["typed"] | undefined;
 
-    const hasTo =
+  const hasTo =
       (toMode === "null") ||
-      (toMode === "remote" && toValue !== null && toValue !== undefined);
+      ((toMode === "remote" || toMode === "agent") && toValue !== null && toValue !== undefined);
     const hasFrom = !!fromIdentity;
 
     let payload: Record<string, unknown> | null = null;
@@ -121,7 +121,9 @@ export default function ChatView(props: {
 
       if (!("to" in payload)) {
         if (toMode === "null") payload.to = null;
-        if (toMode === "remote" && toValue !== null && toValue !== undefined) payload.to = toValue;
+        if ((toMode === "remote" || toMode === "agent") && toValue !== null && toValue !== undefined) {
+          payload.to = toValue;
+        }
       }
 
       if (fromIdentity && !("from" in payload)) {
@@ -207,7 +209,7 @@ export default function ChatView(props: {
                 value={toMode === "remote" ? selectedToKey : toMode}
                 onChange={(e) => {
                   const v = e.target.value;
-                  if (v === "none" || v === "null") {
+                  if (v === "none" || v === "null" || v === "agent") {
                     onSetToMode(v);
                   } else {
                     onSetToMode("remote");
@@ -217,6 +219,7 @@ export default function ChatView(props: {
               >
                 <option value="none">none</option>
                 <option value="null">null</option>
+                {toMode === "agent" ? <option value="agent">agent</option> : null}
                 {availableToKeys.map((k) => (
                   <option key={k} value={k}>
                     key: {k}
