@@ -8,7 +8,52 @@ Summoner Desktop is a chat-based Electron app for interacting with TCP servers. 
 
 [![Build & Release (mac + linux + windows)](https://github.com/Summoner-Network/summoner-desktop/actions/workflows/build-release.yml/badge.svg)](https://github.com/Summoner-Network/summoner-desktop/actions/workflows/build-release.yml)
 
-## Run the app
+## Getting Started
+
+This guide helps you set up and run the app locally, even if you are new to Node.js or Electron.
+
+
+### 1. Prerequisites: Install Node.js + npm
+
+You will need **Node.js (v22.12 or later)** and **npm** (Node package manager). You can check if they're already installed:
+
+```bash
+node -v
+npm -v
+```
+
+If either command is not found, install them:
+
+#### macOS (recommended via [Homebrew](https://brew.sh)):
+
+```bash
+brew install node
+```
+
+#### Linux (Debian/Ubuntu):
+
+```bash
+sudo apt update
+sudo apt install nodejs npm
+```
+
+> 💡 Tip: You can also use [nvm](https://github.com/nvm-sh/nvm) to manage multiple Node.js versions if you're working on different projects.
+
+#### Windows
+
+Use the official installer at [https://nodejs.org/en](https://nodejs.org/en). See the [docs](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) for Node.js and npm. 
+
+
+### 2. Clone the repository
+
+```bash
+git clone https://github.com/Summoner-Network/summoner-desktop.git
+cd summoner-desktop
+```
+
+### 3. Install the app
+
+#### Run the app
 
 For developers:
 
@@ -17,7 +62,7 @@ npm install
 npm run dev
 ```
 
-## Build the app
+#### Build the app
 
 For users:
 
