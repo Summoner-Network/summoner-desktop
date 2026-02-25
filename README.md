@@ -8,6 +8,12 @@ Summoner Desktop is a chat-based Electron app for interacting with TCP servers. 
 
 [![Build & Release (mac + linux + windows)](https://github.com/Summoner-Network/summoner-desktop/actions/workflows/build-release.yml/badge.svg)](https://github.com/Summoner-Network/summoner-desktop/actions/workflows/build-release.yml)
 
+## Preview
+
+<p align="center">
+  <img src="assets/img/screenshot.png" width="700">  
+</p>
+
 ## Getting Started
 
 This guide helps you set up and run the app locally, even if you are new to Node.js or Electron.
