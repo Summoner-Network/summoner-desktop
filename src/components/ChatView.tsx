@@ -46,6 +46,33 @@ export default function ChatView(props: {
   useEffect(() => {
     setMessages([]);
     setError(null);
+    let mounted = true;
+    window.api.logs.read({ serverId: server.id, host: server.host, port: server.port }).then((res) => {
+      if (!mounted || !res.ok) return;
+      const history = res.items.map((item, idx) => {
+        if (item.direction === "in") {
+          const parsed = parseServerMessage(item.raw);
+          return {
+            id: `${item.ts}-${idx}`,
+            direction: "in" as const,
+            ts: item.ts,
+            raw: parsed.text,
+            source: parsed.remoteAddr,
+            typed: parsed.typed
+          };
+        }
+        return {
+          id: `${item.ts}-${idx}`,
+          direction: "out" as const,
+          ts: item.ts,
+          raw: item.raw
+        };
+      });
+      setMessages(history);
+    });
+    return () => {
+      mounted = false;
+    };
   }, [server.id]);
 
   useEffect(() => {

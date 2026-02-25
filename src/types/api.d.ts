@@ -25,6 +25,12 @@ declare global {
         envRead: (args: { name: string }) => Promise<{ ok: true; content: string } | { ok: false; error: string }>;
         envWrite: (args: { name: string; content: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
       };
+      logs: {
+        read: (args: { serverId: string; host?: string; port?: number }) => Promise<
+          | { ok: true; items: { ts: number; direction: "in" | "out"; raw: string }[] }
+          | { ok: false; error: string }
+        >;
+      };
       agents: {
         import: (args: { projectName: string; source: string; name?: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
         list: (args: { projectName: string }) => Promise<

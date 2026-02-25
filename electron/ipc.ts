@@ -18,6 +18,11 @@ const REPO_TO_BUNDLE: Record<string, string> = {
 
 const PROJECT_META_FILE = "app.summoner.project.json";
 const AGENT_PREFIX = "agent_";
+const MAX_LOG_LINES = 3000;
+
+type ServerLogEntry = { ts: number; direction: "in" | "out"; raw: string };
+const logStore = new Map<string, { loaded: boolean; lines: string[] }>();
+const logQueues = new Map<string, Promise<void>>();
 
 function isValidHost(host: string): boolean {
   // Allow IPv4, localhost, and basic DNS names.
@@ -48,6 +53,53 @@ function getSummonerRoot(): string {
     return path.join(base, "summoner");
   }
   return path.join(os.homedir(), ".local", "summoner");
+}
+
+function getServerLogsRoot(): string {
+  return path.join(getSummonerRoot(), "server_logs");
+}
+
+function sanitizeLogId(id: string): string {
+  return id.replace(/[^a-zA-Z0-9._-]+/g, "_");
+}
+
+function resolveServerLogId(args: { serverId: string; host?: string; port?: number }, map: Map<string, { host: string; port: number }>): string {
+  if (args.host) return sanitizeLogId(args.port ? `${args.host}-${args.port}` : args.host);
+  const fromMap = map.get(args.serverId);
+  if (fromMap) return sanitizeLogId(`${fromMap.host}-${fromMap.port}`);
+  return sanitizeLogId(args.serverId);
+}
+
+async function loadLogLines(logId: string): Promise<string[]> {
+  const existing = logStore.get(logId);
+  if (existing?.loaded) return existing.lines;
+  const logDir = getServerLogsRoot();
+  await fs.mkdir(logDir, { recursive: true });
+  const filePath = path.join(logDir, `${logId}.jsonl`);
+  let content = "";
+  try {
+    content = await fs.readFile(filePath, "utf-8");
+  } catch {
+    content = "";
+  }
+  const lines = content.split(/\r?\n/).filter(Boolean).slice(-MAX_LOG_LINES);
+  logStore.set(logId, { loaded: true, lines });
+  return lines;
+}
+
+async function appendLogLine(logId: string, entry: ServerLogEntry): Promise<void> {
+  const queue = logQueues.get(logId) ?? Promise.resolve();
+  const next = queue.then(async () => {
+    const lines = await loadLogLines(logId);
+    lines.push(JSON.stringify(entry));
+    if (lines.length > MAX_LOG_LINES) lines.splice(0, lines.length - MAX_LOG_LINES);
+    const logDir = getServerLogsRoot();
+    await fs.mkdir(logDir, { recursive: true });
+    const filePath = path.join(logDir, `${logId}.jsonl`);
+    await fs.writeFile(filePath, lines.join("\n") + "\n", "utf-8");
+  });
+  logQueues.set(logId, next.catch(() => undefined));
+  await next;
 }
 
 async function resolveProjectDirByName(name: string): Promise<string> {
@@ -269,6 +321,7 @@ function parseArgs(input: string): string[] {
 }
 
 export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
+  const serverIndex = new Map<string, { host: string; port: number }>();
   // When the app is started twice (common on macOS activation edge cases),
   // Electron will throw if we register a second handler for the same channel.
   // Keep this idempotent for a stable, secure baseline.
@@ -281,6 +334,7 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
   ipcMain.removeHandler("projects:list");
   ipcMain.removeHandler("projects:envRead");
   ipcMain.removeHandler("projects:envWrite");
+  ipcMain.removeHandler("logs:read");
   ipcMain.removeHandler("agents:import");
   ipcMain.removeHandler("agents:list");
   ipcMain.removeHandler("agents:start");
@@ -297,6 +351,7 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
       if (typeof s.host !== "string" || !isValidHost(s.host)) throw new Error("Invalid host");
       if (typeof s.port !== "number" || !isValidPort(s.port)) throw new Error("Invalid port");
 
+      serverIndex.set(s.id, { host: s.host, port: s.port });
       tcp.connect(s.id, s.host, s.port);
       return { ok: true as const };
     } catch (e) {
@@ -322,6 +377,8 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
       if (args.text.length > 8000) throw new Error("Message too large");
 
       tcp.sendRaw(args.serverId, args.text);
+      const logId = resolveServerLogId({ serverId: args.serverId }, serverIndex);
+      void appendLogLine(logId, { ts: Date.now(), direction: "out", raw: args.text });
 
       return { ok: true as const };
     } catch (e) {
@@ -515,6 +572,27 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
       }
     }
   );
+
+  ipcMain.handle("logs:read", async (_e, args: { serverId: string; host?: string; port?: number }) => {
+    try {
+      const logId = resolveServerLogId(args, serverIndex);
+      const lines = await loadLogLines(logId);
+      const items: ServerLogEntry[] = [];
+      for (const line of lines) {
+        try {
+          const parsed = JSON.parse(line) as ServerLogEntry;
+          if (parsed && typeof parsed.ts === "number" && typeof parsed.raw === "string") {
+            items.push(parsed);
+          }
+        } catch {
+          // skip malformed lines
+        }
+      }
+      return { ok: true as const, items };
+    } catch (e) {
+      return { ok: false as const, error: safeError(e) };
+    }
+  });
 
   ipcMain.handle(
     "agents:import",
@@ -746,7 +824,14 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
   };
 
   const onConnection = (state: unknown) => safeSend("evt:connection", state);
-  const onMessage = (msg: unknown) => safeSend("evt:message", msg);
+  const onMessage = (msg: unknown) => {
+    if (msg && typeof msg === "object" && "serverId" in msg && "raw" in msg && "ts" in msg) {
+      const m = msg as { serverId: string; raw: string; ts: number };
+      const logId = resolveServerLogId({ serverId: m.serverId }, serverIndex);
+      void appendLogLine(logId, { ts: m.ts, direction: "in", raw: m.raw });
+    }
+    safeSend("evt:message", msg);
+  };
 
   tcp.on("connection", onConnection);
   tcp.on("message", onMessage);

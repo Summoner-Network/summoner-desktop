@@ -54,6 +54,12 @@ export type Api = {
     envRead: (args: { name: string }) => Promise<{ ok: true; content: string } | { ok: false; error: string }>;
     envWrite: (args: { name: string; content: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
   };
+  logs: {
+    read: (args: { serverId: string; host?: string; port?: number }) => Promise<
+      | { ok: true; items: { ts: number; direction: "in" | "out"; raw: string }[] }
+      | { ok: false; error: string }
+    >;
+  };
   agents: {
     import: (args: AgentImportSpec) => Promise<{ ok: true } | { ok: false; error: string }>;
     list: (args: { projectName: string }) => Promise<
@@ -100,6 +106,9 @@ const api: Api = {
     list: () => ipcRenderer.invoke("projects:list"),
     envRead: (args) => ipcRenderer.invoke("projects:envRead", args),
     envWrite: (args) => ipcRenderer.invoke("projects:envWrite", args)
+  },
+  logs: {
+    read: (args) => ipcRenderer.invoke("logs:read", args)
   },
   agents: {
     import: (args) => ipcRenderer.invoke("agents:import", args),
