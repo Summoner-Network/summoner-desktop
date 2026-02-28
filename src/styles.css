@@ -290,6 +290,12 @@ body {
 .status-dot.connecting { background: #0d1b5e; }
 .status-dot.disconnected { background: #c05a5a; }
 
+.messages-wrap {
+  position: relative;
+  min-height: 0;
+  height: 100%;
+}
+
 .messages {
   padding: 20px;
   overflow: auto;
@@ -298,6 +304,22 @@ body {
   flex-direction: column;
   gap: 12px;
   min-height: 0;
+  height: 100%;
+}
+
+.new-msg-banner {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--accent);
+  border: 1px solid var(--accent-strong);
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(47, 59, 103, 0.35);
+  font-size: 12px;
 }
 
 .empty-state {
@@ -493,8 +515,19 @@ input {
   color: var(--ink);
 }
 
+.config-input.frozen {
+  background: rgba(63, 53, 39, 0.06);
+  color: rgba(63, 53, 39, 0.65);
+  border-color: rgba(63, 53, 39, 0.18);
+  box-shadow: inset 0 0 0 9999px rgba(255, 255, 255, 0.35);
+}
+
 .composer-hint {
   font-size: 11px;
+  color: var(--muted);
+}
+
+.muted {
   color: var(--muted);
 }
 
@@ -519,6 +552,247 @@ button {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
   align-items: end;
+}
+
+.server-localhost {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.pill-localhost {
+  justify-content: space-between;
+  background: #f5f9ff;
+  border-color: var(--accent-soft-border);
+  color: var(--accent-soft-ink);
+}
+
+.pill-caret {
+  margin-left: 10px;
+  font-size: 14px;
+}
+
+.config-details {
+  margin-top: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+}
+
+.config-summary {
+  padding: 10px 12px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.config-summary::marker {
+  color: var(--muted);
+}
+
+.localhost-body {
+  margin-top: 10px;
+}
+
+.config-editor {
+  margin-top: 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  background: var(--panel-soft);
+}
+
+.config-fields {
+  display: grid;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.config-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(220px, 1fr);
+  gap: 12px;
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.config-labels {
+  display: grid;
+  gap: 4px;
+}
+
+.config-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.config-key {
+  font-weight: 600;
+}
+
+.config-tip {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--accent-soft-bg);
+  color: var(--accent-soft-ink);
+  display: inline-grid;
+  place-items: center;
+  font-size: 11px;
+  border: 1px solid var(--accent-soft-border);
+  position: relative;
+  cursor: help;
+}
+
+.config-tip[data-tip]:hover::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 0;
+  bottom: 130%;
+  transform: translateX(0);
+  max-width: min(360px, 60vw);
+  width: max-content;
+  background: #1f2937;
+  color: #f8fafc;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  line-height: 1.4;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.28);
+  z-index: 9999;
+}
+
+.config-tip[data-tip]:hover::before {
+  content: "";
+  position: absolute;
+  left: 12px;
+  bottom: 118%;
+  transform: translateX(0);
+  border-width: 6px;
+  border-style: solid;
+  border-color: #1f2937 transparent transparent transparent;
+  z-index: 9999;
+}
+
+.config-help {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.config-control {
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+}
+
+.config-control.scalar {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.config-control.list {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.config-null-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.config-control-top {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.config-null-toggle input {
+  margin: 0;
+}
+
+.config-list {
+  display: grid;
+  gap: 8px;
+}
+
+.config-list.disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.config-list-row {
+  display: grid;
+  grid-template-columns: 1fr 34px;
+  gap: 8px;
+  align-items: center;
+}
+
+.config-list-row input {
+  width: 100%;
+}
+
+.config-list-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.config-list-actions button {
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.config-section {
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #ffffff;
+}
+
+.config-section-title {
+  display: grid;
+  gap: 4px;
+}
+
+.config-section-body {
+  margin-top: 8px;
+  display: grid;
+  gap: 10px;
+}
+
+.config-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  justify-content: flex-end;
+}
+
+.run-row {
+  align-items: center;
+}
+
+.run-wait {
+  line-height: 1.1;
+}
+.config-add {
+  align-self: start;
+  width: fit-content;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px dashed var(--border);
+  background: var(--panel);
+  font-size: 12px;
 }
 
 .form-field {

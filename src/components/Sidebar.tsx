@@ -3,7 +3,7 @@ import type { ServerProfile, ConnectionStatus, Identity } from "../App";
 
 export default function Sidebar(props: {
   servers: ServerProfile[];
-  selectedServerId: string;
+  selectedServerId: string | null;
   onSelectServer: (id: string) => void;
   statusById: Record<string, ConnectionStatus>;
   desiredById: Record<string, boolean>;
@@ -51,7 +51,7 @@ export default function Sidebar(props: {
         {servers.map((s) => {
           const status = statusById[s.id] ?? "disconnected";
           const desired = desiredById[s.id] ?? false;
-          const selected = s.id === selectedServerId;
+          const selected = selectedServerId ? s.id === selectedServerId : false;
           return (
             <div
               key={s.id}

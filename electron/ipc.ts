@@ -326,6 +326,7 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
   // Electron will throw if we register a second handler for the same channel.
   // Keep this idempotent for a stable, secure baseline.
   ipcMain.removeHandler("tcp:connect");
+  ipcMain.removeHandler("tcp:reconnect");
   ipcMain.removeHandler("tcp:disconnect");
   ipcMain.removeHandler("tcp:sendChat");
   ipcMain.removeHandler("projects:create");
@@ -335,6 +336,11 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
   ipcMain.removeHandler("projects:envRead");
   ipcMain.removeHandler("projects:envWrite");
   ipcMain.removeHandler("logs:read");
+  ipcMain.removeHandler("localServer:loadConfig");
+  ipcMain.removeHandler("localServer:saveConfig");
+  ipcMain.removeHandler("localServer:run");
+  ipcMain.removeHandler("localServer:stop");
+  ipcMain.removeHandler("localServer:listRunning");
   ipcMain.removeHandler("agents:import");
   ipcMain.removeHandler("agents:list");
   ipcMain.removeHandler("agents:start");
@@ -353,6 +359,19 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
 
       serverIndex.set(s.id, { host: s.host, port: s.port });
       tcp.connect(s.id, s.host, s.port);
+      return { ok: true as const };
+    } catch (e) {
+      return { ok: false as const, error: safeError(e) };
+    }
+  });
+
+  ipcMain.handle("tcp:reconnect", async (_e, args: { serverId: string }) => {
+    try {
+      if (typeof args.serverId !== "string" || args.serverId.length < 1) throw new Error("Invalid server id");
+      const entry = serverIndex.get(args.serverId);
+      if (!entry) throw new Error("Unknown server id");
+      tcp.disconnect(args.serverId);
+      tcp.connect(args.serverId, entry.host, entry.port);
       return { ok: true as const };
     } catch (e) {
       return { ok: false as const, error: safeError(e) };
@@ -573,12 +592,20 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
     }
   );
 
-  ipcMain.handle("logs:read", async (_e, args: { serverId: string; host?: string; port?: number }) => {
+  ipcMain.handle(
+    "logs:read",
+    async (
+      _e,
+      args: { serverId: string; host?: string; port?: number; limit?: number; before?: number }
+    ) => {
     try {
       const logId = resolveServerLogId(args, serverIndex);
       const lines = await loadLogLines(logId);
+      const limit = Math.max(1, Math.min(1000, Number.isFinite(args.limit) ? Number(args.limit) : 300));
+      const end = Number.isFinite(args.before) ? Math.min(Number(args.before), lines.length) : lines.length;
+      const start = Math.max(0, end - limit);
       const items: ServerLogEntry[] = [];
-      for (const line of lines) {
+      for (const line of lines.slice(start, end)) {
         try {
           const parsed = JSON.parse(line) as ServerLogEntry;
           if (parsed && typeof parsed.ts === "number" && typeof parsed.raw === "string") {
@@ -588,7 +615,127 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
           // skip malformed lines
         }
       }
-      return { ok: true as const, items };
+      return { ok: true as const, items, before: start, hasMore: start > 0 };
+    } catch (e) {
+      return { ok: false as const, error: safeError(e) };
+    }
+  }
+  );
+
+  ipcMain.handle("localServer:loadConfig", async (_e, args: { projectName: string }) => {
+    try {
+      const projectName = normalizeProjectName(args.projectName ?? "");
+      const projectDir = await resolveProjectDirByName(projectName);
+      const metaPath = path.join(projectDir, PROJECT_META_FILE);
+      const meta = await readJsonFile<{ name?: string; serverVersion?: string }>(metaPath, {});
+      const serverVersion = typeof meta.serverVersion === "string" ? meta.serverVersion : "";
+      const forcedVersion = forceServerVersion(serverVersion);
+
+      const defaultPath = path.join(projectDir, "summoner-sdk", "desktop_data", "default_config.json");
+      const configPath = path.join(projectDir, "configs", "server_config.json");
+      const tooltipsLongPath = path.join(projectDir, "summoner-sdk", "desktop_data", "tooltips_long.json");
+      const tooltipsShortPath = path.join(projectDir, "summoner-sdk", "desktop_data", "tooltips_short.json");
+
+      let configSource: "default" | "saved" = "default";
+      let config = await readJsonFile<Record<string, unknown>>(defaultPath, {});
+      try {
+        await fs.access(configPath);
+        config = await readJsonFile<Record<string, unknown>>(configPath, config);
+        configSource = "saved";
+      } catch {
+        // default
+      }
+
+      config.version = forcedVersion;
+
+      const tooltipsLong = await readJsonFile<Record<string, unknown>>(tooltipsLongPath, {});
+      const tooltipsShort = await readJsonFile<Record<string, unknown>>(tooltipsShortPath, {});
+
+      return {
+        ok: true as const,
+        serverVersion,
+        forcedVersion,
+        configSource,
+        configPath: "configs/server_config.json",
+        config,
+        tooltipsLong,
+        tooltipsShort
+      };
+    } catch (e) {
+      return { ok: false as const, error: safeError(e) };
+    }
+  });
+
+  ipcMain.handle(
+    "localServer:saveConfig",
+    async (_e, args: { projectName: string; config: Record<string, unknown> }) => {
+      try {
+        const projectName = normalizeProjectName(args.projectName ?? "");
+        const projectDir = await resolveProjectDirByName(projectName);
+        const metaPath = path.join(projectDir, PROJECT_META_FILE);
+        const meta = await readJsonFile<{ name?: string; serverVersion?: string }>(metaPath, {});
+        const serverVersion = typeof meta.serverVersion === "string" ? meta.serverVersion : "";
+        const forcedVersion = forceServerVersion(serverVersion);
+
+      const configDir = path.join(projectDir, "configs");
+      const configPath = path.join(configDir, "server_config.json");
+        await fs.mkdir(configDir, { recursive: true });
+        const next = { ...(args.config ?? {}) };
+        (next as Record<string, unknown>).version = forcedVersion;
+        await fs.writeFile(configPath, JSON.stringify(next, null, 2) + "\n", "utf-8");
+        return { ok: true as const };
+      } catch (e) {
+        return { ok: false as const, error: safeError(e) };
+      }
+    }
+  );
+
+  ipcMain.handle("localServer:run", async (_e, args: { projectName: string }) => {
+    try {
+      const projectName = normalizeProjectName(args.projectName ?? "");
+      if (runningLocalServers.has(projectName)) {
+        return { ok: false as const, error: "Local server is already running for this project." };
+      }
+      const projectDir = await resolveProjectDirByName(projectName);
+      const metaPath = path.join(projectDir, PROJECT_META_FILE);
+      const meta = await readJsonFile<{ name?: string; serverVersion?: string }>(metaPath, {});
+      const serverVersion = typeof meta.serverVersion === "string" ? meta.serverVersion : "";
+      await ensureConfigFile(projectDir, serverVersion);
+      await ensureServerPy(projectDir);
+
+      const python = await resolvePythonCommand(projectDir);
+      const proc = spawn(python.cmd, [...python.prefixArgs, "server.py"], { cwd: projectDir, stdio: "inherit" });
+      runningLocalServers.set(projectName, proc);
+      if (!win.isDestroyed()) win.webContents.send("evt:localServer-start", { projectName });
+      proc.on("exit", () => {
+        runningLocalServers.delete(projectName);
+        if (!win.isDestroyed()) win.webContents.send("evt:localServer-exit", { projectName });
+      });
+      proc.on("error", () => {
+        runningLocalServers.delete(projectName);
+        if (!win.isDestroyed()) win.webContents.send("evt:localServer-exit", { projectName });
+      });
+      return { ok: true as const };
+    } catch (e) {
+      return { ok: false as const, error: safeError(e) };
+    }
+  });
+
+  ipcMain.handle("localServer:stop", async (_e, args: { projectName: string }) => {
+    try {
+      const projectName = normalizeProjectName(args.projectName ?? "");
+      const proc = runningLocalServers.get(projectName);
+      if (!proc) throw new Error("Local server is not running");
+      proc.kill();
+      return { ok: true as const };
+    } catch (e) {
+      return { ok: false as const, error: safeError(e) };
+    }
+  });
+
+  ipcMain.handle("localServer:listRunning", async () => {
+    try {
+      return { ok: true as const, items: Array.from(runningLocalServers.keys()) };
     } catch (e) {
       return { ok: false as const, error: safeError(e) };
     }
@@ -851,3 +998,61 @@ type RunningAgent = {
 };
 
 const runningAgents = new Map<string, RunningAgent>();
+const runningLocalServers = new Map<string, ReturnType<typeof spawn>>();
+
+function isVersionTag(value: string): boolean {
+  return /^v\d+_\d+_\d+$/.test(value);
+}
+
+function forceServerVersion(serverVersion: string): string {
+  if (isVersionTag(serverVersion)) {
+    const clean = serverVersion.replace(/^v/, "v").replace(/_/g, ".");
+    return `rust_${clean}`;
+  }
+  return "python";
+}
+
+async function readJsonFile<T>(filePath: string, fallback: T): Promise<T> {
+  try {
+    const raw = await fs.readFile(filePath, "utf-8");
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+async function ensureConfigFile(projectDir: string, serverVersion: string): Promise<{ configPath: string }> {
+  const configDir = path.join(projectDir, "configs");
+  const configPath = path.join(configDir, "server_config.json");
+  try {
+    await fs.access(configPath);
+    return { configPath };
+  } catch {
+    // fall through
+  }
+  await fs.mkdir(configDir, { recursive: true });
+  const defaultPath = path.join(projectDir, "summoner-sdk", "desktop_data", "default_config.json");
+  const config = await readJsonFile<Record<string, unknown>>(defaultPath, {});
+  config.version = forceServerVersion(serverVersion);
+  await fs.writeFile(configPath, JSON.stringify(config, null, 2) + "\n", "utf-8");
+  return { configPath };
+}
+
+async function ensureServerPy(projectDir: string): Promise<void> {
+  const serverPyPath = path.join(projectDir, "server.py");
+  try {
+    await fs.access(serverPyPath);
+    return;
+  } catch {
+    // fall through
+  }
+  const content = [
+    "from summoner.server import SummonerServer",
+    "",
+    "if __name__ == \"__main__\":",
+    "    srv = SummonerServer(name=\"DesktopServer\")",
+    "    srv.run(config_path=\"configs/server_config.json\")",
+    ""
+  ].join("\n");
+  await fs.writeFile(serverPyPath, content, "utf-8");
+}

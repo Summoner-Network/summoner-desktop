@@ -5,6 +5,7 @@ declare global {
     api: {
       tcp: {
         connect: (args: { server: { id: string; name: string; host: string; port: number } }) => Promise<{ ok: true } | { ok: false; error: string }>;
+        reconnect: (args: { serverId: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
         disconnect: (args: { serverId: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
         sendChat: (args: { serverId: string; text: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
         onConnection: (cb: (state: { serverId: string; status: "disconnected" | "connecting" | "connected" }) => void) => () => void;
@@ -26,8 +27,8 @@ declare global {
         envWrite: (args: { name: string; content: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
       };
       logs: {
-        read: (args: { serverId: string; host?: string; port?: number }) => Promise<
-          | { ok: true; items: { ts: number; direction: "in" | "out"; raw: string }[] }
+        read: (args: { serverId: string; host?: string; port?: number; limit?: number; before?: number }) => Promise<
+          | { ok: true; items: { ts: number; direction: "in" | "out"; raw: string }[]; before: number; hasMore: boolean }
           | { ok: false; error: string }
         >;
       };
@@ -49,6 +50,27 @@ declare global {
         >;
         onExit: (cb: (args: { projectName: string; name: string; folderName: string }) => void) => () => void;
         remove: (args: { projectName: string; agentName: string; folderName?: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
+      };
+      localServer: {
+        loadConfig: (args: { projectName: string }) => Promise<
+          | {
+              ok: true;
+              serverVersion: string;
+              forcedVersion: string;
+              configSource: "default" | "saved";
+              configPath: string;
+              config: Record<string, unknown>;
+              tooltipsLong: Record<string, unknown>;
+              tooltipsShort: Record<string, unknown>;
+            }
+          | { ok: false; error: string }
+        >;
+        saveConfig: (args: { projectName: string; config: Record<string, unknown> }) => Promise<{ ok: true } | { ok: false; error: string }>;
+        run: (args: { projectName: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
+        stop: (args: { projectName: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
+        listRunning: () => Promise<{ ok: true; items: string[] } | { ok: false; error: string }>;
+        onExit: (cb: (args: { projectName: string }) => void) => () => void;
+        onStart: (cb: (args: { projectName: string }) => void) => () => void;
       };
     };
   }

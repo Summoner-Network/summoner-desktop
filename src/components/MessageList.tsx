@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 export type UiMessage = {
   id: string;
@@ -76,37 +76,105 @@ function fmt(ts: number): string {
   return d.toLocaleTimeString();
 }
 
-export default function MessageList(props: { messages: UiMessage[] }) {
+export default function MessageList(props: {
+  messages: UiMessage[];
+  hasMore?: boolean;
+  loadingOlder?: boolean;
+  onLoadOlder?: () => void;
+}) {
   const ref = useRef<HTMLDivElement | null>(null);
+  const prevLenRef = useRef(props.messages.length);
+  const atBottomRef = useRef(true);
+  const [unseenCount, setUnseenCount] = useState(0);
+  const pendingAdjustRef = useRef<{ prevScrollTop: number; prevScrollHeight: number } | null>(null);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    el.scrollTop = el.scrollHeight;
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
+    atBottomRef.current = nearBottom;
+    if (nearBottom) setUnseenCount(0);
+  }, []);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const diff = props.messages.length - prevLenRef.current;
+    const hasNew = diff > 0;
+    prevLenRef.current = props.messages.length;
+
+    if (pendingAdjustRef.current) {
+      const { prevScrollTop, prevScrollHeight } = pendingAdjustRef.current;
+      const nextScrollHeight = el.scrollHeight;
+      const delta = nextScrollHeight - prevScrollHeight;
+      el.scrollTop = prevScrollTop + delta;
+      pendingAdjustRef.current = null;
+      return;
+    }
+
+    if (!hasNew) {
+      if (props.messages.length === 0) setUnseenCount(0);
+      return;
+    }
+
+    if (atBottomRef.current) {
+      el.scrollTop = el.scrollHeight;
+      setUnseenCount(0);
+    } else {
+      setUnseenCount((prev) => prev + diff);
+    }
   }, [props.messages.length]);
 
-  return (
-    <div className="messages" ref={ref}>
-      {props.messages.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-title">No messages yet</div>
-          <div className="small">Start the conversation or wait for the server to speak.</div>
-        </div>
-      ) : null}
+  const handleScroll = () => {
+    const el = ref.current;
+    if (!el) return;
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
+    atBottomRef.current = nearBottom;
+    if (nearBottom) setUnseenCount(0);
+    if (el.scrollTop <= 40 && props.hasMore && !props.loadingOlder) {
+      pendingAdjustRef.current = { prevScrollTop: el.scrollTop, prevScrollHeight: el.scrollHeight };
+      props.onLoadOlder?.();
+    }
+  };
 
-      {props.messages.map((m) => (
-        <div key={m.id} className={`msg ${m.direction}`}>
-          <div className="msg-meta">
-            <div className="row align-center gap10">
-              <div className="avatar">{m.direction === "in" ? "S" : "Y"}</div>
-              <div className="fw600">{m.direction === "in" ? "Server" : "You"}</div>
-              <div className="time">{fmt(m.ts)}</div>
-            </div>
-            {m.source ? <div className="msg-source">{m.source}</div> : null}
+  const scrollToBottom = () => {
+    const el = ref.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+    atBottomRef.current = true;
+    setUnseenCount(0);
+  };
+
+  return (
+    <div className="messages-wrap">
+      {unseenCount > 0 ? (
+        <button type="button" className="new-msg-banner" onClick={scrollToBottom}>
+          {unseenCount} new message{unseenCount === 1 ? "" : "s"} ↓
+        </button>
+      ) : null}
+      <div className="messages" ref={ref} onScroll={handleScroll}>
+        {props.messages.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-title">No messages yet</div>
+            <div className="small">Start the conversation or wait for the server to speak.</div>
           </div>
-          <div className="msg-raw">{m.typed ? renderTyped(m.typed.value, m.typed.type) : m.raw}</div>
-        </div>
-      ))}
+        ) : null}
+
+        {props.messages.map((m) => (
+          <div key={m.id} className={`msg ${m.direction}`}>
+            <div className="msg-meta">
+              <div className="row align-center gap10">
+                <div className="avatar">{m.direction === "in" ? "S" : "Y"}</div>
+                <div className="fw600">{m.direction === "in" ? "Server" : "You"}</div>
+                <div className="time">{fmt(m.ts)}</div>
+              </div>
+              {m.source ? <div className="msg-source">{m.source}</div> : null}
+            </div>
+            <div className="msg-raw">{m.typed ? renderTyped(m.typed.value, m.typed.type) : m.raw}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

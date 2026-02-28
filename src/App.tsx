@@ -7,6 +7,7 @@ import NetworkPage from "./components/NetworkPage";
 import IdentitiesPage from "./components/IdentitiesPage";
 import ProjectsPage, { ProjectItem, ProjectSpec } from "./components/ProjectsPage";
 import HelpPage from "./components/HelpPage";
+import PlaceholderPanel from "./components/PlaceholderPanel";
 import { formatValue, parseServerMessage } from "./utils/message";
 import logoMage from "../assets/icons/logo_mage.png";
 
@@ -29,41 +30,67 @@ type RemoteAgent = {
   lastSeenServerId?: string;
 };
 
+const INITIAL_SERVERS: ServerProfile[] = [
+  {
+    id: "default-187-77-102-80-8888",
+    name: "Default Summoner Space",
+    host: "187.77.102.80",
+    port: 8888
+  },
+  {
+    id: "localhost-127-0-0-1-8888",
+    name: "Localhost",
+    host: "127.0.0.1",
+    port: 8888
+  }
+];
+
+function buildInitialStatus(servers: ServerProfile[]) {
+  const status: Record<string, ConnectionStatus> = {};
+  servers.forEach((s) => {
+    status[s.id] = "disconnected";
+  });
+  return status;
+}
+
+function buildInitialLastConnected(servers: ServerProfile[]) {
+  const out: Record<string, number | null> = {};
+  servers.forEach((s) => {
+    out[s.id] = null;
+  });
+  return out;
+}
+
+function buildInitialDesired(servers: ServerProfile[]) {
+  const out: Record<string, boolean> = {};
+  servers.forEach((s) => {
+    out[s.id] = true;
+  });
+  return out;
+}
+
 export default function App() {
   const [view, setView] = useState<View>("chat");
 
   // First iteration: one hardcoded server profile.
   // Next iteration: add CRUD + persistence.
-  const [servers, setServers] = useState<ServerProfile[]>([
-    {
-      id: "default-187-77-102-80-8888",
-      name: "Default Summoner Space",
-      host: "187.77.102.80",
-      port: 8888
-    },
-    {
-      id: "localhost-127-0-0-1-8888",
-      name: "Localhost",
-      host: "127.0.0.1",
-      port: 8888
-    }
-  ]);
+  const [servers, setServers] = useState<ServerProfile[]>(() => [...INITIAL_SERVERS]);
 
-  const [selectedServerId, setSelectedServerId] = useState<string>(servers[0].id);
-  const selectedServer = servers.find((s) => s.id === selectedServerId) ?? servers[0];
+  const [selectedServerId, setSelectedServerId] = useState<string | null>(() => INITIAL_SERVERS[0]?.id ?? null);
+  const selectedServer = servers.length > 0 ? servers.find((s) => s.id === selectedServerId) ?? null : null;
 
-  const [conn, setConn] = useState<Record<string, ConnectionStatus>>({
-    [servers[0].id]: "disconnected"
-  });
-  const [lastConnectedAt, setLastConnectedAt] = useState<Record<string, number | null>>({
-    [servers[0].id]: null,
-    [servers[1].id]: null
-  });
-  const [desired, setDesired] = useState<Record<string, boolean>>({
-    [servers[0].id]: true
-  });
+  const [conn, setConn] = useState<Record<string, ConnectionStatus>>(() => buildInitialStatus(INITIAL_SERVERS));
+  const [lastConnectedAt, setLastConnectedAt] = useState<Record<string, number | null>>(
+    () => buildInitialLastConnected(INITIAL_SERVERS)
+  );
+  const [desired, setDesired] = useState<Record<string, boolean>>(() => buildInitialDesired(INITIAL_SERVERS));
   const [remoteByAddr, setRemoteByAddr] = useState<Record<string, RemoteAgent>>({});
   const [selectedRemoteAddr, setSelectedRemoteAddr] = useState<string | null>(null);
+  const connRef = React.useRef(conn);
+
+  useEffect(() => {
+    connRef.current = conn;
+  }, [conn]);
 
   const [identities, setIdentities] = useState<Identity[]>([
     { id: "id-default", name: "Default Identity", value: { name: "Summoner", role: "client" } },
@@ -82,6 +109,7 @@ export default function App() {
   const [runningAgents, setRunningAgents] = useState<
     { projectName: string; name: string; folderName: string; path: string; startedAt: number }[]
   >([]);
+  const [runningLocalServers, setRunningLocalServers] = useState<string[]>([]);
 
   useEffect(() => {
     const off1 = window.api.tcp.onConnection((state) => {
@@ -127,6 +155,40 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    window.api.localServer.listRunning().then((res) => {
+      if (res.ok) setRunningLocalServers(res.items);
+    });
+    const off = window.api.localServer.onExit(() => {
+      window.api.localServer.listRunning().then((res) => {
+        if (res.ok) setRunningLocalServers(res.items);
+      });
+    });
+    const offStart = window.api.localServer.onStart(() => {
+      window.api.localServer.listRunning().then((res) => {
+        if (res.ok) setRunningLocalServers(res.items);
+      });
+      const local = servers.find((s) => s.host === "127.0.0.1" && s.port === 8888);
+      if (local) {
+        const attempt = (delayMs: number) => {
+          setTimeout(() => {
+            const status = connRef.current[local.id];
+            if (status !== "connected") {
+              void window.api.tcp.reconnect({ serverId: local.id });
+            }
+          }, delayMs);
+        };
+        attempt(0);
+        attempt(1000);
+        attempt(3000);
+      }
+    });
+    return () => {
+      off();
+      offStart();
+    };
+  }, [servers]);
+
+  useEffect(() => {
     const nextDesired: Record<string, boolean> = {};
     servers.forEach((s) => {
       nextDesired[s.id] = true;
@@ -135,12 +197,44 @@ export default function App() {
     setDesired(nextDesired);
   }, [servers]);
 
+  useEffect(() => {
+    if (servers.length === 0) {
+      if (selectedServerId !== null) setSelectedServerId(null);
+      if (view === "chat") setView("servers");
+      return;
+    }
+    if (!servers.some((s) => s.id === selectedServerId)) {
+      setSelectedServerId(servers[0].id);
+    }
+  }, [servers, selectedServerId, view]);
+
   function handleAddServer(next: { name: string; host: string; port: number }) {
     const id = `${next.name}-${next.host}-${next.port}-${Date.now()}`.replace(/\s+/g, "-").toLowerCase();
     const server: ServerProfile = { id, ...next };
     setServers((prev) => [...prev, server]);
     setSelectedServerId(server.id);
     setLastConnectedAt((prev) => ({ ...prev, [server.id]: null }));
+  }
+
+  function ensureLocalhostServer() {
+    const host = "127.0.0.1";
+    const port = 8888;
+    const id = "localhost-127-0-0-1-8888";
+    let added = false;
+    const server: ServerProfile = { id, name: "Localhost", host, port };
+    setServers((prev) => {
+      if (prev.some((s) => s.host === host && s.port === port)) return prev;
+      added = true;
+      return [...prev, server];
+    });
+    setLastConnectedAt((prev) => (prev[id] ? prev : { ...prev, [id]: null }));
+    setConn((prev) => (prev[id] ? prev : { ...prev, [id]: "disconnected" }));
+    setDesired((prev) => (prev[id] ? prev : { ...prev, [id]: true }));
+    if (added) {
+      setTimeout(() => {
+        void window.api.tcp.connect({ server });
+      }, 0);
+    }
   }
 
   function handleSelectServerInPage(id: string) {
@@ -164,9 +258,13 @@ export default function App() {
       delete next[id];
       return next;
     });
-    if (selectedServerId === id && servers.length > 1) {
-      const fallback = servers.find((s) => s.id !== id);
-      if (fallback) setSelectedServerId(fallback.id);
+    if (selectedServerId === id) {
+      const remaining = servers.filter((s) => s.id !== id);
+      if (remaining.length > 0) {
+        setSelectedServerId(remaining[0].id);
+      } else {
+        setSelectedServerId("");
+      }
     }
   }
 
@@ -241,8 +339,10 @@ export default function App() {
     return () => off();
   }, []);
 
-  const status = conn[selectedServerId] ?? "disconnected";
-  const isDesired = desired[selectedServerId] ?? false;
+  const status = selectedServerId ? conn[selectedServerId] ?? "disconnected" : "disconnected";
+  const isDesired = selectedServerId ? desired[selectedServerId] ?? false : false;
+  const localhostServer = servers.find((s) => s.host === "127.0.0.1" && s.port === 8888) ?? null;
+  const localhostStatus = localhostServer ? conn[localhostServer.id] ?? "disconnected" : "disconnected";
 
   const selectedRemote = selectedRemoteAddr ? remoteByAddr[selectedRemoteAddr] : null;
   function buildPaths(value: unknown, prefix = ""): string[] {
@@ -443,7 +543,7 @@ export default function App() {
 
       <div className="main">
         {view === "chat" ? (
-          <>
+          selectedServer ? (
             <ChatView
               server={selectedServer}
               status={status}
@@ -461,21 +561,30 @@ export default function App() {
               onSetFromIdentity={setSelectedIdentityId}
               identityOptions={identities}
             />
-          </>
+          ) : (
+            <PlaceholderPanel
+              title="No servers available"
+              subtitle="Add a server in the Servers tab to start chatting."
+            />
+          )
         ) : null}
 
         {view !== "chat" ? (
           <div className="page-frame">
-            {view === "servers" ? (
-              <ServersPage
-                servers={servers}
-                selectedServerId={selectedServerId}
-                onAddServer={handleAddServer}
-                onSelectServer={handleSelectServerInPage}
-                onDeleteServer={handleDeleteServer}
-                lastConnectedAt={lastConnectedAt}
-              />
-            ) : null}
+      {view === "servers" ? (
+        <ServersPage
+          servers={servers}
+          selectedServerId={selectedServerId}
+          onAddServer={handleAddServer}
+          onSelectServer={handleSelectServerInPage}
+          onDeleteServer={handleDeleteServer}
+          lastConnectedAt={lastConnectedAt}
+          projects={projects}
+          runningLocalServers={runningLocalServers}
+          onEnsureLocalhost={ensureLocalhostServer}
+          localhostStatus={localhostStatus}
+        />
+      ) : null}
             {view === "agents" ? (
               <AgentsPage
                 projects={projects}

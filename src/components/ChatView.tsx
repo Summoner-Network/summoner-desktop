@@ -41,36 +41,55 @@ export default function ChatView(props: {
 
   const [messages, setMessages] = useState<UiMessage[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [hasMoreLogs, setHasMoreLogs] = useState(false);
+  const [logBefore, setLogBefore] = useState<number | null>(null);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const idRef = React.useRef(0);
+
+  const nextId = () => {
+    idRef.current += 1;
+    return `m-${idRef.current}`;
+  };
+
+  const mapLogItems = (items: { ts: number; direction: "in" | "out"; raw: string }[]) =>
+    items.map((item) => {
+      if (item.direction === "in") {
+        const parsed = parseServerMessage(item.raw);
+        return {
+          id: nextId(),
+          direction: "in" as const,
+          ts: item.ts,
+          raw: parsed.text,
+          source: parsed.remoteAddr,
+          typed: parsed.typed
+        };
+      }
+      const parsedOut = parseServerMessage(item.raw);
+      return {
+        id: nextId(),
+        direction: "out" as const,
+        ts: item.ts,
+        raw: parsedOut.text,
+        typed: parsedOut.typed
+      };
+    });
 
   // Keep separate history per server later. For now, reset when switching.
   useEffect(() => {
     setMessages([]);
     setError(null);
+    setHasMoreLogs(false);
+    setLogBefore(null);
+    setLoadingOlder(false);
     let mounted = true;
-    window.api.logs.read({ serverId: server.id, host: server.host, port: server.port }).then((res) => {
+    window.api.logs
+      .read({ serverId: server.id, host: server.host, port: server.port, limit: 200 })
+      .then((res) => {
       if (!mounted || !res.ok) return;
-      const history = res.items.map((item, idx) => {
-        if (item.direction === "in") {
-          const parsed = parseServerMessage(item.raw);
-          return {
-            id: `${item.ts}-${idx}`,
-            direction: "in" as const,
-            ts: item.ts,
-            raw: parsed.text,
-            source: parsed.remoteAddr,
-            typed: parsed.typed
-          };
-        }
-        const parsedOut = parseServerMessage(item.raw);
-        return {
-          id: `${item.ts}-${idx}`,
-          direction: "out" as const,
-          ts: item.ts,
-          raw: parsedOut.text,
-          typed: parsedOut.typed
-        };
-      });
+      const history = mapLogItems(res.items);
       setMessages(history);
+      setHasMoreLogs(res.hasMore);
+      setLogBefore(res.before);
     });
     return () => {
       mounted = false;
@@ -85,7 +104,7 @@ export default function ChatView(props: {
       setMessages((prev) => [
         ...prev,
         {
-          id: `${msg.ts}-${Math.random().toString(16).slice(2)}`,
+          id: nextId(),
           direction: "in",
           ts: msg.ts,
           raw: parsed.text,
@@ -97,6 +116,29 @@ export default function ChatView(props: {
 
     return () => off();
   }, [server.id]);
+
+  const loadOlder = async () => {
+    if (!hasMoreLogs || loadingOlder) return;
+    setLoadingOlder(true);
+    const res = await window.api.logs.read({
+      serverId: server.id,
+      host: server.host,
+      port: server.port,
+      limit: 200,
+      before: logBefore ?? undefined
+    });
+    if (res.ok) {
+      const older = mapLogItems(res.items);
+      if (older.length > 0) {
+        setMessages((prev) => [...older, ...prev]);
+      }
+      setHasMoreLogs(res.hasMore);
+      setLogBefore(res.before);
+    } else {
+      setError(res.error);
+    }
+    setLoadingOlder(false);
+  };
 
   const canSend = status === "connected";
 
@@ -220,7 +262,7 @@ export default function ChatView(props: {
         </div>
       </div>
 
-      <MessageList messages={messages} />
+      <MessageList messages={messages} hasMore={hasMoreLogs} loadingOlder={loadingOlder} onLoadOlder={loadOlder} />
 
       <div className="chat-footer">
         {error ? (

@@ -38,6 +38,7 @@ export type RunningAgent = {
 export type Api = {
   tcp: {
     connect: (args: { server: ServerProfile }) => Promise<{ ok: true } | { ok: false; error: string }>;
+    reconnect: (args: { serverId: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
     disconnect: (args: { serverId: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
     sendChat: (args: { serverId: string; text: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
     onConnection: (cb: (state: ConnectionState) => void) => () => void;
@@ -55,8 +56,8 @@ export type Api = {
     envWrite: (args: { name: string; content: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
   };
   logs: {
-    read: (args: { serverId: string; host?: string; port?: number }) => Promise<
-      | { ok: true; items: { ts: number; direction: "in" | "out"; raw: string }[] }
+    read: (args: { serverId: string; host?: string; port?: number; limit?: number; before?: number }) => Promise<
+      | { ok: true; items: { ts: number; direction: "in" | "out"; raw: string }[]; before: number; hasMore: boolean }
       | { ok: false; error: string }
     >;
   };
@@ -79,11 +80,33 @@ export type Api = {
     onExit: (cb: (args: { projectName: string; name: string; folderName: string }) => void) => () => void;
     remove: (args: { projectName: string; agentName: string; folderName?: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
   };
+  localServer: {
+    loadConfig: (args: { projectName: string }) => Promise<
+      | {
+          ok: true;
+          serverVersion: string;
+          forcedVersion: string;
+          configSource: "default" | "saved";
+          configPath: string;
+          config: Record<string, unknown>;
+          tooltipsLong: Record<string, unknown>;
+          tooltipsShort: Record<string, unknown>;
+        }
+      | { ok: false; error: string }
+    >;
+    saveConfig: (args: { projectName: string; config: Record<string, unknown> }) => Promise<{ ok: true } | { ok: false; error: string }>;
+    run: (args: { projectName: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
+    stop: (args: { projectName: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
+    listRunning: () => Promise<{ ok: true; items: string[] } | { ok: false; error: string }>;
+    onExit: (cb: (args: { projectName: string }) => void) => () => void;
+    onStart: (cb: (args: { projectName: string }) => void) => () => void;
+  };
 };
 
 const api: Api = {
   tcp: {
     connect: (args) => ipcRenderer.invoke("tcp:connect", args),
+    reconnect: (args) => ipcRenderer.invoke("tcp:reconnect", args),
     disconnect: (args) => ipcRenderer.invoke("tcp:disconnect", args),
     sendChat: (args) => ipcRenderer.invoke("tcp:sendChat", args),
 
@@ -123,6 +146,23 @@ const api: Api = {
       return () => ipcRenderer.removeListener("evt:agent-exit", h);
     },
     remove: (args) => ipcRenderer.invoke("agents:remove", args)
+  },
+  localServer: {
+    loadConfig: (args) => ipcRenderer.invoke("localServer:loadConfig", args),
+    saveConfig: (args) => ipcRenderer.invoke("localServer:saveConfig", args),
+    run: (args) => ipcRenderer.invoke("localServer:run", args),
+    stop: (args) => ipcRenderer.invoke("localServer:stop", args),
+    listRunning: () => ipcRenderer.invoke("localServer:listRunning"),
+    onExit: (cb) => {
+      const h = (_: unknown, payload: { projectName: string }) => cb(payload);
+      ipcRenderer.on("evt:localServer-exit", h);
+      return () => ipcRenderer.removeListener("evt:localServer-exit", h);
+    },
+    onStart: (cb) => {
+      const h = (_: unknown, payload: { projectName: string }) => cb(payload);
+      ipcRenderer.on("evt:localServer-start", h);
+      return () => ipcRenderer.removeListener("evt:localServer-start", h);
+    }
   }
 };
 
