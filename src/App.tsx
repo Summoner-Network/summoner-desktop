@@ -69,6 +69,10 @@ function buildInitialDesired(servers: ServerProfile[]) {
   return out;
 }
 
+function findLocalhost(servers: ServerProfile[]) {
+  return servers.find((s) => s.host === "127.0.0.1" && s.port === 8888) ?? null;
+}
+
 export default function App() {
   const [view, setView] = useState<View>("chat");
 
@@ -167,7 +171,7 @@ export default function App() {
       window.api.localServer.listRunning().then((res) => {
         if (res.ok) setRunningLocalServers(res.items);
       });
-      const local = servers.find((s) => s.host === "127.0.0.1" && s.port === 8888);
+      const local = findLocalhost(servers);
       if (local) {
         const attempt = (delayMs: number) => {
           setTimeout(() => {
@@ -341,7 +345,7 @@ export default function App() {
 
   const status = selectedServerId ? conn[selectedServerId] ?? "disconnected" : "disconnected";
   const isDesired = selectedServerId ? desired[selectedServerId] ?? false : false;
-  const localhostServer = servers.find((s) => s.host === "127.0.0.1" && s.port === 8888) ?? null;
+  const localhostServer = findLocalhost(servers);
   const localhostStatus = localhostServer ? conn[localhostServer.id] ?? "disconnected" : "disconnected";
 
   const selectedRemote = selectedRemoteAddr ? remoteByAddr[selectedRemoteAddr] : null;

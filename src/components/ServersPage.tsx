@@ -54,6 +54,8 @@ export default function ServersPage(props: {
     >
   >({});
   const [localRunStatus, setLocalRunStatus] = useState<Record<string, "idle" | "starting">>({});
+  const [localRunWarning, setLocalRunWarning] = useState<Record<string, string>>({});
+  const localRunTimerRef = React.useRef<Record<string, number>>({});
   const nullRestoreRef = React.useRef<Record<string, unknown>>({});
 
   function submit() {
@@ -207,6 +209,9 @@ export default function ServersPage(props: {
   }
 
   async function runLocalServer(projectName: string) {
+    // Flow note: start server -> onEnsureLocalhost adds localhost if missing -> App listens to localServer:onStart
+    // and triggers tcp reconnect attempts. We keep UI "Starting…" until localhostStatus reports connected.
+    setLocalRunWarning((prev) => ({ ...prev, [projectName]: "" }));
     onEnsureLocalhost();
     setLocalRunStatus((prev) => ({ ...prev, [projectName]: "starting" }));
     const res = await window.api.localServer.run({ projectName });
@@ -232,6 +237,14 @@ export default function ServersPage(props: {
       }));
       return;
     }
+    const existing = localRunTimerRef.current[projectName];
+    if (existing) window.clearTimeout(existing);
+    localRunTimerRef.current[projectName] = window.setTimeout(() => {
+      setLocalRunWarning((prev) => ({
+        ...prev,
+        [projectName]: "Still starting… If this persists, check server logs."
+      }));
+    }, 12_000);
     setTimeout(() => {
       setLocalRunStatus((prev) => {
         if (runningLocalServers.includes(projectName)) return prev;
@@ -250,6 +263,9 @@ export default function ServersPage(props: {
     if (!selectedProject) return;
     if (localhostStatus === "connected") {
       setLocalRunStatus((prev) => ({ ...prev, [selectedProject]: "idle" }));
+      setLocalRunWarning((prev) => ({ ...prev, [selectedProject]: "" }));
+      const existing = localRunTimerRef.current[selectedProject];
+      if (existing) window.clearTimeout(existing);
     }
   }, [localhostStatus, selectedProject]);
 
@@ -281,6 +297,7 @@ export default function ServersPage(props: {
   const projectOptions = useMemo(() => projects.map((p) => p.name), [projects]);
   const isRunning = selectedProject ? runningLocalServers.includes(selectedProject) : false;
   const isStarting = selectedProject ? localRunStatus[selectedProject] === "starting" : false;
+  const warning = selectedProject ? localRunWarning[selectedProject] : "";
 
   function getTooltip(
     tooltips: Record<string, unknown>,
@@ -734,6 +751,7 @@ export default function ServersPage(props: {
             {isStarting && localhostStatus !== "connected" ? (
               <div className="small muted run-wait">Waiting for server to accept connections…</div>
             ) : null}
+            {warning ? <div className="small text-error">{warning}</div> : null}
           </div>
         </div>
       </div>
