@@ -11,7 +11,7 @@ Summoner Desktop is a chat-based Electron app for interacting with TCP servers. 
 ## Preview
 
 <p align="center">
-  <img src="assets/img/screenshot.png" width="700">  
+  <img src="assets/img/screenshot_2.png" width="700">  
 </p>
 
 ## Getting Started
