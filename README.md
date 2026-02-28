@@ -84,7 +84,7 @@ Outputs installers into `release/`.
 ### 1) Pick a server
 - Open **Servers** to add or select a TCP server.
 - The default servers are:
-  - **Default Summoner Space** (`187.77.102.80:8888`)
+  - **Default Space** (`187.77.102.80:8888`)
   - **Localhost** (`127.0.0.1:8888`)
 - Clicking a server in **My Servers** switches the chat to that server.
 

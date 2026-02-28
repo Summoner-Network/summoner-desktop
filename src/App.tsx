@@ -33,7 +33,7 @@ type RemoteAgent = {
 const INITIAL_SERVERS: ServerProfile[] = [
   {
     id: "default-187-77-102-80-8888",
-    name: "Default Summoner Space",
+    name: "Default Space",
     host: "187.77.102.80",
     port: 8888
   },
@@ -472,35 +472,40 @@ export default function App() {
           onClick={() => setView("servers")}
           type="button"
         >
-          Servers
+          <span className="rail-icon icon-server" aria-hidden="true" />
+          <span className="rail-label">Servers</span>
         </button>
         <button
           className={`rail-btn ${view === "projects" ? "active" : ""}`}
           onClick={() => setView("projects")}
           type="button"
         >
-          Projects
+          <span className="rail-icon icon-projects" aria-hidden="true" />
+          <span className="rail-label">Projects</span>
         </button>
         <button
           className={`rail-btn ${view === "agents" ? "active" : ""}`}
           onClick={() => setView("agents")}
           type="button"
         >
-          Agents
+          <span className="rail-icon icon-agents" aria-hidden="true" />
+          <span className="rail-label">Agents</span>
         </button>
         <button
           className={`rail-btn ${view === "network" ? "active" : ""}`}
           onClick={() => setView("network")}
           type="button"
         >
-          Network
+          <span className="rail-icon icon-network" aria-hidden="true" />
+          <span className="rail-label">Network</span>
         </button>
         <button
           className={`rail-btn ${view === "identities" ? "active" : ""}`}
           onClick={() => setView("identities")}
           type="button"
         >
-          Identities
+          <span className="rail-icon icon-identities" aria-hidden="true" />
+          <span className="rail-label">Identities</span>
         </button>
         <div className="rail-grow" />
         <button
@@ -508,7 +513,8 @@ export default function App() {
           type="button"
           onClick={() => setView("help")}
         >
-          ?
+          <span className="rail-icon icon-settings" aria-hidden="true" />
+          <span className="rail-label">Settings</span>
         </button>
       </div>
 

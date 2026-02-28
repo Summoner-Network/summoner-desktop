@@ -88,11 +88,13 @@ body {
   font-size: 10px;
   text-align: center;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   padding: 6px;
   line-height: 1.1;
+  gap: 6px;
 }
 
 .rail-btn.active {
@@ -105,6 +107,53 @@ body {
 .rail-btn.ghost {
   background: transparent;
   border-color: rgba(63, 53, 39, 0.15);
+}
+
+.rail-icon {
+  width: 20px;
+  height: 20px;
+  display: block;
+  background-color: currentColor;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+}
+
+.rail-icon.icon-server {
+  mask-image: url("../assets/svg_icons/database-add.svg");
+  -webkit-mask-image: url("../assets/svg_icons/database-add.svg");
+}
+
+.rail-icon.icon-projects {
+  mask-image: url("../assets/svg_icons/card-checklist.svg");
+  -webkit-mask-image: url("../assets/svg_icons/card-checklist.svg");
+}
+
+.rail-icon.icon-agents {
+  mask-image: url("../assets/svg_icons/robot.svg");
+  -webkit-mask-image: url("../assets/svg_icons/robot.svg");
+}
+
+.rail-icon.icon-network {
+  mask-image: url("../assets/svg_icons/router.svg");
+  -webkit-mask-image: url("../assets/svg_icons/router.svg");
+}
+
+.rail-icon.icon-identities {
+  mask-image: url("../assets/svg_icons/person-vcard.svg");
+  -webkit-mask-image: url("../assets/svg_icons/person-vcard.svg");
+}
+
+.rail-icon.icon-settings {
+  mask-image: url("../assets/svg_icons/gear.svg");
+  -webkit-mask-image: url("../assets/svg_icons/gear.svg");
+}
+
+.rail-label {
+  font-size: 10px;
 }
 
 .rail-grow { flex: 1; }
@@ -271,6 +320,12 @@ body {
 .sidebar .pill {
   width: 12px;
   height: 12px;
+  min-width: 12px;
+  min-height: 12px;
+  max-width: 12px;
+  max-height: 12px;
+  flex: 0 0 12px;
+  align-self: center;
   padding: 0;
   border-radius: 999px;
   background: #efe6d8;
@@ -280,8 +335,12 @@ body {
 }
 
 .status-dot {
-  width: 8px;
-  height: 8px;
+  width: 12px;
+  height: 12px;
+  min-width: 12px;
+  min-height: 12px;
+  max-width: 12px;
+  max-height: 12px;
   border-radius: 999px;
   background: #94a3b8;
 }
@@ -886,6 +945,53 @@ button:disabled {
 }
 
 .sidebar .small { color: var(--muted); }
+
+.list-icon-wrap {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 34px;
+  color: var(--muted);
+}
+
+.list-icon {
+  width: 20px;
+  height: 20px;
+  display: block;
+  background-color: currentColor;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+}
+
+.list-item.selected .list-icon-wrap {
+  color: var(--accent-soft-ink);
+}
+
+.list-icon.icon-server {
+  mask-image: url("../assets/svg_icons/database.svg");
+  -webkit-mask-image: url("../assets/svg_icons/database.svg");
+}
+
+.list-icon.icon-agents {
+  mask-image: url("../assets/svg_icons/robot.svg");
+  -webkit-mask-image: url("../assets/svg_icons/robot.svg");
+}
+
+.list-icon.icon-network {
+  mask-image: url("../assets/svg_icons/router.svg");
+  -webkit-mask-image: url("../assets/svg_icons/router.svg");
+}
+
+.list-icon.icon-identities {
+  mask-image: url("../assets/svg_icons/person-vcard.svg");
+  -webkit-mask-image: url("../assets/svg_icons/person-vcard.svg");
+}
 
 .text-error { color: #b91c1c; }
 

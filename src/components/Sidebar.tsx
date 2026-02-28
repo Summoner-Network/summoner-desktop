@@ -1,5 +1,9 @@
 import React from "react";
 import type { ServerProfile, ConnectionStatus, Identity } from "../App";
+import iconServer from "../../assets/svg_icons/server.svg";
+import iconAgents from "../../assets/svg_icons/robot.svg";
+import iconNetwork from "../../assets/svg_icons/router-fill.svg";
+import iconIdentities from "../../assets/svg_icons/person-vcard.svg";
 
 export default function Sidebar(props: {
   servers: ServerProfile[];
@@ -61,13 +65,18 @@ export default function Sidebar(props: {
               tabIndex={0}
             >
               <div className="row-between gap10">
-                <div className="row align-center gap10">
-                  <div className="fw600">{s.name}</div>
+                <div className="row align-center gap12">
+                  <div className="list-icon-wrap">
+                    <span className="list-icon icon-server" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <div className="fw600">{s.name}</div>
+                    <div className="small mt6">
+                      {s.host}:{s.port}
+                    </div>
+                  </div>
                 </div>
                 <div className={`pill status-dot ${status}`} aria-label={status} />
-              </div>
-              <div className="small mt6">
-                {s.host}:{s.port}
               </div>
             </div>
           );
@@ -87,8 +96,15 @@ export default function Sidebar(props: {
             role="button"
             tabIndex={0}
           >
-            <div className="fw600">{agent.name}</div>
-            <div className="small mt6">{agent.projectName}</div>
+            <div className="row align-center gap12">
+              <div className="list-icon-wrap">
+                <span className="list-icon icon-agents" aria-hidden="true" />
+              </div>
+              <div>
+                <div className="fw600">{agent.name}</div>
+                <div className="small mt6">{agent.projectName}</div>
+              </div>
+            </div>
           </div>
         ))}
       </div>
@@ -104,8 +120,17 @@ export default function Sidebar(props: {
             role="button"
             tabIndex={0}
           >
-            <div className="fw600">{agent.addr}</div>
-            <div className="small mt6">Last seen: {new Date(agent.lastSeen).toLocaleTimeString()}</div>
+            <div className="row align-center gap12">
+              <div className="list-icon-wrap">
+                <span className="list-icon icon-network" aria-hidden="true" />
+              </div>
+              <div>
+                <div className="fw600">{agent.addr}</div>
+                <div className="small mt6">
+                  Last seen: {new Date(agent.lastSeen).toLocaleTimeString()}
+                </div>
+              </div>
+            </div>
           </div>
         ))}
       </div>
@@ -118,8 +143,15 @@ export default function Sidebar(props: {
           role="button"
           tabIndex={0}
         >
-          <div className="fw600">None</div>
-          <div className="small mt6">Do not set "from"</div>
+          <div className="row align-center gap12">
+            <div className="list-icon-wrap">
+              <span className="list-icon icon-identities" aria-hidden="true" />
+            </div>
+            <div>
+              <div className="fw600">None</div>
+              <div className="small mt6">Do not set "from"</div>
+            </div>
+          </div>
         </div>
         {identities.map((id) => (
           <div
@@ -129,8 +161,17 @@ export default function Sidebar(props: {
             role="button"
             tabIndex={0}
           >
-            <div className="fw600">{id.name}</div>
-            <div className="small mt6">{typeof id.value === "object" ? "JSON payload" : String(id.value)}</div>
+            <div className="row align-center gap12">
+              <div className="list-icon-wrap">
+                <span className="list-icon icon-identities" aria-hidden="true" />
+              </div>
+              <div>
+                <div className="fw600">{id.name}</div>
+                <div className="small mt6">
+                  {typeof id.value === "object" ? "JSON payload" : String(id.value)}
+                </div>
+              </div>
+            </div>
           </div>
         ))}
       </div>
