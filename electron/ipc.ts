@@ -34,6 +34,14 @@ const geoRequests: number[] = [];
 let geoQueue: Promise<void> = Promise.resolve();
 let geoCacheLoaded = false;
 let geoCacheWriteTimer: NodeJS.Timeout | null = null;
+const geoInFlight = new Map<string, Promise<{ ok: true; lat: number; lon: number; city?: string; country?: string; ts: number; cached: boolean; meta?: GeoMeta }>>();
+
+type GeoMeta = {
+  queued: boolean;
+  queueDepth: number;
+  waitedMs: number;
+  rateLimitPerMin: number;
+};
 
 function isValidHost(host: string): boolean {
   // Allow IPv4, localhost, and basic DNS names.
@@ -1200,17 +1208,40 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
       await ensureGeoCacheLoaded();
       const cached = geoCache.get(ip);
       if (cached && Date.now() - cached.ts < 24 * 60 * 60 * 1000) {
-        return { ok: true as const, ...cached, cached: true };
+        return {
+          ok: true as const,
+          ...cached,
+          cached: true,
+          meta: { queued: false, queueDepth: 0, waitedMs: 0, rateLimitPerMin: GEO_RATE_LIMIT }
+        };
       }
-      return await enqueueGeoLookup(async () => {
+      const inFlight = geoInFlight.get(ip);
+      if (inFlight) {
+        return await inFlight;
+      }
+
+      const queuedAt = Date.now();
+      const promise = enqueueGeoLookup(async () => {
         await ensureGeoCacheLoaded();
         const cachedAgain = geoCache.get(ip);
         if (cachedAgain && Date.now() - cachedAgain.ts < 24 * 60 * 60 * 1000) {
-          return { ok: true as const, ...cachedAgain, cached: true };
+          return {
+            ok: true as const,
+            ...cachedAgain,
+            cached: true,
+            meta: {
+              queued: true,
+              queueDepth: geoInFlight.size,
+              waitedMs: Date.now() - queuedAt,
+              rateLimitPerMin: GEO_RATE_LIMIT
+            }
+          };
         }
+        let waitedMs = 0;
         while (!rateLimitOk()) {
           const now = Date.now();
           const waitMs = Math.max(200, GEO_RATE_WINDOW_MS - (now - (geoRequests[0] ?? now)));
+          waitedMs += waitMs;
           await new Promise((r) => setTimeout(r, waitMs));
         }
         const url = `http://ip-api.com/json/${encodeURIComponent(ip)}?fields=status,message,country,city,lat,lon,query`;
@@ -1236,8 +1267,25 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
         };
         geoCache.set(ip, payload);
         scheduleGeoCacheWrite();
-        return { ok: true as const, ...payload, cached: false };
+        return {
+          ok: true as const,
+          ...payload,
+          cached: false,
+          meta: {
+            queued: true,
+            queueDepth: geoInFlight.size,
+            waitedMs,
+            rateLimitPerMin: GEO_RATE_LIMIT
+          }
+        };
       });
+
+      geoInFlight.set(ip, promise);
+      try {
+        return await promise;
+      } finally {
+        geoInFlight.delete(ip);
+      }
     } catch (e) {
       return { ok: false as const, error: safeError(e) };
     }

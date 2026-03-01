@@ -1145,11 +1145,20 @@ button:disabled {
   cursor: pointer;
 }
 
+.map-marker-pulse {
+  fill: rgba(73, 150, 110, 0.32);
+  stroke: rgba(73, 150, 110, 0.85);
+  stroke-width: 2px;
+  opacity: 0.8;
+  pointer-events: none;
+}
+
 .map-marker.selected {
   fill: var(--accent-soft-ink);
   stroke: var(--accent-strong);
   opacity: 1;
 }
+
 
 .map-tooltip {
   position: absolute;

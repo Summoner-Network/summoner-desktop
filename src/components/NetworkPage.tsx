@@ -396,17 +396,19 @@ export default function NetworkPage(props: {
         if (projected.outside && mapParams.flags?.rejectOutsideMap) return null;
         const x = projected.x;
         const y = projected.y;
+        const recent = Date.now() - agent.lastSeen <= 60_000;
         return {
           id: agent.addr,
           x,
           y,
           selected: agent.addr === selected?.addr,
+          recent,
           label: geo.city && geo.country ? `${ipv4} • ${geo.city}, ${geo.country}` : geo.country
             ? `${ipv4} • ${geo.country}`
             : ipv4
         };
       })
-      .filter(Boolean) as { id: string; x: number; y: number; selected: boolean; label: string }[];
+      .filter(Boolean) as { id: string; x: number; y: number; selected: boolean; recent: boolean; label: string }[];
   }, [agents, geoByIp, mapParams, selected?.addr]);
 
   const mapStats = useMemo(() => {
@@ -435,7 +437,7 @@ export default function NetworkPage(props: {
 
       <div className="panel map-panel">
         <div className="panel-title-row">
-          <div className="panel-title">World Map</div>
+          <div className="panel-title">Map View</div>
           <div className="map-toolbar">
             <select
               className="map-select"
@@ -594,25 +596,32 @@ export default function NetworkPage(props: {
                 <g dangerouslySetInnerHTML={{ __html: mapSvgInner }} />
                 {currentViewBoxRect
                   ? markers.map((m) => (
-                      <circle
-                        key={m.id}
-                        className={`map-marker ${m.selected ? "selected" : ""}`}
-                        cx={m.x}
-                        cy={m.y}
-                        r={m.selected ? 7 : 5}
-                        onClick={() => onSelectRemoteAddr(m.id)}
-                        onMouseEnter={(e) => {
-                          const rect = mapStageRef.current?.getBoundingClientRect();
-                          if (!rect) return;
-                          setHoveredMarker({ label: m.label, x: e.clientX - rect.left, y: e.clientY - rect.top });
-                        }}
-                        onMouseMove={(e) => {
-                          const rect = mapStageRef.current?.getBoundingClientRect();
-                          if (!rect) return;
-                          setHoveredMarker({ label: m.label, x: e.clientX - rect.left, y: e.clientY - rect.top });
-                        }}
-                        onMouseLeave={() => setHoveredMarker(null)}
-                      />
+                      <g key={m.id}>
+                        {m.recent ? (
+                          <circle className="map-marker-pulse" cx={m.x} cy={m.y} r={m.selected ? 12 : 10}>
+                            <animate attributeName="r" values="10;22" dur="2.4s" repeatCount="indefinite" />
+                            <animate attributeName="opacity" values="0.8;0" dur="2.4s" repeatCount="indefinite" />
+                          </circle>
+                        ) : null}
+                        <circle
+                          className={`map-marker ${m.selected ? "selected" : ""}`}
+                          cx={m.x}
+                          cy={m.y}
+                          r={m.selected ? 7 : 5}
+                          onClick={() => onSelectRemoteAddr(m.id)}
+                          onMouseEnter={(e) => {
+                            const rect = mapStageRef.current?.getBoundingClientRect();
+                            if (!rect) return;
+                            setHoveredMarker({ label: m.label, x: e.clientX - rect.left, y: e.clientY - rect.top });
+                          }}
+                          onMouseMove={(e) => {
+                            const rect = mapStageRef.current?.getBoundingClientRect();
+                            if (!rect) return;
+                            setHoveredMarker({ label: m.label, x: e.clientX - rect.left, y: e.clientY - rect.top });
+                          }}
+                          onMouseLeave={() => setHoveredMarker(null)}
+                        />
+                      </g>
                     ))
                   : null}
               </svg>
