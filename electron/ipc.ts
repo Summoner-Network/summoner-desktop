@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow } from "electron";
+import { ipcMain, BrowserWindow, shell, app } from "electron";
 import type { ServerProfile } from "./preload";
 import { TcpManager } from "./tcp/TcpManager";
 import path from "node:path";
@@ -19,10 +19,21 @@ const REPO_TO_BUNDLE: Record<string, string> = {
 const PROJECT_META_FILE = "app.summoner.project.json";
 const AGENT_PREFIX = "agent_";
 const MAX_LOG_LINES = 3000;
+const MAPS_META_FILE = "app.summoner.maps.json";
+const GEO_CACHE_FILE = "app.summoner.geo.json";
+const GEO_RATE_LIMIT = 45;
+const GEO_RATE_WINDOW_MS = 60_000;
+
+const isDev = !!process.env.ELECTRON_RENDERER_URL;
 
 type ServerLogEntry = { ts: number; direction: "in" | "out"; raw: string };
 const logStore = new Map<string, { loaded: boolean; lines: string[] }>();
 const logQueues = new Map<string, Promise<void>>();
+const geoCache = new Map<string, { lat: number; lon: number; city?: string; country?: string; ts: number }>();
+const geoRequests: number[] = [];
+let geoQueue: Promise<void> = Promise.resolve();
+let geoCacheLoaded = false;
+let geoCacheWriteTimer: NodeJS.Timeout | null = null;
 
 function isValidHost(host: string): boolean {
   // Allow IPv4, localhost, and basic DNS names.
@@ -53,6 +64,149 @@ function getSummonerRoot(): string {
     return path.join(base, "summoner");
   }
   return path.join(os.homedir(), ".local", "summoner");
+}
+
+function getMapsRoot(): string {
+  return path.join(getSummonerRoot(), "maps");
+}
+
+function getBundledMapsRoot(): string {
+  if (isDev) {
+    return path.join(process.cwd(), "assets", "summoner-geofit", "maps");
+  }
+  return path.join(process.resourcesPath, "maps");
+}
+
+async function listMapsFromDir(dir: string, source: "bundle" | "local") {
+  let entries: string[] = [];
+  try {
+    entries = await fs.readdir(dir);
+  } catch {
+    return [];
+  }
+  const items = await Promise.all(
+    entries.map(async (name) => {
+      const mapDir = path.join(dir, name);
+      try {
+        const stat = await fs.stat(mapDir);
+        if (!stat.isDirectory()) return null;
+        const svgPath = path.join(mapDir, "map.svg");
+        const paramsPath = path.join(mapDir, "mercator_params.json");
+        await fs.access(svgPath);
+        await fs.access(paramsPath);
+        return {
+          id: `${source}:${name}`,
+          name,
+          source,
+          mapDir,
+          svgPath,
+          paramsPath
+        };
+      } catch {
+        return null;
+      }
+    })
+  );
+  return items.filter(Boolean) as {
+    id: string;
+    name: string;
+    source: "bundle" | "local";
+    mapDir: string;
+    svgPath: string;
+    paramsPath: string;
+  }[];
+}
+
+async function readMapsMeta(): Promise<{ selectedMapId?: string }> {
+  const root = getMapsRoot();
+  await fs.mkdir(root, { recursive: true });
+  const metaPath = path.join(root, MAPS_META_FILE);
+  try {
+    const raw = await fs.readFile(metaPath, "utf-8");
+    const parsed = JSON.parse(raw) as { selectedMapId?: string };
+    return parsed ?? {};
+  } catch {
+    return {};
+  }
+}
+
+async function writeMapsMeta(meta: { selectedMapId?: string }): Promise<void> {
+  const root = getMapsRoot();
+  await fs.mkdir(root, { recursive: true });
+  const metaPath = path.join(root, MAPS_META_FILE);
+  await fs.writeFile(metaPath, JSON.stringify(meta, null, 2), "utf-8");
+}
+
+function rateLimitOk(): boolean {
+  const now = Date.now();
+  while (geoRequests.length > 0 && now - geoRequests[0] > GEO_RATE_WINDOW_MS) {
+    geoRequests.shift();
+  }
+  if (geoRequests.length >= GEO_RATE_LIMIT) return false;
+  geoRequests.push(now);
+  return true;
+}
+
+function extractIpv4(value: string): string | null {
+  const match = value.match(/(\d{1,3}(?:\.\d{1,3}){3})/);
+  if (!match) return null;
+  const parts = match[1].split(".").map((n) => Number(n));
+  if (parts.length !== 4 || parts.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) {
+    return null;
+  }
+  return match[1];
+}
+
+async function ensureGeoCacheLoaded(): Promise<void> {
+  if (geoCacheLoaded) return;
+  geoCacheLoaded = true;
+  const root = getMapsRoot();
+  await fs.mkdir(root, { recursive: true });
+  const filePath = path.join(root, GEO_CACHE_FILE);
+  try {
+    const raw = await fs.readFile(filePath, "utf-8");
+    const parsed = JSON.parse(raw) as Record<
+      string,
+      { lat: number; lon: number; city?: string; country?: string; ts: number }
+    >;
+    Object.entries(parsed).forEach(([ip, info]) => {
+      if (
+        typeof ip === "string" &&
+        info &&
+        typeof info.lat === "number" &&
+        typeof info.lon === "number" &&
+        typeof info.ts === "number"
+      ) {
+        geoCache.set(ip, info);
+      }
+    });
+  } catch {
+    // ignore missing or invalid cache
+  }
+}
+
+function scheduleGeoCacheWrite(): void {
+  if (geoCacheWriteTimer) return;
+  geoCacheWriteTimer = setTimeout(async () => {
+    geoCacheWriteTimer = null;
+    const root = getMapsRoot();
+    await fs.mkdir(root, { recursive: true });
+    const filePath = path.join(root, GEO_CACHE_FILE);
+    const data: Record<string, { lat: number; lon: number; city?: string; country?: string; ts: number }> = {};
+    geoCache.forEach((value, key) => {
+      data[key] = value;
+    });
+    await fs.writeFile(filePath, JSON.stringify(data, null, 2), "utf-8");
+  }, 500);
+}
+
+function enqueueGeoLookup<T>(fn: () => Promise<T>): Promise<T> {
+  const next = geoQueue.then(fn, fn);
+  geoQueue = next.then(
+    () => undefined,
+    () => undefined
+  );
+  return next;
 }
 
 function getServerLogsRoot(): string {
@@ -348,6 +502,11 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
   ipcMain.removeHandler("agents:listRunning");
   ipcMain.removeHandler("agents:getIdentity");
   ipcMain.removeHandler("agents:remove");
+  ipcMain.removeHandler("maps:list");
+  ipcMain.removeHandler("maps:load");
+  ipcMain.removeHandler("maps:select");
+  ipcMain.removeHandler("maps:openFolder");
+  ipcMain.removeHandler("maps:geoLookup");
 
   ipcMain.handle("tcp:connect", async (_e, args: { server: ServerProfile }) => {
     try {
@@ -958,6 +1117,127 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
         })
       );
       return { ok: true as const, items };
+    } catch (e) {
+      return { ok: false as const, error: safeError(e) };
+    }
+  });
+
+  ipcMain.handle("maps:list", async () => {
+    try {
+      const bundledRoot = getBundledMapsRoot();
+      const localRoot = getMapsRoot();
+      await fs.mkdir(localRoot, { recursive: true });
+      const [bundleItems, localItems] = await Promise.all([
+        listMapsFromDir(bundledRoot, "bundle"),
+        listMapsFromDir(localRoot, "local")
+      ]);
+      const items = [...bundleItems, ...localItems];
+      const meta = await readMapsMeta();
+      let selectedMapId = meta.selectedMapId;
+      if (!selectedMapId || !items.find((m) => m.id === selectedMapId)) {
+        const defaultId = items.find((m) => m.id === "bundle:world_map_1")?.id ?? items[0]?.id;
+        selectedMapId = defaultId;
+        await writeMapsMeta({ selectedMapId });
+      }
+      return {
+        ok: true as const,
+        items: items.map((m) => ({ id: m.id, name: m.name, source: m.source })),
+        selectedMapId
+      };
+    } catch (e) {
+      return { ok: false as const, error: safeError(e) };
+    }
+  });
+
+  ipcMain.handle("maps:load", async (_e, args: { id: string }) => {
+    try {
+      const bundledRoot = getBundledMapsRoot();
+      const localRoot = getMapsRoot();
+      const [bundleItems, localItems] = await Promise.all([
+        listMapsFromDir(bundledRoot, "bundle"),
+        listMapsFromDir(localRoot, "local")
+      ]);
+      const items = [...bundleItems, ...localItems];
+      const item = items.find((m) => m.id === args.id);
+      if (!item) throw new Error("Map not found");
+      const [svg, params] = await Promise.all([
+        fs.readFile(item.svgPath, "utf-8"),
+        fs.readFile(item.paramsPath, "utf-8")
+      ]);
+      return { ok: true as const, svg, params };
+    } catch (e) {
+      return { ok: false as const, error: safeError(e) };
+    }
+  });
+
+  ipcMain.handle("maps:select", async (_e, args: { id: string }) => {
+    try {
+      if (!args.id || typeof args.id !== "string") throw new Error("Invalid map id");
+      await writeMapsMeta({ selectedMapId: args.id });
+      return { ok: true as const };
+    } catch (e) {
+      return { ok: false as const, error: safeError(e) };
+    }
+  });
+
+  ipcMain.handle("maps:openFolder", async () => {
+    try {
+      const root = getMapsRoot();
+      await fs.mkdir(root, { recursive: true });
+      const res = await shell.openPath(root);
+      if (res) throw new Error(res);
+      return { ok: true as const, path: root };
+    } catch (e) {
+      return { ok: false as const, error: safeError(e) };
+    }
+  });
+
+  ipcMain.handle("maps:geoLookup", async (_e, args: { ip: string }) => {
+    try {
+      const raw = typeof args.ip === "string" ? args.ip.trim() : "";
+      const ip = raw ? extractIpv4(raw) ?? "" : "";
+      if (!ip) throw new Error("Missing IP");
+      await ensureGeoCacheLoaded();
+      const cached = geoCache.get(ip);
+      if (cached && Date.now() - cached.ts < 24 * 60 * 60 * 1000) {
+        return { ok: true as const, ...cached, cached: true };
+      }
+      return await enqueueGeoLookup(async () => {
+        await ensureGeoCacheLoaded();
+        const cachedAgain = geoCache.get(ip);
+        if (cachedAgain && Date.now() - cachedAgain.ts < 24 * 60 * 60 * 1000) {
+          return { ok: true as const, ...cachedAgain, cached: true };
+        }
+        while (!rateLimitOk()) {
+          const now = Date.now();
+          const waitMs = Math.max(200, GEO_RATE_WINDOW_MS - (now - (geoRequests[0] ?? now)));
+          await new Promise((r) => setTimeout(r, waitMs));
+        }
+        const url = `http://ip-api.com/json/${encodeURIComponent(ip)}?fields=status,message,country,city,lat,lon,query`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`IP lookup failed: ${res.status}`);
+        const data = (await res.json()) as {
+          status: string;
+          message?: string;
+          country?: string;
+          city?: string;
+          lat?: number;
+          lon?: number;
+        };
+        if (data.status !== "success" || typeof data.lat !== "number" || typeof data.lon !== "number") {
+          throw new Error(data.message || "Invalid IP lookup result");
+        }
+        const payload = {
+          lat: data.lat,
+          lon: data.lon,
+          city: data.city,
+          country: data.country,
+          ts: Date.now()
+        };
+        geoCache.set(ip, payload);
+        scheduleGeoCacheWrite();
+        return { ok: true as const, ...payload, cached: false };
+      });
     } catch (e) {
       return { ok: false as const, error: safeError(e) };
     }

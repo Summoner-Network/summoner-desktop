@@ -101,6 +101,22 @@ export type Api = {
     onExit: (cb: (args: { projectName: string }) => void) => () => void;
     onStart: (cb: (args: { projectName: string }) => void) => () => void;
   };
+  maps: {
+    list: () => Promise<
+      | { ok: true; items: { id: string; name: string; source: "bundle" | "local" }[]; selectedMapId?: string }
+      | { ok: false; error: string }
+    >;
+    load: (args: { id: string }) => Promise<
+      | { ok: true; svg: string; params: string }
+      | { ok: false; error: string }
+    >;
+    select: (args: { id: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
+    openFolder: () => Promise<{ ok: true; path: string } | { ok: false; error: string }>;
+    geoLookup: (args: { ip: string }) => Promise<
+      | { ok: true; lat: number; lon: number; city?: string; country?: string; cached: boolean }
+      | { ok: false; error: string }
+    >;
+  };
 };
 
 const api: Api = {
@@ -163,6 +179,13 @@ const api: Api = {
       ipcRenderer.on("evt:localServer-start", h);
       return () => ipcRenderer.removeListener("evt:localServer-start", h);
     }
+  },
+  maps: {
+    list: () => ipcRenderer.invoke("maps:list"),
+    load: (args) => ipcRenderer.invoke("maps:load", args),
+    select: (args) => ipcRenderer.invoke("maps:select", args),
+    openFolder: () => ipcRenderer.invoke("maps:openFolder"),
+    geoLookup: (args) => ipcRenderer.invoke("maps:geoLookup", args)
   }
 };
 

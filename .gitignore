@@ -140,3 +140,10 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Summoner geofit (private repo contents)
+assets/summoner-geofit/**
+!assets/summoner-geofit/
+!assets/summoner-geofit/maps/
+!assets/summoner-geofit/maps/**
+assets/summoner-geofit/.git/

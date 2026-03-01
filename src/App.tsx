@@ -527,7 +527,11 @@ export default function App() {
         remoteByAddr={remoteByAddr}
         selectedRemoteAddr={selectedRemoteAddr}
         onSelectRemoteAddr={(addr) => {
+          const remote = remoteByAddr[addr];
           setSelectedRemoteAddr(addr);
+          if (remote?.lastSeenServerId && servers.some((s) => s.id === remote.lastSeenServerId)) {
+            setSelectedServerId(remote.lastSeenServerId);
+          }
           setView("chat");
           setToMode("remote");
           setSelectedToKey("remote_addr");

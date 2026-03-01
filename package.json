@@ -50,6 +50,12 @@
       "dist/**",
       "package.json"
     ],
+    "extraResources": [
+      {
+        "from": "assets/summoner-geofit/maps",
+        "to": "maps"
+      }
+    ],
     "mac": {
       "icon": "assets/icons/logo_mage.icns",
       "target": [
