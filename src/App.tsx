@@ -653,6 +653,7 @@ export default function App() {
                   },
                   {}
                 )}
+                serverStatusById={conn}
               />
             ) : null}
             {view === "identities" ? (

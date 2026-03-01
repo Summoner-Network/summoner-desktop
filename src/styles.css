@@ -1145,6 +1145,51 @@ button:disabled {
   cursor: pointer;
 }
 
+.map-server-marker {
+  fill: #2f2b25;
+  stroke: #8a8176;
+  stroke-width: 1.4px;
+  opacity: 0.95;
+}
+
+.map-server-pulse {
+  fill: rgba(72, 64, 55, 0.2);
+  stroke: rgba(72, 64, 55, 0.5);
+  stroke-width: 1.6px;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.map-server-pulse.connected {
+  fill: rgba(73, 150, 110, 0.32);
+  stroke: rgba(73, 150, 110, 0.85);
+}
+
+.map-server-pulse.idle {
+  fill: rgba(176, 73, 73, 0.32);
+  stroke: rgba(176, 73, 73, 0.85);
+}
+
+.map-link {
+  fill: none;
+  stroke: rgba(70, 63, 52, 0.35);
+  stroke-width: 1.6px;
+  stroke-linecap: round;
+  stroke-dasharray: 0;
+}
+
+.map-link.hover {
+  stroke: rgba(73, 150, 110, 0.85);
+  stroke-width: 2.4px;
+  filter: drop-shadow(0 0 6px rgba(73, 150, 110, 0.6));
+  pointer-events: none;
+}
+
+.map-link.selected {
+  stroke: rgba(70, 63, 52, 0.55);
+  stroke-width: 2px;
+}
+
 .map-marker-pulse {
   fill: rgba(73, 150, 110, 0.32);
   stroke: rgba(73, 150, 110, 0.85);

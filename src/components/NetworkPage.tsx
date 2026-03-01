@@ -1,4 +1,5 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import type { ConnectionStatus } from "../App";
 import { formatValue } from "../utils/message";
 import { latLonToPixel, validateMercatorParams } from "../utils/mercator";
 
@@ -112,8 +113,9 @@ export default function NetworkPage(props: {
   selectedRemoteAddr: string | null;
   onSelectRemoteAddr: (addr: string) => void;
   serverById: Record<string, { name: string; host: string; port: number }>;
+  serverStatusById: Record<string, ConnectionStatus>;
 }) {
-  const { remoteByAddr, selectedRemoteAddr, onSelectRemoteAddr, serverById } = props;
+  const { remoteByAddr, selectedRemoteAddr, onSelectRemoteAddr, serverById, serverStatusById } = props;
   const agents = Object.values(remoteByAddr).sort((a, b) => b.lastSeen - a.lastSeen);
   const selected = selectedRemoteAddr ? remoteByAddr[selectedRemoteAddr] : agents[0];
   const [mapItems, setMapItems] = useState<MapItem[]>([]);
@@ -132,6 +134,8 @@ export default function NetworkPage(props: {
   const geoRef = useRef<Record<string, GeoInfo>>({});
   const mapStageRef = useRef<HTMLDivElement | null>(null);
   const [hoveredMarker, setHoveredMarker] = useState<{ label: string; x: number; y: number } | null>(null);
+  const [hoveredAgentId, setHoveredAgentId] = useState<string | null>(null);
+  const [hoveredServerId, setHoveredServerId] = useState<string | null>(null);
   const isPanningRef = useRef(false);
   const lastPanRef = useRef<{ x: number; y: number } | null>(null);
   const baseViewBoxRef = useRef<ViewBoxRect | null>(null);
@@ -239,6 +243,9 @@ export default function NetworkPage(props: {
 
   useEffect(() => {
     const ips = new Set(agents.map((a) => a.addr).filter(Boolean));
+    Object.values(serverById).forEach((server) => {
+      if (server?.host) ips.add(server.host);
+    });
     ips.forEach((addr) => {
       const ipv4 = extractIpv4(addr);
       if (!ipv4 || isPrivateIpv4(ipv4)) return;
@@ -254,7 +261,7 @@ export default function NetworkPage(props: {
           pendingLookups.current.delete(ipv4);
         });
     });
-  }, [agents]);
+  }, [agents, serverById]);
 
   const overlayViewBox = useMemo(() => mapViewBox || mapRawViewBox, [mapRawViewBox, mapViewBox]);
 
@@ -399,6 +406,7 @@ export default function NetworkPage(props: {
         const recent = Date.now() - agent.lastSeen <= 60_000;
         return {
           id: agent.addr,
+          ip: ipv4,
           x,
           y,
           selected: agent.addr === selected?.addr,
@@ -408,8 +416,61 @@ export default function NetworkPage(props: {
             : ipv4
         };
       })
-      .filter(Boolean) as { id: string; x: number; y: number; selected: boolean; recent: boolean; label: string }[];
+      .filter(Boolean) as { id: string; ip: string; x: number; y: number; selected: boolean; recent: boolean; label: string }[];
   }, [agents, geoByIp, mapParams, selected?.addr]);
+
+  const serverMarkers = useMemo(() => {
+    if (!mapParams) return [];
+    return Object.entries(serverById)
+      .map(([id, server]) => {
+        const ipv4 = extractIpv4(server.host);
+        if (!ipv4 || isPrivateIpv4(ipv4)) return null;
+        const geo = geoByIp[ipv4];
+        if (!geo) return null;
+        const projected = latLonToPixel(geo.lat, geo.lon, mapParams);
+        if (projected.outside && mapParams.flags?.rejectOutsideMap) return null;
+        const connected = serverStatusById[id] === "connected";
+        return {
+          id,
+          name: server.name,
+          host: server.host,
+          ip: ipv4,
+          x: projected.x,
+          y: projected.y,
+          connected
+        };
+      })
+      .filter(Boolean) as { id: string; name: string; host: string; ip: string; x: number; y: number; connected: boolean }[];
+  }, [serverById, serverStatusById, geoByIp, mapParams]);
+
+  const serverMarkerById = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; host: string; ip: string; x: number; y: number; connected: boolean }>();
+    serverMarkers.forEach((s) => map.set(s.id, s));
+    return map;
+  }, [serverMarkers]);
+
+  const agentMarkerById = useMemo(() => {
+    const map = new Map<string, { id: string; ip: string; x: number; y: number; label: string }>();
+    markers.forEach((m) => map.set(m.id, m));
+    return map;
+  }, [markers]);
+
+  const hoverLinks = useMemo(() => {
+    const links: Array<{ ax: number; ay: number; sx: number; sy: number; cx: number; cy: number; key: string }> = [];
+    if (hoveredAgentId) {
+      const agent = agentMarkerById.get(hoveredAgentId);
+      const agentData = agents.find((a) => a.addr === hoveredAgentId);
+      if (agent && agentData?.lastSeenServerId) {
+        const server = serverMarkerById.get(agentData.lastSeenServerId);
+        if (server) {
+          const mx = (agent.x + server.x) / 2;
+          const my = (agent.y + server.y) / 2 - 40;
+          links.push({ ax: agent.x, ay: agent.y, sx: server.x, sy: server.y, cx: mx, cy: my, key: `agent-${agent.id}` });
+        }
+      }
+    }
+    return links;
+  }, [agentMarkerById, agents, hoveredAgentId, selected?.addr, serverMarkerById]);
 
   const mapStats = useMemo(() => {
     const all = agents.length;
@@ -594,8 +655,44 @@ export default function NetworkPage(props: {
                 style={currentViewBoxRect ? undefined : { opacity: 0 }}
               >
                 <g dangerouslySetInnerHTML={{ __html: mapSvgInner }} />
-                {currentViewBoxRect
-                  ? markers.map((m) => (
+                {currentViewBoxRect ? (
+                  <>
+                    {serverMarkers.map((s) => (
+                      <g key={`server-${s.id}`} className="map-server">
+                        {s.connected ? (
+                          <circle className="map-server-pulse connected" cx={s.x} cy={s.y} r={8}>
+                            <animate attributeName="r" values="6;18" dur="2.8s" repeatCount="indefinite" />
+                            <animate attributeName="opacity" values="0.8;0" dur="2.8s" repeatCount="indefinite" />
+                          </circle>
+                        ) : null}
+                        <rect
+                          className="map-server-marker"
+                          x={s.x - 5}
+                          y={s.y - 5}
+                          width={10}
+                          height={10}
+                          rx={2}
+                          ry={2}
+                          transform={`rotate(45 ${s.x} ${s.y})`}
+                          onMouseEnter={(e) => {
+                            setHoveredServerId(s.id);
+                            const rect = mapStageRef.current?.getBoundingClientRect();
+                            if (!rect) return;
+                            setHoveredMarker({ label: `${s.name} • ${s.host}`, x: e.clientX - rect.left, y: e.clientY - rect.top });
+                          }}
+                          onMouseMove={(e) => {
+                            const rect = mapStageRef.current?.getBoundingClientRect();
+                            if (!rect) return;
+                            setHoveredMarker({ label: `${s.name} • ${s.host}`, x: e.clientX - rect.left, y: e.clientY - rect.top });
+                          }}
+                          onMouseLeave={() => {
+                            setHoveredServerId((prev) => (prev === s.id ? null : prev));
+                            setHoveredMarker(null);
+                          }}
+                        />
+                      </g>
+                    ))}
+                    {markers.map((m) => (
                       <g key={m.id}>
                         {m.recent ? (
                           <circle className="map-marker-pulse" cx={m.x} cy={m.y} r={m.selected ? 12 : 10}>
@@ -610,6 +707,7 @@ export default function NetworkPage(props: {
                           r={m.selected ? 7 : 5}
                           onClick={() => onSelectRemoteAddr(m.id)}
                           onMouseEnter={(e) => {
+                            setHoveredAgentId(m.id);
                             const rect = mapStageRef.current?.getBoundingClientRect();
                             if (!rect) return;
                             setHoveredMarker({ label: m.label, x: e.clientX - rect.left, y: e.clientY - rect.top });
@@ -619,11 +717,24 @@ export default function NetworkPage(props: {
                             if (!rect) return;
                             setHoveredMarker({ label: m.label, x: e.clientX - rect.left, y: e.clientY - rect.top });
                           }}
-                          onMouseLeave={() => setHoveredMarker(null)}
+                          onMouseLeave={() => {
+                            setHoveredAgentId((prev) => (prev === m.id ? null : prev));
+                            setHoveredMarker(null);
+                          }}
                         />
                       </g>
-                    ))
-                  : null}
+                    ))}
+                    {hoverLinks.map((link) => (
+                      <path
+                        key={link.key}
+                        className="map-link hover"
+                        d={`M ${link.ax} ${link.ay} Q ${link.cx} ${link.cy} ${link.sx} ${link.sy}`}
+                      >
+                        <animate attributeName="stroke-opacity" values="0.2;0.9;0.2" dur="1.8s" repeatCount="indefinite" />
+                      </path>
+                    ))}
+                  </>
+                ) : null}
               </svg>
               {!currentViewBoxRect ? <div className="small">Loading map...</div> : null}
               {hoveredMarker ? (
