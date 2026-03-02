@@ -159,6 +159,16 @@ export type Api = {
     list: () => Promise<{ ok: true; items: ServerProfile[]; desiredById: Record<string, boolean> } | { ok: false; error: string }>;
     save: (args: { servers: ServerProfile[]; desiredById?: Record<string, boolean> }) => Promise<{ ok: true } | { ok: false; error: string }>;
   };
+  identities: {
+    get: () => Promise<
+      | { ok: true; identities: { id: string; name: string; value: Record<string, unknown> }[]; selectedIdentityId: string | null }
+      | { ok: false; error: string }
+    >;
+    save: (args: { identities: { id: string; name: string; value: Record<string, unknown> }[]; selectedIdentityId: string | null }) => Promise<
+      | { ok: true }
+      | { ok: false; error: string }
+    >;
+  };
 };
 
 const api: Api = {
@@ -234,6 +244,10 @@ const api: Api = {
   settings: {
     get: () => ipcRenderer.invoke("settings:get"),
     set: (args) => ipcRenderer.invoke("settings:set", args)
+  },
+  identities: {
+    get: () => ipcRenderer.invoke("identities:get"),
+    save: (args) => ipcRenderer.invoke("identities:save", args)
   },
   servers: {
     list: () => ipcRenderer.invoke("servers:list"),

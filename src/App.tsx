@@ -100,6 +100,55 @@ export default function App() {
     connRef.current = conn;
   }, [conn]);
 
+  const [identities, setIdentities] = useState<Identity[]>([]);
+  const [selectedIdentityId, setSelectedIdentityId] = useState<string | null>(null);
+  const selectedIdentity = identities.find((id) => id.id === selectedIdentityId) ?? null;
+  const [identitiesHydrated, setIdentitiesHydrated] = useState(false);
+  const identitiesSaveTimerRef = React.useRef<number | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    window.api.identities.get().then((res) => {
+      if (!active) return;
+      if (res.ok) {
+        setIdentities(res.identities);
+        setSelectedIdentityId(res.selectedIdentityId);
+        setIdentitiesHydrated(true);
+      } else {
+        setIdentitiesHydrated(false);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!identitiesHydrated) return;
+    if (identitiesSaveTimerRef.current !== null) {
+      window.clearTimeout(identitiesSaveTimerRef.current);
+    }
+    identitiesSaveTimerRef.current = window.setTimeout(() => {
+      identitiesSaveTimerRef.current = null;
+      void window.api.identities.save({
+        identities,
+        selectedIdentityId
+      });
+    }, 500);
+    return () => {
+      if (identitiesSaveTimerRef.current !== null) {
+        window.clearTimeout(identitiesSaveTimerRef.current);
+        identitiesSaveTimerRef.current = null;
+      }
+    };
+  }, [identities, selectedIdentityId, identitiesHydrated]);
+
+  useEffect(() => {
+    if (selectedIdentityId && !identities.some((id) => id.id === selectedIdentityId)) {
+      setSelectedIdentityId(null);
+    }
+  }, [identities, selectedIdentityId]);
+
   useEffect(() => {
     let active = true;
     window.api.servers.list().then((res) => {
@@ -116,20 +165,15 @@ export default function App() {
           return base;
         });
         setSelectedServerId(res.items[0]?.id ?? null);
+        setServersHydrated(true);
+      } else {
+        setServersHydrated(true);
       }
-      setServersHydrated(true);
     });
     return () => {
       active = false;
     };
   }, []);
-
-  const [identities, setIdentities] = useState<Identity[]>([
-    { id: "id-default", name: "Default Identity", value: { name: "Summoner", role: "client" } },
-    { id: "id-bot", name: "Bot Agent", value: { name: "Bot", type: "agent" } }
-  ]);
-  const [selectedIdentityId, setSelectedIdentityId] = useState<string | null>(null);
-  const selectedIdentity = identities.find((id) => id.id === selectedIdentityId) ?? null;
 
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [workspaceNonce, setWorkspaceNonce] = useState(0);
@@ -393,7 +437,20 @@ export default function App() {
   }
 
   function handleAddIdentity(next: { name: string; value: unknown }) {
-    const id = `${next.name}-${Date.now()}`.replace(/\s+/g, "-").toLowerCase();
+    const base = next.name.trim().toLowerCase()
+      .replace(/[^a-z0-9._-]+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^[-.]+|[-.]+$/g, "");
+    const safeBase = base || "identity";
+    const existing = new Set(identities.map((i) => i.id));
+    let id = safeBase;
+    let n = 2;
+    while (existing.has(id)) {
+      const suffix = `-${n}`;
+      const maxBase = Math.max(1, 64 - suffix.length);
+      id = `${safeBase.slice(0, maxBase)}${suffix}`;
+      n += 1;
+    }
     const identity: Identity = { id, ...next };
     setIdentities((prev) => [...prev, identity]);
     setSelectedIdentityId(identity.id);

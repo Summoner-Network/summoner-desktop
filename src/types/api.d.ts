@@ -17,14 +17,14 @@ declare global {
           serverVersion: string;
           selections: Record<string, string[]>;
         }) => Promise<{ ok: true } | { ok: false; error: string }>;
-        reset: (args: { name: string; serverVersion: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
-        remove: (args: { name: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
+        reset: (args: { projectId: string; serverVersion: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
+        remove: (args: { projectId: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
         list: () => Promise<
-          | { ok: true; items: { name: string; serverVersion: string; selections: Record<string, string[]>; createdAt: number }[] }
+          | { ok: true; items: { id: string; name: string; serverVersion: string; selections: Record<string, string[]>; createdAt: number }[] }
           | { ok: false; error: string }
         >;
-        envRead: (args: { name: string }) => Promise<{ ok: true; content: string } | { ok: false; error: string }>;
-        envWrite: (args: { name: string; content: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
+        envRead: (args: { projectId: string }) => Promise<{ ok: true; content: string } | { ok: false; error: string }>;
+        envWrite: (args: { projectId: string; content: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
       };
       logs: {
         read: (args: { serverId: string; host?: string; port?: number; limit?: number; before?: number }) => Promise<
@@ -123,6 +123,16 @@ declare global {
               effectiveSummonerRoot: string;
               displayEffectiveSummonerRoot: string;
             }
+          | { ok: false; error: string }
+        >;
+      };
+      identities: {
+        get: () => Promise<
+          | { ok: true; identities: { id: string; name: string; value: Record<string, unknown> }[]; selectedIdentityId: string | null }
+          | { ok: false; error: string }
+        >;
+        save: (args: { identities: { id: string; name: string; value: Record<string, unknown> }[]; selectedIdentityId: string | null }) => Promise<
+          | { ok: true }
           | { ok: false; error: string }
         >;
       };

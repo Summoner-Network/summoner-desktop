@@ -23,9 +23,11 @@ const MAPS_META_FILE = "app.summoner.maps.json";
 const GEO_CACHE_FILE = "app.summoner.geo.json";
 const SERVERS_STATE_FILE = "app.summoner.servers.json";
 const SETTINGS_FILE = "app.summoner.settings.json";
+const IDENTITIES_STATE_FILE = "app.summoner.identities.json";
 const GEO_RATE_LIMIT = 45;
 const GEO_RATE_WINDOW_MS = 60_000;
 const SERVERS_SCHEMA_VERSION = 1;
+const IDENTITIES_SCHEMA_VERSION = 1;
 
 const DEFAULT_SERVERS: ServerProfile[] = [
   {
@@ -40,6 +42,11 @@ const DEFAULT_SERVERS: ServerProfile[] = [
     host: "127.0.0.1",
     port: 8888
   }
+];
+
+const DEFAULT_IDENTITIES: IdentityStateItem[] = [
+  { id: "id-default", name: "Default Identity", value: { name: "Summoner", role: "client" } },
+  { id: "id-bot", name: "Bot Agent", value: { name: "Bot", type: "agent" } }
 ];
 
 const isDev = !!process.env.ELECTRON_RENDERER_URL;
@@ -68,6 +75,14 @@ type ServersState = {
   localServerPids?: Record<string, number>;
   servers?: ServerProfile[];
   desiredById?: Record<string, boolean>;
+};
+
+type IdentityStateItem = { id: string; name: string; value: Record<string, unknown> };
+type IdentitiesState = {
+  schemaVersion?: number;
+  updatedAt?: number;
+  identities?: IdentityStateItem[];
+  selectedIdentityId?: string | null;
 };
 
 function isValidHost(host: string): boolean {
@@ -343,8 +358,16 @@ function getServerLogsRoot(): string {
   return path.join(getSummonerRoot(), "servers");
 }
 
+function getIdentitiesRoot(): string {
+  return path.join(getSummonerRoot(), "identities");
+}
+
 function getServersStatePath(): string {
   return path.join(getServerLogsRoot(), SERVERS_STATE_FILE);
+}
+
+function getIdentitiesStatePath(): string {
+  return path.join(getIdentitiesRoot(), IDENTITIES_STATE_FILE);
 }
 
 function sanitizeServerId(value: string): string {
@@ -573,6 +596,63 @@ function ensureUniqueProjectId(baseId: string, existing: Set<string>): string {
     n += 1;
   }
   return candidate;
+}
+
+function normalizeIdentities(input: unknown): IdentityStateItem[] | null {
+  if (!Array.isArray(input)) return null;
+  const out: IdentityStateItem[] = [];
+  const seen = new Set<string>();
+  for (const item of input) {
+    if (!item || typeof item !== "object") continue;
+    const rec = item as Partial<IdentityStateItem>;
+    const id = typeof rec.id === "string" ? rec.id.trim() : "";
+    const name = typeof rec.name === "string" ? rec.name.trim() : "";
+    const value = rec.value;
+    if (!id || !name || !value || typeof value !== "object" || Array.isArray(value)) continue;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push({ id, name, value: value as Record<string, unknown> });
+  }
+  return out;
+}
+
+async function readIdentitiesStateWithMeta(): Promise<{ state: IdentitiesState; exists: boolean }> {
+  const filePath = getIdentitiesStatePath();
+  try {
+    const raw = await fs.readFile(filePath, "utf-8");
+    const data = JSON.parse(raw) as IdentitiesState;
+    return { state: data ?? {}, exists: true };
+  } catch (e) {
+    const err = e as NodeJS.ErrnoException;
+    if (err?.code === "ENOENT") return { state: {}, exists: false };
+    return { state: {}, exists: true };
+  }
+}
+
+async function writeIdentitiesState(next: IdentitiesState): Promise<void> {
+  const filePath = getIdentitiesStatePath();
+  const dir = path.dirname(filePath);
+  await fs.mkdir(dir, { recursive: true });
+  await fs.writeFile(filePath, JSON.stringify(next, null, 2) + "\n", "utf-8");
+}
+
+async function loadIdentitiesState(): Promise<IdentitiesState> {
+  const { state } = await readIdentitiesStateWithMeta();
+  const normalized = normalizeIdentities(state.identities);
+  if (normalized !== null) {
+    const selected = typeof state.selectedIdentityId === "string" ? state.selectedIdentityId : null;
+    const selectedOk = selected && normalized.some((it) => it.id === selected);
+    return { ...state, identities: normalized, selectedIdentityId: selectedOk ? selected : null };
+  }
+  const seeded: IdentitiesState = {
+    ...state,
+    schemaVersion: IDENTITIES_SCHEMA_VERSION,
+    updatedAt: Date.now(),
+    identities: DEFAULT_IDENTITIES,
+    selectedIdentityId: null
+  };
+  await writeIdentitiesState(seeded);
+  return seeded;
 }
 
 function normalizeAgentName(raw: string): string {
@@ -870,6 +950,8 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
   ipcMain.removeHandler("settings:set");
   ipcMain.removeHandler("servers:list");
   ipcMain.removeHandler("servers:save");
+  ipcMain.removeHandler("identities:get");
+  ipcMain.removeHandler("identities:save");
 
   ipcMain.handle("tcp:connect", async (_e, args: { server: ServerProfile }) => {
     try {
@@ -1021,6 +1103,38 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
       return { ok: false as const, error: safeError(e) };
     }
   });
+
+  ipcMain.handle("identities:get", async () => {
+    try {
+      const state = await loadIdentitiesState();
+      return { ok: true as const, identities: state.identities ?? [], selectedIdentityId: state.selectedIdentityId ?? null };
+    } catch (e) {
+      return { ok: false as const, error: safeError(e) };
+    }
+  });
+
+  ipcMain.handle(
+    "identities:save",
+    async (_e, args: { identities: IdentityStateItem[]; selectedIdentityId?: string | null }) => {
+      try {
+        if (!args || typeof args !== "object") throw new Error("Missing identities data");
+        const normalized = normalizeIdentities(args.identities);
+        if (normalized === null) throw new Error("Invalid identities list");
+        const selected = typeof args.selectedIdentityId === "string" ? args.selectedIdentityId : null;
+        const selectedOk = selected && normalized.some((it) => it.id === selected);
+        const state: IdentitiesState = {
+          schemaVersion: IDENTITIES_SCHEMA_VERSION,
+          updatedAt: Date.now(),
+          identities: normalized,
+          selectedIdentityId: selectedOk ? selected : null
+        };
+        await writeIdentitiesState(state);
+        return { ok: true as const };
+      } catch (e) {
+        return { ok: false as const, error: safeError(e) };
+      }
+    }
+  );
 
   ipcMain.handle(
     "projects:create",
