@@ -23,3 +23,9 @@ mkdir -p "$(dirname "${MERCATOR_DEST}")"
 cp "${MERCATOR_SRC}" "${MERCATOR_DEST}"
 
 echo "Synced mercator.ts to ${MERCATOR_DEST}"
+
+if git ls-files --stage "$TARGET_DIR" | grep -q '^160000 '; then
+  git rm --cached -r "$TARGET_DIR"
+fi
+git add -A "$TARGET_DIR"
+
