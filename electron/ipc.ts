@@ -25,6 +25,22 @@ const SERVERS_STATE_FILE = "app.summoner.servers.json";
 const SETTINGS_FILE = "app.summoner.settings.json";
 const GEO_RATE_LIMIT = 45;
 const GEO_RATE_WINDOW_MS = 60_000;
+const SERVERS_SCHEMA_VERSION = 1;
+
+const DEFAULT_SERVERS: ServerProfile[] = [
+  {
+    id: "default-187-77-102-80-8888",
+    name: "Default Space",
+    host: "187.77.102.80",
+    port: 8888
+  },
+  {
+    id: "localhost-127-0-0-1-8888",
+    name: "Localhost",
+    host: "127.0.0.1",
+    port: 8888
+  }
+];
 
 const isDev = !!process.env.ELECTRON_RENDERER_URL;
 
@@ -44,6 +60,14 @@ type GeoMeta = {
   queueDepth: number;
   waitedMs: number;
   rateLimitPerMin: number;
+};
+
+type ServersState = {
+  schemaVersion?: number;
+  updatedAt?: number;
+  localServerPids?: Record<string, number>;
+  servers?: ServerProfile[];
+  desiredById?: Record<string, boolean>;
 };
 
 function isValidHost(host: string): boolean {
@@ -323,22 +347,76 @@ function getServersStatePath(): string {
   return path.join(getServerLogsRoot(), SERVERS_STATE_FILE);
 }
 
-async function readServersState(): Promise<{ localServerPids?: Record<string, number> }> {
+function sanitizeServerId(value: string): string {
+  return value.trim().replace(/[^a-zA-Z0-9._-]+/g, "-").toLowerCase();
+}
+
+function buildFallbackServerId(name: string, host: string, port: number): string {
+  const slug = sanitizeServerId(name || "server");
+  const safeHost = sanitizeServerId(host || "host");
+  return `${slug}-${safeHost}-${port}`;
+}
+
+function normalizeServers(input: unknown): ServerProfile[] | null {
+  if (!Array.isArray(input)) return null;
+  const out: ServerProfile[] = [];
+  const seen = new Set<string>();
+  for (const item of input) {
+    if (!item || typeof item !== "object") continue;
+    const rec = item as Partial<ServerProfile>;
+    const name = typeof rec.name === "string" ? rec.name.trim() : "";
+    const host = typeof rec.host === "string" ? rec.host.trim() : "";
+    const port = typeof rec.port === "number" ? rec.port : Number(rec.port);
+    if (!name || !host || !Number.isFinite(port)) continue;
+    if (!isValidHost(host) || !isValidPort(port)) continue;
+    let id = typeof rec.id === "string" ? rec.id.trim() : "";
+    if (!id) id = buildFallbackServerId(name, host, port);
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push({ id, name, host, port: Number(port) });
+  }
+  return out;
+}
+
+async function readServersStateWithMeta(): Promise<{ state: ServersState; exists: boolean }> {
   const filePath = getServersStatePath();
   try {
     const raw = await fs.readFile(filePath, "utf-8");
-    const data = JSON.parse(raw) as { localServerPids?: Record<string, number> };
-    return data ?? {};
-  } catch {
-    return {};
+    const data = JSON.parse(raw) as ServersState;
+    return { state: data ?? {}, exists: true };
+  } catch (e) {
+    const err = e as NodeJS.ErrnoException;
+    if (err?.code === "ENOENT") return { state: {}, exists: false };
+    return { state: {}, exists: true };
   }
 }
 
-async function writeServersState(next: { localServerPids?: Record<string, number> }): Promise<void> {
+async function readServersState(): Promise<ServersState> {
+  const res = await readServersStateWithMeta();
+  return res.state;
+}
+
+async function writeServersState(next: ServersState): Promise<void> {
   const filePath = getServersStatePath();
   const dir = path.dirname(filePath);
   await fs.mkdir(dir, { recursive: true });
   await fs.writeFile(filePath, JSON.stringify(next, null, 2) + "\n", "utf-8");
+}
+
+async function loadServersState(): Promise<ServersState> {
+  const { state } = await readServersStateWithMeta();
+  const normalized = normalizeServers(state.servers);
+  if (normalized !== null) {
+    return { ...state, servers: normalized };
+  }
+  const seeded: ServersState = {
+    ...state,
+    schemaVersion: SERVERS_SCHEMA_VERSION,
+    updatedAt: Date.now(),
+    servers: DEFAULT_SERVERS
+  };
+  await writeServersState(seeded);
+  return seeded;
 }
 
 function sanitizeLogId(id: string): string {
@@ -390,12 +468,15 @@ async function appendLogLine(logId: string, entry: ServerLogEntry): Promise<void
 
 async function resolveProjectDirByName(name: string): Promise<string> {
   const root = getSummonerRoot();
-  const direct = path.join(root, `summoner-sdk-${name}`);
-  try {
-    await fs.access(direct);
-    return direct;
-  } catch {
-    // fall through
+  const normalized = tryNormalizeProjectId(name);
+  if (normalized) {
+    const direct = path.join(root, `summoner-sdk-${normalized}`);
+    try {
+      await fs.access(direct);
+      return direct;
+    } catch {
+      // fall through
+    }
   }
 
   let entries: string[] = [];
@@ -410,22 +491,88 @@ async function resolveProjectDirByName(name: string): Promise<string> {
     const metaPath = path.join(projectDir, PROJECT_META_FILE);
     try {
       const raw = await fs.readFile(metaPath, "utf-8");
-      const meta = JSON.parse(raw) as { name?: string };
-      if (meta.name === name) return projectDir;
+      const meta = JSON.parse(raw) as { id?: string; name?: string };
+      if (meta.id === name || meta.name === name) return projectDir;
+      if (normalized && meta.id === normalized) return projectDir;
     } catch {
       // ignore
     }
+    if (normalized && entry === `summoner-sdk-${normalized}`) return projectDir;
   }
 
   throw new Error("Project folder not found");
 }
 
-function normalizeProjectName(raw: string): string {
-  const cleaned = raw.trim().replace(/\s+/g, "-");
+function normalizeProjectId(raw: string): string {
+  const cleaned = raw.trim();
   if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/.test(cleaned)) {
-    throw new Error("Invalid project name. Use letters, numbers, ., _, and - only.");
+    throw new Error("Invalid project id.");
   }
   return cleaned;
+}
+
+function tryNormalizeProjectId(raw: string): string | null {
+  try {
+    return normalizeProjectId(raw);
+  } catch {
+    return null;
+  }
+}
+
+function slugifyProjectName(raw: string): string {
+  const cleaned = raw.trim().toLowerCase();
+  const slug = cleaned
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^[-.]+|[-.]+$/g, "");
+  if (!slug) {
+    throw new Error("Project name must contain letters or numbers.");
+  }
+  return slug.length <= 64 ? slug : slug.slice(0, 64);
+}
+
+async function listProjectIds(): Promise<Set<string>> {
+  const root = getSummonerRoot();
+  const ids = new Set<string>();
+  let entries: string[] = [];
+  try {
+    entries = await fs.readdir(root);
+  } catch {
+    return ids;
+  }
+  const candidates = entries.filter((entry) => entry.startsWith("summoner-sdk-"));
+  for (const entry of candidates) {
+    const folderId = entry.replace(/^summoner-sdk-/, "");
+    if (folderId) {
+      ids.add(folderId);
+      ids.add(folderId.toLowerCase());
+    }
+    const projectDir = path.join(root, entry);
+    const metaPath = path.join(projectDir, PROJECT_META_FILE);
+    try {
+      const raw = await fs.readFile(metaPath, "utf-8");
+      const meta = JSON.parse(raw) as { id?: string };
+      if (meta.id) {
+        ids.add(meta.id);
+        ids.add(meta.id.toLowerCase());
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return ids;
+}
+
+function ensureUniqueProjectId(baseId: string, existing: Set<string>): string {
+  let candidate = baseId;
+  let n = 2;
+  while (existing.has(candidate)) {
+    const suffix = `-${n}`;
+    const maxBase = Math.max(1, 64 - suffix.length);
+    candidate = `${baseId.slice(0, maxBase)}${suffix}`;
+    n += 1;
+  }
+  return candidate;
 }
 
 function normalizeAgentName(raw: string): string {
@@ -487,7 +634,7 @@ async function terminatePid(pid: number): Promise<boolean> {
   return !isPidRunning(pid);
 }
 
-async function listProjectDirs(): Promise<Array<{ name: string; dir: string }>> {
+async function listProjectDirs(): Promise<Array<{ id: string; dir: string }>> {
   const root = getSummonerRoot();
   let entries: string[] = [];
   try {
@@ -500,12 +647,13 @@ async function listProjectDirs(): Promise<Array<{ name: string; dir: string }>> 
     candidates.map(async (entry) => {
       const projectDir = path.join(root, entry);
       const metaPath = path.join(projectDir, PROJECT_META_FILE);
+      const fallbackId = entry.replace(/^summoner-sdk-/, "");
       try {
         const raw = await fs.readFile(metaPath, "utf-8");
-        const meta = JSON.parse(raw) as { name?: string };
-        return { name: meta.name ?? entry.replace(/^summoner-sdk-/, ""), dir: projectDir };
+        const meta = JSON.parse(raw) as { id?: string };
+        return { id: meta.id ?? fallbackId, dir: projectDir };
       } catch {
-        return { name: entry.replace(/^summoner-sdk-/, ""), dir: projectDir };
+        return { id: fallbackId, dir: projectDir };
       }
     })
   );
@@ -544,6 +692,7 @@ function parseBuildTxt(text: string): Record<string, string[]> {
 async function writeProjectMeta(
   projectDir: string,
   meta: {
+    id: string;
     name: string;
     serverVersion: string;
     selections: Record<string, string[]>;
@@ -719,6 +868,8 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
   ipcMain.removeHandler("maps:geoLookup");
   ipcMain.removeHandler("settings:get");
   ipcMain.removeHandler("settings:set");
+  ipcMain.removeHandler("servers:list");
+  ipcMain.removeHandler("servers:save");
 
   ipcMain.handle("tcp:connect", async (_e, args: { server: ServerProfile }) => {
     try {
@@ -836,6 +987,41 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
     }
   });
 
+  ipcMain.handle("servers:list", async () => {
+    try {
+      const state = await loadServersState();
+      return { ok: true as const, items: state.servers ?? [], desiredById: state.desiredById ?? {} };
+    } catch (e) {
+      return { ok: false as const, error: safeError(e) };
+    }
+  });
+
+  ipcMain.handle("servers:save", async (_e, args: { servers: ServerProfile[]; desiredById?: Record<string, boolean> }) => {
+    try {
+      if (!args || typeof args !== "object") throw new Error("Missing servers data");
+      const normalized = normalizeServers(args.servers);
+      if (normalized === null) throw new Error("Invalid servers list");
+      const desiredById: Record<string, boolean> = {};
+      if (args.desiredById && typeof args.desiredById === "object") {
+        Object.entries(args.desiredById).forEach(([id, value]) => {
+          if (typeof value === "boolean") desiredById[id] = value;
+        });
+      }
+      const state = await readServersState();
+      const next: ServersState = {
+        ...state,
+        schemaVersion: SERVERS_SCHEMA_VERSION,
+        updatedAt: Date.now(),
+        servers: normalized,
+        desiredById
+      };
+      await writeServersState(next);
+      return { ok: true as const };
+    } catch (e) {
+      return { ok: false as const, error: safeError(e) };
+    }
+  });
+
   ipcMain.handle(
     "projects:create",
     async (
@@ -844,7 +1030,9 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
     ) => {
       try {
         if (!args || typeof args !== "object") throw new Error("Missing project data");
-        const name = normalizeProjectName(args.name ?? "");
+        const displayName = typeof args.name === "string" ? args.name.trim() : "";
+        if (!displayName) throw new Error("Project name is required.");
+        const baseId = slugifyProjectName(displayName);
         const serverVersion = typeof args.serverVersion === "string" && args.serverVersion.length > 0
           ? args.serverVersion
           : "v1_1_0";
@@ -854,7 +1042,9 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
 
         const root = getSummonerRoot();
         await fs.mkdir(root, { recursive: true });
-        const projectDir = path.join(root, `summoner-sdk-${name}`);
+        const existingIds = await listProjectIds();
+        const id = ensureUniqueProjectId(baseId, existingIds);
+        const projectDir = path.join(root, `summoner-sdk-${id}`);
 
         try {
           await fs.access(projectDir);
@@ -867,7 +1057,8 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
         await fs.writeFile(path.join(projectDir, "build.txt"), buildTxt, "utf-8");
         const now = Date.now();
         await writeProjectMeta(projectDir, {
-          name,
+          id,
+          name: displayName,
           serverVersion,
           selections,
           createdAt: now,
@@ -881,26 +1072,33 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
     }
   );
 
-  ipcMain.handle("projects:reset", async (_e, args: { name: string; serverVersion: string }) => {
+  ipcMain.handle("projects:reset", async (_e, args: { name?: string; projectId?: string; serverVersion: string }) => {
     try {
-      const name = normalizeProjectName(args.name ?? "");
+      const rawName = typeof args.projectId === "string" && args.projectId
+        ? args.projectId
+        : typeof args.name === "string"
+          ? args.name
+          : "";
       const serverVersion = typeof args.serverVersion === "string" && args.serverVersion.length > 0
         ? args.serverVersion
         : "v1_1_0";
-      const root = getSummonerRoot();
-      const projectDir = path.join(root, `summoner-sdk-${name}`);
+      const projectDir = await resolveProjectDirByName(rawName);
       await fs.access(projectDir);
       const metaPath = path.join(projectDir, PROJECT_META_FILE);
       try {
         const raw = await fs.readFile(metaPath, "utf-8");
         const parsed = JSON.parse(raw) as {
+          id?: string;
           name?: string;
           serverVersion?: string;
           selections?: Record<string, string[]>;
           createdAt?: number;
         };
+        const id = parsed.id ?? tryNormalizeProjectId(rawName) ?? path.basename(projectDir).replace(/^summoner-sdk-/, "");
+        const name = parsed.name ?? rawName ?? id;
         const now = Date.now();
         await writeProjectMeta(projectDir, {
+          id,
           name,
           serverVersion,
           selections: parsed.selections ?? {},
@@ -908,8 +1106,11 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
           updatedAt: now
         });
       } catch {
+        const id = tryNormalizeProjectId(rawName) ?? path.basename(projectDir).replace(/^summoner-sdk-/, "");
+        const name = rawName || id;
         const now = Date.now();
         await writeProjectMeta(projectDir, {
+          id,
           name,
           serverVersion,
           selections: {},
@@ -924,11 +1125,14 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
     }
   });
 
-  ipcMain.handle("projects:remove", async (_e, args: { name: string }) => {
+  ipcMain.handle("projects:remove", async (_e, args: { name?: string; projectId?: string }) => {
     try {
-      const name = normalizeProjectName(args.name ?? "");
-      const root = getSummonerRoot();
-      const projectDir = path.join(root, `summoner-sdk-${name}`);
+      const rawName = typeof args.projectId === "string" && args.projectId
+        ? args.projectId
+        : typeof args.name === "string"
+          ? args.name
+          : "";
+      const projectDir = await resolveProjectDirByName(rawName);
       await fs.rm(projectDir, { recursive: true, force: true });
       return { ok: true as const };
     } catch (e) {
@@ -955,13 +1159,16 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
             try {
               const raw = await fs.readFile(metaPath, "utf-8");
               const meta = JSON.parse(raw) as {
+                id?: string;
                 name?: string;
                 serverVersion?: string;
                 selections?: Record<string, string[]>;
                 createdAt?: number;
               };
+              const id = meta.id ?? name.replace(/^summoner-sdk-/, "");
               return {
-                name: meta.name ?? name.replace(/^summoner-sdk-/, ""),
+                id,
+                name: meta.name ?? id,
                 serverVersion: meta.serverVersion ?? "v1_1_0",
                 selections: meta.selections ?? {},
                 createdAt: meta.createdAt ?? stat.mtimeMs
@@ -976,8 +1183,10 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
                 buildTxt = "";
               }
               const selections = buildTxt ? parseBuildTxt(buildTxt) : {};
+              const id = name.replace(/^summoner-sdk-/, "");
               return {
-                name: name.replace(/^summoner-sdk-/, ""),
+                id,
+                name: id,
                 serverVersion: "v1_1_0",
                 selections,
                 createdAt: stat.mtimeMs
@@ -991,10 +1200,14 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
     }
   });
 
-  ipcMain.handle("projects:envRead", async (_e, args: { name: string }) => {
+  ipcMain.handle("projects:envRead", async (_e, args: { name?: string; projectId?: string }) => {
     try {
-      const name = normalizeProjectName(args.name ?? "");
-      const projectDir = await resolveProjectDirByName(name);
+      const rawName = typeof args.projectId === "string" && args.projectId
+        ? args.projectId
+        : typeof args.name === "string"
+          ? args.name
+          : "";
+      const projectDir = await resolveProjectDirByName(rawName);
       const envPath = path.join(projectDir, ".env");
       let content = "";
       try {
@@ -1010,10 +1223,14 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
 
   ipcMain.handle(
     "projects:envWrite",
-    async (_e, args: { name: string; content: string }) => {
+    async (_e, args: { name?: string; projectId?: string; content: string }) => {
       try {
-        const name = normalizeProjectName(args.name ?? "");
-        const projectDir = await resolveProjectDirByName(name);
+        const rawName = typeof args.projectId === "string" && args.projectId
+          ? args.projectId
+          : typeof args.name === "string"
+            ? args.name
+            : "";
+        const projectDir = await resolveProjectDirByName(rawName);
         const envPath = path.join(projectDir, ".env");
         await fs.writeFile(envPath, args.content ?? "", "utf-8");
         return { ok: true as const };
@@ -1056,7 +1273,7 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
 
   ipcMain.handle("localServer:loadConfig", async (_e, args: { projectName: string }) => {
     try {
-      const projectName = normalizeProjectName(args.projectName ?? "");
+      const projectName = normalizeProjectId(args.projectName ?? "");
       const projectDir = await resolveProjectDirByName(projectName);
       const metaPath = path.join(projectDir, PROJECT_META_FILE);
       const meta = await readJsonFile<{ name?: string; serverVersion?: string }>(metaPath, {});
@@ -1102,7 +1319,7 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
     "localServer:saveConfig",
     async (_e, args: { projectName: string; config: Record<string, unknown> }) => {
       try {
-        const projectName = normalizeProjectName(args.projectName ?? "");
+        const projectName = normalizeProjectId(args.projectName ?? "");
         const projectDir = await resolveProjectDirByName(projectName);
         const metaPath = path.join(projectDir, PROJECT_META_FILE);
         const meta = await readJsonFile<{ name?: string; serverVersion?: string }>(metaPath, {});
@@ -1124,7 +1341,7 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
 
   ipcMain.handle("localServer:run", async (_e, args: { projectName: string }) => {
     try {
-      const projectName = normalizeProjectName(args.projectName ?? "");
+      const projectName = normalizeProjectId(args.projectName ?? "");
       if (runningLocalServers.has(projectName)) {
         return { ok: false as const, error: "Local server is already running for this project." };
       }
@@ -1169,7 +1386,7 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
 
   ipcMain.handle("localServer:stop", async (_e, args: { projectName: string }) => {
     try {
-      const projectName = normalizeProjectName(args.projectName ?? "");
+      const projectName = normalizeProjectId(args.projectName ?? "");
       const projectDir = await resolveProjectDirByName(projectName);
       const port = await readLocalServerPort(projectDir);
       const proc = runningLocalServers.get(projectName);
@@ -1215,25 +1432,25 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
       const items = new Set<string>(runningLocalServers.keys());
       const projects = await listProjectDirs();
       for (const project of projects) {
-        const pid = await readLocalServerPid(project.name);
+        const pid = await readLocalServerPid(project.id);
         if (!pid) continue;
         if (isPidRunning(pid)) {
-          items.add(project.name);
-          runningLocalServerPids.set(project.name, pid);
+          items.add(project.id);
+          runningLocalServerPids.set(project.id, pid);
         } else {
-          await clearLocalServerPid(project.name);
-          runningLocalServerPids.delete(project.name);
+          await clearLocalServerPid(project.id);
+          runningLocalServerPids.delete(project.id);
         }
       }
       for (const project of projects) {
-        if (items.has(project.name)) continue;
+        if (items.has(project.id)) continue;
         try {
           const port = await readLocalServerPort(project.dir);
           const pids = await findListeningPids(port);
           if (pids.length > 0) {
-            items.add(project.name);
-            runningLocalServerPids.set(project.name, pids[0]);
-            await writeLocalServerPid(project.name, pids[0]);
+            items.add(project.id);
+            runningLocalServerPids.set(project.id, pids[0]);
+            await writeLocalServerPid(project.id, pids[0]);
           }
         } catch {
           // ignore probe failures
@@ -1250,7 +1467,7 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
     async (_e, args: { projectName: string; source: string; name?: string }) => {
       try {
         if (!args || typeof args !== "object") throw new Error("Missing import data");
-        const projectName = normalizeProjectName(args.projectName ?? "");
+        const projectName = normalizeProjectId(args.projectName ?? "");
         const { repoUrl, branch, subpath } = parseGithubSource(args.source ?? "");
         const root = getSummonerRoot();
         const projectDir = path.join(root, `summoner-sdk-${projectName}`);
@@ -1294,7 +1511,7 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
     "agents:start",
     async (_e, args: { projectName: string; agentName: string; options?: string }) => {
       try {
-        const projectName = normalizeProjectName(args.projectName ?? "");
+        const projectName = normalizeProjectId(args.projectName ?? "");
         const displayName = normalizeAgentName(args.agentName ?? "");
         const root = getSummonerRoot();
         const projectDir = path.join(root, `summoner-sdk-${projectName}`);
@@ -1354,7 +1571,7 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
 
   ipcMain.handle("agents:stop", async (_e, args: { projectName: string; agentName: string }) => {
     try {
-      const projectName = normalizeProjectName(args.projectName ?? "");
+      const projectName = normalizeProjectId(args.projectName ?? "");
       const displayName = normalizeAgentName(args.agentName ?? "");
       const preferredFolder = `${AGENT_PREFIX}${displayName}`;
       const keyPreferred = `${projectName}:${preferredFolder}`;
@@ -1372,7 +1589,7 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
 
   ipcMain.handle("agents:remove", async (_e, args: { projectName: string; agentName: string; folderName?: string }) => {
     try {
-      const projectName = normalizeProjectName(args.projectName ?? "");
+      const projectName = normalizeProjectId(args.projectName ?? "");
       const displayName = normalizeAgentName(args.agentName ?? "");
       const preferredFolder = args.folderName?.trim() || `${AGENT_PREFIX}${displayName}`;
       const keyPreferred = `${projectName}:${preferredFolder}`;
@@ -1413,7 +1630,7 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
 
   ipcMain.handle("agents:getIdentity", async (_e, args: { projectName: string; agentName: string }) => {
     try {
-      const projectName = normalizeProjectName(args.projectName ?? "");
+      const projectName = normalizeProjectId(args.projectName ?? "");
       const displayName = normalizeAgentName(args.agentName ?? "");
       const root = getSummonerRoot();
       const projectDir = path.join(root, `summoner-sdk-${projectName}`);
@@ -1444,7 +1661,7 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
     "agents:identityRead",
     async (_e, args: { projectName: string; folderName: string }) => {
       try {
-        const projectName = normalizeProjectName(args.projectName ?? "");
+        const projectName = normalizeProjectId(args.projectName ?? "");
         const folderName = String(args.folderName ?? "");
         if (!folderName || folderName.includes("/") || folderName.includes("\\") || folderName.includes("..")) {
           throw new Error("Invalid agent folder");
@@ -1470,7 +1687,7 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
     "agents:identityWrite",
     async (_e, args: { projectName: string; folderName: string; content: string }) => {
       try {
-        const projectName = normalizeProjectName(args.projectName ?? "");
+        const projectName = normalizeProjectId(args.projectName ?? "");
         const folderName = String(args.folderName ?? "");
         if (!folderName || folderName.includes("/") || folderName.includes("\\") || folderName.includes("..")) {
           throw new Error("Invalid agent folder");
@@ -1497,7 +1714,7 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
 
   ipcMain.handle("agents:list", async (_e, args: { projectName: string }) => {
     try {
-      const projectName = normalizeProjectName(args.projectName ?? "");
+      const projectName = normalizeProjectId(args.projectName ?? "");
       const root = getSummonerRoot();
       const projectDir = path.join(root, `summoner-sdk-${projectName}`);
       await fs.access(projectDir);

@@ -46,14 +46,14 @@ export type Api = {
   };
   projects: {
     create: (args: ProjectSpec) => Promise<{ ok: true } | { ok: false; error: string }>;
-    reset: (args: { name: string; serverVersion: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
-    remove: (args: { name: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
+    reset: (args: { projectId: string; serverVersion: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
+    remove: (args: { projectId: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
     list: () => Promise<
-      | { ok: true; items: { name: string; serverVersion: string; selections: Record<string, string[]>; createdAt: number }[] }
+      | { ok: true; items: { id: string; name: string; serverVersion: string; selections: Record<string, string[]>; createdAt: number }[] }
       | { ok: false; error: string }
     >;
-    envRead: (args: { name: string }) => Promise<{ ok: true; content: string } | { ok: false; error: string }>;
-    envWrite: (args: { name: string; content: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
+    envRead: (args: { projectId: string }) => Promise<{ ok: true; content: string } | { ok: false; error: string }>;
+    envWrite: (args: { projectId: string; content: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
   };
   logs: {
     read: (args: { serverId: string; host?: string; port?: number; limit?: number; before?: number }) => Promise<
@@ -155,6 +155,10 @@ export type Api = {
       | { ok: false; error: string }
     >;
   };
+  servers: {
+    list: () => Promise<{ ok: true; items: ServerProfile[]; desiredById: Record<string, boolean> } | { ok: false; error: string }>;
+    save: (args: { servers: ServerProfile[]; desiredById?: Record<string, boolean> }) => Promise<{ ok: true } | { ok: false; error: string }>;
+  };
 };
 
 const api: Api = {
@@ -230,6 +234,10 @@ const api: Api = {
   settings: {
     get: () => ipcRenderer.invoke("settings:get"),
     set: (args) => ipcRenderer.invoke("settings:set", args)
+  },
+  servers: {
+    list: () => ipcRenderer.invoke("servers:list"),
+    save: (args) => ipcRenderer.invoke("servers:save", args)
   }
 };
 

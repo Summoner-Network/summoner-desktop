@@ -1657,7 +1657,7 @@ button:disabled {
 
 .env-table {
   display: grid;
-  grid-template-columns: minmax(140px, 1fr) minmax(200px, 2fr) 34px;
+  grid-template-columns: minmax(140px, 1fr) minmax(200px, 2fr) 34px 34px;
   gap: 8px 10px;
   align-items: center;
 }
@@ -1687,6 +1687,28 @@ button:disabled {
 .env-remove:hover {
   background: #fdecec;
   border-color: #f5caca;
+}
+
+.env-toggle {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.env-toggle img {
+  width: 16px;
+  height: 16px;
+  opacity: 0.7;
+}
+
+.env-toggle:hover {
+  background: var(--panel-strong);
 }
 
 .bundle-grid {

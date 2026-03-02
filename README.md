@@ -79,6 +79,31 @@ npm run dist
 
 Outputs installers into `release/`.
 
+## Requirements (Complete)
+
+This section is designed so you can use the desktop app without running into missing tools. If you want **full functionality** (projects, local server, agents), install everything below.
+
+### Core (run the desktop app)
+- **Node.js v22.12+** and **npm** (required for dev/run/build)
+
+### Full functionality (recommended to avoid broken flows)
+- **Git** (required for creating projects or importing agents)
+- **Python** (required for running local server and agents)
+  - The app will try `.venv`/`venv` first, then `python3`, then `python`
+- **pip** (required to install agent `requirements.txt`)
+- **bash** (macOS/Linux) or **PowerShell** (Windows)
+  - Used by the project setup/reset scripts
+- **macOS/Linux:** `lsof` (used to find/stop processes by port)
+- **Windows:** `netstat` (used to find/stop processes by port)
+
+### macOS packaging only
+- **xattr** (used by `npm run dist:mac`)
+
+### Why these are needed
+- **Project creation/reset** clones `summoner-sdk` using `git` and runs setup scripts (`bash` or PowerShell).
+- **Local server + agents** run Python scripts and install dependencies with `pip`.
+- **Port cleanup** uses `lsof` or `netstat` to detect/stop stuck processes.
+
 ## How to use
 
 ### 1) Pick a server

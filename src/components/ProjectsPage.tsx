@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from "react";
+import iconEye from "../../assets/svg_icons/eye.svg";
+import iconEyeSlash from "../../assets/svg_icons/eye-slash.svg";
 
 type BundleConfig = {
   id: string;
@@ -34,6 +36,7 @@ export type ProjectSpec = {
 };
 
 export type ProjectItem = {
+  id: string;
   name: string;
   serverVersion: string;
   selections: Record<string, string[]>;
@@ -79,10 +82,10 @@ function serializeEnv(rows: EnvRow[]): string {
 export default function ProjectsPage(props: {
   projects: ProjectItem[];
   onCreate: (spec: ProjectSpec) => Promise<{ ok: true } | { ok: false; error: string }>;
-  onReset: (spec: { name: string; serverVersion: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
-  onDelete: (name: string) => Promise<{ ok: true } | { ok: false; error: string }>;
-  onReadEnv: (args: { name: string }) => Promise<{ ok: true; content: string } | { ok: false; error: string }>;
-  onWriteEnv: (args: { name: string; content: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
+  onReset: (spec: { projectId: string; serverVersion: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
+  onDelete: (projectId: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+  onReadEnv: (args: { projectId: string }) => Promise<{ ok: true; content: string } | { ok: false; error: string }>;
+  onWriteEnv: (args: { projectId: string; content: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
 }) {
   const { projects, onCreate, onReset, onDelete, onReadEnv, onWriteEnv } = props;
   const [name, setName] = useState<string>("");
@@ -92,6 +95,7 @@ export default function ProjectsPage(props: {
   const [busy, setBusy] = useState<boolean>(false);
   const [activeProject, setActiveProject] = useState<string | null>(null);
   const [envRows, setEnvRows] = useState<EnvRow[]>([{ key: "", value: "" }]);
+  const [envHiddenByRow, setEnvHiddenByRow] = useState<boolean[]>([true]);
   const [envError, setEnvError] = useState<string | null>(null);
 
   const selectionSummary = useMemo(() => {
@@ -131,7 +135,7 @@ export default function ProjectsPage(props: {
     setBusy(true);
     setError(null);
     try {
-      const res = await onReset({ name: projectName, serverVersion });
+      const res = await onReset({ projectId: projectName, serverVersion });
       if (!res.ok) setError(res.error);
     } finally {
       setBusy(false);
@@ -151,19 +155,25 @@ export default function ProjectsPage(props: {
 
   async function loadEnv(projectName: string) {
     setEnvError(null);
-    const res = await onReadEnv({ name: projectName });
+    const res = await onReadEnv({ projectId: projectName });
     if (!res.ok) {
       setEnvError(res.error);
       return;
     }
-    setEnvRows(parseEnv(res.content));
+    const rows = parseEnv(res.content);
+    setEnvRows(rows);
+    setEnvHiddenByRow(rows.map(() => true));
   }
+
+  const activeProjectLabel = activeProject
+    ? projects.find((p) => p.id === activeProject)?.name ?? activeProject
+    : "";
 
   async function saveEnv() {
     if (!activeProject) return;
     setEnvError(null);
     const content = serializeEnv(envRows);
-    const res = await onWriteEnv({ name: activeProject, content });
+    const res = await onWriteEnv({ projectId: activeProject, content });
     if (!res.ok) setEnvError(res.error);
   }
 
@@ -185,11 +195,11 @@ export default function ProjectsPage(props: {
             <div className="panel-list">
               {projects.map((p) => (
                 <div
-                  key={p.name}
-                  className={`panel-item ${activeProject === p.name ? "selected" : ""}`}
+                  key={p.id}
+                  className={`panel-item ${activeProject === p.id ? "selected" : ""}`}
                   onClick={() => {
-                    setActiveProject(p.name);
-                    void loadEnv(p.name);
+                    setActiveProject(p.id);
+                    void loadEnv(p.id);
                   }}
                   role="button"
                   tabIndex={0}
@@ -203,14 +213,14 @@ export default function ProjectsPage(props: {
                       {p.status === "installing" ? (
                         <div className="pill pill-loading">Installing…</div>
                       ) : (
-                        <button type="button" onClick={() => handleReset(p.name)} disabled={busy}>
+                        <button type="button" onClick={() => handleReset(p.id)} disabled={busy}>
                           Reset
                         </button>
                       )}
                       <button
                         type="button"
                         className="danger"
-                        onClick={() => handleDelete(p.name)}
+                        onClick={() => handleDelete(p.id)}
                         disabled={busy || p.status === "installing"}
                       >
                         Delete
@@ -300,10 +310,11 @@ export default function ProjectsPage(props: {
         <div className="panel-title">Project Environment (.env)</div>
         {activeProject ? (
           <div className="detail-grid">
-            <div className="small">Editing: {activeProject}</div>
+            <div className="small">Editing: {activeProjectLabel}</div>
             <div className="env-table">
               <div className="env-head">Variable</div>
               <div className="env-head">Value</div>
+              <div className="env-head" />
               <div className="env-head" />
               {envRows.map((row, idx) => (
                 <React.Fragment key={idx}>
@@ -324,13 +335,35 @@ export default function ProjectsPage(props: {
                       setEnvRows(next);
                     }}
                     placeholder="value"
+                    type={envHiddenByRow[idx] ? "password" : "text"}
                   />
+                  <button
+                    type="button"
+                    className="env-toggle"
+                    onClick={() => {
+                      setEnvHiddenByRow((prev) => {
+                        const next = [...prev];
+                        next[idx] = !prev[idx];
+                        return next;
+                      });
+                    }}
+                    aria-label={envHiddenByRow[idx] ? "Show value" : "Hide value"}
+                  >
+                    <img src={envHiddenByRow[idx] ? iconEye : iconEyeSlash} alt="" aria-hidden="true" />
+                  </button>
                   <button
                     type="button"
                     className="env-remove"
                     onClick={() => {
                       const next = envRows.filter((_, i) => i !== idx);
-                      setEnvRows(next.length ? next : [{ key: "", value: "" }]);
+                      const nextHidden = envHiddenByRow.filter((_, i) => i !== idx);
+                      if (next.length) {
+                        setEnvRows(next);
+                        setEnvHiddenByRow(nextHidden.length ? nextHidden : [true]);
+                      } else {
+                        setEnvRows([{ key: "", value: "" }]);
+                        setEnvHiddenByRow([true]);
+                      }
                     }}
                     aria-label="Remove row"
                   >
@@ -342,7 +375,10 @@ export default function ProjectsPage(props: {
             <div className="row gap10">
               <button
                 type="button"
-                onClick={() => setEnvRows((prev) => [...prev, { key: "", value: "" }])}
+                onClick={() => {
+                  setEnvRows((prev) => [...prev, { key: "", value: "" }]);
+                  setEnvHiddenByRow((prev) => [...prev, true]);
+                }}
               >
                 Add Row
               </button>

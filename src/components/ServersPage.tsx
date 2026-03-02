@@ -33,7 +33,7 @@ export default function ServersPage(props: {
   const [port, setPort] = useState("8888");
   const [error, setError] = useState<string | null>(null);
 
-  const [selectedProject, setSelectedProject] = useState<string>(projects[0]?.name ?? "");
+  const [selectedProject, setSelectedProject] = useState<string>(projects[0]?.id ?? "");
   const [expandedByProject, setExpandedByProject] = useState<Record<string, boolean>>({});
   const [configByProject, setConfigByProject] = useState<
     Record<
@@ -77,8 +77,8 @@ export default function ServersPage(props: {
       setSelectedProject("");
       return;
     }
-    if (!projects.find((p) => p.name === selectedProject)) {
-      setSelectedProject(projects[0].name);
+    if (!projects.find((p) => p.id === selectedProject)) {
+      setSelectedProject(projects[0].id);
     }
   }, [projects, selectedProject]);
 
@@ -298,7 +298,7 @@ export default function ServersPage(props: {
     setLocalRunWarning((prev) => ({ ...prev, [projectName]: "" }));
   }
 
-  const projectOptions = useMemo(() => projects.map((p) => p.name), [projects]);
+  const projectOptions = useMemo(() => projects.map((p) => ({ id: p.id, name: p.name })), [projects]);
   const isRunning = selectedProject ? runningLocalServers.includes(selectedProject) : false;
   const isStarting = selectedProject ? localRunStatus[selectedProject] === "starting" : false;
   const warning = selectedProject ? localRunWarning[selectedProject] : "";
@@ -683,8 +683,8 @@ export default function ServersPage(props: {
               >
                 {projectOptions.length === 0 ? <option value="">No projects</option> : null}
                 {projectOptions.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
+                  <option key={p.id} value={p.id}>
+                    {p.name}
                   </option>
                 ))}
               </select>

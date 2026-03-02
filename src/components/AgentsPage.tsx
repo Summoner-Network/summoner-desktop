@@ -29,11 +29,11 @@ export default function AgentsPage(props: {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<boolean>(false);
 
-  const projectOptions = useMemo(() => projects.map((p) => p.name), [projects]);
+  const projectOptions = useMemo(() => projects.map((p) => ({ id: p.id, name: p.name })), [projects]);
 
   useEffect(() => {
     if (!selectedProject && projectOptions.length > 0) {
-      setSelectedProject(projectOptions[0]);
+      setSelectedProject(projectOptions[0].id);
     }
   }, [projectOptions, selectedProject]);
 
@@ -195,9 +195,9 @@ export default function AgentsPage(props: {
               disabled={projectOptions.length === 0}
             >
               {projectOptions.length === 0 ? <option value="">No projects</option> : null}
-              {projectOptions.map((name) => (
-                <option key={name} value={name}>
-                  {name}
+              {projectOptions.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
                 </option>
               ))}
             </select>

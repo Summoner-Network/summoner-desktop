@@ -81,6 +81,8 @@ export default function App() {
   // First iteration: one hardcoded server profile.
   // Next iteration: add CRUD + persistence.
   const [servers, setServers] = useState<ServerProfile[]>(() => [...INITIAL_SERVERS]);
+  const [serversHydrated, setServersHydrated] = useState(false);
+  const serversPersistReadyRef = React.useRef(false);
 
   const [selectedServerId, setSelectedServerId] = useState<string | null>(() => INITIAL_SERVERS[0]?.id ?? null);
   const selectedServer = servers.length > 0 ? servers.find((s) => s.id === selectedServerId) ?? null : null;
@@ -97,6 +99,30 @@ export default function App() {
   useEffect(() => {
     connRef.current = conn;
   }, [conn]);
+
+  useEffect(() => {
+    let active = true;
+    window.api.servers.list().then((res) => {
+      if (!active) return;
+      if (res.ok) {
+        setServers(res.items);
+        setConn(buildInitialStatus(res.items));
+        setLastConnectedAt(buildInitialLastConnected(res.items));
+        setDesired(() => {
+          const base = buildInitialDesired(res.items);
+          Object.entries(res.desiredById ?? {}).forEach(([id, value]) => {
+            if (typeof value === "boolean") base[id] = value;
+          });
+          return base;
+        });
+        setSelectedServerId(res.items[0]?.id ?? null);
+      }
+      setServersHydrated(true);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const [identities, setIdentities] = useState<Identity[]>([
     { id: "id-default", name: "Default Identity", value: { name: "Summoner", role: "client" } },
@@ -225,13 +251,32 @@ export default function App() {
   }, [servers]);
 
   useEffect(() => {
-    const nextDesired: Record<string, boolean> = {};
-    servers.forEach((s) => {
-      nextDesired[s.id] = true;
-      void window.api.tcp.connect({ server: s });
+    setDesired((prev) => {
+      const next: Record<string, boolean> = { ...prev };
+      servers.forEach((s) => {
+        if (typeof next[s.id] !== "boolean") next[s.id] = true;
+      });
+      Object.keys(next).forEach((id) => {
+        if (!servers.some((s) => s.id === id)) delete next[id];
+      });
+      return next;
     });
-    setDesired(nextDesired);
   }, [servers]);
+
+  useEffect(() => {
+    servers.forEach((s) => {
+      if (desired[s.id]) void window.api.tcp.connect({ server: s });
+    });
+  }, [servers, desired]);
+
+  useEffect(() => {
+    if (!serversHydrated) return;
+    if (!serversPersistReadyRef.current) {
+      serversPersistReadyRef.current = true;
+      return;
+    }
+    void window.api.servers.save({ servers, desiredById: desired });
+  }, [servers, serversHydrated, desired]);
 
   useEffect(() => {
     if (servers.length === 0) {
@@ -306,37 +351,44 @@ export default function App() {
 
   async function handleCreateProject(spec: ProjectSpec) {
     const createdAt = Date.now();
+    const pendingId = `pending-${createdAt}`;
     setProjects((prev) => {
-      const existing = prev.find((p) => p.name === spec.name);
-      if (existing) {
-        return prev.map((p) =>
-          p.name === spec.name
-            ? { ...p, ...spec, createdAt, status: "installing", error: undefined }
-            : p
-        );
-      }
-      return [...prev, { ...spec, createdAt, status: "installing" }];
+      return [...prev, { id: pendingId, ...spec, createdAt, status: "installing" }];
     });
 
     const res = await window.api.projects.create(spec);
-    setProjects((prev) =>
-      prev.map((p) =>
-        p.name === spec.name
-          ? { ...p, status: res.ok ? "ready" : "error", error: res.ok ? undefined : res.error }
-          : p
-      )
-    );
+    if (res.ok) {
+      const listRes = await window.api.projects.list();
+      if (listRes.ok) {
+        setProjects(
+          listRes.items.map((p) => ({
+            ...p,
+            status: "ready" as const
+          }))
+        );
+      } else {
+        setProjects((prev) => prev.filter((p) => p.id !== pendingId));
+      }
+    } else {
+      setProjects((prev) =>
+        prev.map((p) =>
+          p.id === pendingId
+            ? { ...p, status: "error", error: res.error }
+            : p
+        )
+      );
+    }
     return res;
   }
 
-  async function handleResetProject(args: { name: string; serverVersion: string }) {
+  async function handleResetProject(args: { projectId: string; serverVersion: string }) {
     return window.api.projects.reset(args);
   }
 
-  async function handleDeleteProject(name: string) {
-    const res = await window.api.projects.remove({ name });
+  async function handleDeleteProject(projectId: string) {
+    const res = await window.api.projects.remove({ projectId });
     if (!res.ok) return res;
-    setProjects((prev) => prev.filter((p) => p.name !== name));
+    setProjects((prev) => prev.filter((p) => p.id !== projectId));
     return res;
   }
 
