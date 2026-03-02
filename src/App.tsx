@@ -4,6 +4,7 @@ import ChatView from "./components/ChatView";
 import ServersPage from "./components/ServersPage";
 import AgentsPage from "./components/AgentsPage";
 import NetworkPage from "./components/NetworkPage";
+import DashboardPage from "./components/DashboardPage";
 import IdentitiesPage from "./components/IdentitiesPage";
 import ProjectsPage, { ProjectItem, ProjectSpec } from "./components/ProjectsPage";
 import HelpPage from "./components/HelpPage";
@@ -20,7 +21,7 @@ export type ServerProfile = {
 
 export type ConnectionStatus = "disconnected" | "connecting" | "connected";
 export type Identity = { id: string; name: string; value: unknown };
-type View = "chat" | "servers" | "projects" | "agents" | "network" | "identities" | "help";
+type View = "chat" | "servers" | "projects" | "agents" | "network" | "identities" | "help" | "dashboard";
 type RemoteAgent = {
   addr: string;
   firstSeen: number;
@@ -74,7 +75,7 @@ function findLocalhost(servers: ServerProfile[]) {
 }
 
 export default function App() {
-  const [view, setView] = useState<View>("chat");
+  const [view, setView] = useState<View>("dashboard");
 
   // First iteration: one hardcoded server profile.
   // Next iteration: add CRUD + persistence.
@@ -463,18 +464,15 @@ export default function App() {
   return (
     <div className="app-shell">
       <div className="left-rail">
-        <button className="workspace-badge" type="button" onClick={() => setView("chat")} aria-label="Summoner Home">
+        <button
+          className="workspace-badge"
+          type="button"
+          onClick={() => setView("dashboard")}
+          aria-label="Summoner Dashboard"
+        >
           <img src={logoMage} alt="Summoner" className="workspace-logo" />
         </button>
         <div className="rail-sep" />
-        <button
-          className={`rail-btn ${view === "servers" ? "active" : ""}`}
-          onClick={() => setView("servers")}
-          type="button"
-        >
-          <span className="rail-icon icon-server" aria-hidden="true" />
-          <span className="rail-label">Servers</span>
-        </button>
         <button
           className={`rail-btn ${view === "projects" ? "active" : ""}`}
           onClick={() => setView("projects")}
@@ -482,6 +480,14 @@ export default function App() {
         >
           <span className="rail-icon icon-projects" aria-hidden="true" />
           <span className="rail-label">Projects</span>
+        </button>
+        <button
+          className={`rail-btn ${view === "servers" ? "active" : ""}`}
+          onClick={() => setView("servers")}
+          type="button"
+        >
+          <span className="rail-icon icon-server" aria-hidden="true" />
+          <span className="rail-label">Servers</span>
         </button>
         <button
           className={`rail-btn ${view === "agents" ? "active" : ""}`}
@@ -631,7 +637,18 @@ export default function App() {
                 runningAgents={runningAgents}
               />
             ) : null}
-            {view === "projects" ? (
+            {view === "dashboard" ? (
+              <DashboardPage
+                servers={servers}
+                conn={conn}
+                desired={desired}
+                lastConnectedAt={lastConnectedAt}
+                remoteByAddr={remoteByAddr}
+                runningAgents={runningAgents}
+                runningLocalServers={runningLocalServers}
+                projects={projects}
+              />
+            ) : view === "projects" ? (
               <ProjectsPage
                 projects={projects}
                 onCreate={handleCreateProject}

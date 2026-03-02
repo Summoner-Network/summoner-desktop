@@ -41,6 +41,7 @@ export default function ChatView(props: {
 
   const [messages, setMessages] = useState<UiMessage[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [reconnecting, setReconnecting] = useState(false);
   const [hasMoreLogs, setHasMoreLogs] = useState(false);
   const [logBefore, setLogBefore] = useState<number | null>(null);
   const [loadingOlder, setLoadingOlder] = useState(false);
@@ -228,11 +229,23 @@ export default function ChatView(props: {
     ]);
 
     const res = await window.api.tcp.sendChat({ serverId: server.id, text: outgoingText });
-    if (!res.ok) setError(res.error);
+    if (!res.ok) {
+      setError(res.error);
+      setReconnecting(true);
+      try {
+        await window.api.tcp.reconnect({ serverId: server.id });
+      } catch {
+        // ignore reconnect errors; user can retry
+      }
+    }
   }
 
   const label =
     status === "connected" ? "Online" : desired ? (status === "connecting" ? "Connecting" : "Reconnecting") : "Paused";
+
+  useEffect(() => {
+    if (status === "connected") setReconnecting(false);
+  }, [status]);
 
   return (
     <div className="content">
@@ -322,6 +335,7 @@ export default function ChatView(props: {
           </div>
         </div>
         <Composer disabled={!canSend} onSend={onSend} />
+        {reconnecting ? <div className="small muted mt6">Reconnecting…</div> : null}
       </div>
     </div>
   );

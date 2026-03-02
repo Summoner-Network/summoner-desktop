@@ -3,7 +3,7 @@ import type { ServerProfile } from "./preload";
 import { TcpManager } from "./tcp/TcpManager";
 import path from "node:path";
 import os from "node:os";
-import { spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { promises as fs } from "node:fs";
 
 const BUNDLE_REPOS: Record<string, string> = {
@@ -21,6 +21,7 @@ const AGENT_PREFIX = "agent_";
 const MAX_LOG_LINES = 3000;
 const MAPS_META_FILE = "app.summoner.maps.json";
 const GEO_CACHE_FILE = "app.summoner.geo.json";
+const SERVERS_STATE_FILE = "app.summoner.servers.json";
 const GEO_RATE_LIMIT = 45;
 const GEO_RATE_WINDOW_MS = 60_000;
 
@@ -83,6 +84,38 @@ function getBundledMapsRoot(): string {
     return path.join(process.cwd(), "assets", "summoner-geofit", "maps");
   }
   return path.join(process.resourcesPath, "maps");
+}
+
+async function ensureLocalMapsSeeded() {
+  const bundledRoot = getBundledMapsRoot();
+  const localRoot = getMapsRoot();
+  await fs.mkdir(localRoot, { recursive: true });
+
+  let entries: string[] = [];
+  try {
+    const dirents = await fs.readdir(bundledRoot, { withFileTypes: true });
+    entries = dirents.filter((d) => d.isDirectory()).map((d) => d.name);
+  } catch {
+    return;
+  }
+
+  await Promise.all(
+    entries.map(async (name) => {
+      const srcDir = path.join(bundledRoot, name);
+      const destDir = path.join(localRoot, name);
+      try {
+        await fs.access(destDir);
+        return;
+      } catch {
+        // Missing: copy bundled maps into local maps directory.
+      }
+      try {
+        await fs.cp(srcDir, destDir, { recursive: true, errorOnExist: false });
+      } catch {
+        // Best effort; ignore copy failures.
+      }
+    })
+  );
 }
 
 async function listMapsFromDir(dir: string, source: "bundle" | "local") {
@@ -218,7 +251,29 @@ function enqueueGeoLookup<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 function getServerLogsRoot(): string {
-  return path.join(getSummonerRoot(), "server_logs");
+  return path.join(getSummonerRoot(), "servers");
+}
+
+function getServersStatePath(): string {
+  return path.join(getServerLogsRoot(), SERVERS_STATE_FILE);
+}
+
+async function readServersState(): Promise<{ localServerPids?: Record<string, number> }> {
+  const filePath = getServersStatePath();
+  try {
+    const raw = await fs.readFile(filePath, "utf-8");
+    const data = JSON.parse(raw) as { localServerPids?: Record<string, number> };
+    return data ?? {};
+  } catch {
+    return {};
+  }
+}
+
+async function writeServersState(next: { localServerPids?: Record<string, number> }): Promise<void> {
+  const filePath = getServersStatePath();
+  const dir = path.dirname(filePath);
+  await fs.mkdir(dir, { recursive: true });
+  await fs.writeFile(filePath, JSON.stringify(next, null, 2) + "\n", "utf-8");
 }
 
 function sanitizeLogId(id: string): string {
@@ -232,7 +287,7 @@ function resolveServerLogId(args: { serverId: string; host?: string; port?: numb
   return sanitizeLogId(args.serverId);
 }
 
-async function loadLogLines(logId: string): Promise<string[]> {
+async function loadLogLines(logId: string): Promise<string[] | null> {
   const existing = logStore.get(logId);
   if (existing?.loaded) return existing.lines;
   const logDir = getServerLogsRoot();
@@ -242,7 +297,7 @@ async function loadLogLines(logId: string): Promise<string[]> {
   try {
     content = await fs.readFile(filePath, "utf-8");
   } catch {
-    content = "";
+    return null;
   }
   const lines = content.split(/\r?\n/).filter(Boolean).slice(-MAX_LOG_LINES);
   logStore.set(logId, { loaded: true, lines });
@@ -253,6 +308,10 @@ async function appendLogLine(logId: string, entry: ServerLogEntry): Promise<void
   const queue = logQueues.get(logId) ?? Promise.resolve();
   const next = queue.then(async () => {
     const lines = await loadLogLines(logId);
+    if (!lines) {
+      // If we cannot read existing logs, do not overwrite the file.
+      return;
+    }
     lines.push(JSON.stringify(entry));
     if (lines.length > MAX_LOG_LINES) lines.splice(0, lines.length - MAX_LOG_LINES);
     const logDir = getServerLogsRoot();
@@ -310,6 +369,82 @@ function normalizeAgentName(raw: string): string {
     throw new Error("Invalid agent name. Use letters, numbers, ., _, and - only.");
   }
   return cleaned;
+}
+
+async function writeLocalServerPid(projectName: string, pid: number): Promise<void> {
+  const state = await readServersState();
+  const next = { ...(state.localServerPids ?? {}), [projectName]: pid };
+  await writeServersState({ ...state, localServerPids: next });
+}
+
+async function readLocalServerPid(projectName: string): Promise<number | null> {
+  const state = await readServersState();
+  const pid = state.localServerPids?.[projectName];
+  if (!pid || !Number.isFinite(pid) || pid <= 0) return null;
+  return pid;
+}
+
+async function clearLocalServerPid(projectName: string): Promise<void> {
+  const state = await readServersState();
+  if (!state.localServerPids?.[projectName]) return;
+  const next = { ...(state.localServerPids ?? {}) };
+  delete next[projectName];
+  await writeServersState({ ...state, localServerPids: next });
+}
+
+function isPidRunning(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function terminatePid(pid: number): Promise<boolean> {
+  try {
+    process.kill(pid);
+  } catch {
+    return !isPidRunning(pid);
+  }
+  await sleep(250);
+  if (!isPidRunning(pid)) return true;
+  try {
+    process.kill(pid, "SIGKILL");
+  } catch {
+    // ignore
+  }
+  await sleep(250);
+  return !isPidRunning(pid);
+}
+
+async function listProjectDirs(): Promise<Array<{ name: string; dir: string }>> {
+  const root = getSummonerRoot();
+  let entries: string[] = [];
+  try {
+    entries = await fs.readdir(root);
+  } catch {
+    return [];
+  }
+  const candidates = entries.filter((name) => name.startsWith("summoner-sdk-"));
+  const items = await Promise.all(
+    candidates.map(async (entry) => {
+      const projectDir = path.join(root, entry);
+      const metaPath = path.join(projectDir, PROJECT_META_FILE);
+      try {
+        const raw = await fs.readFile(metaPath, "utf-8");
+        const meta = JSON.parse(raw) as { name?: string };
+        return { name: meta.name ?? entry.replace(/^summoner-sdk-/, ""), dir: projectDir };
+      } catch {
+        return { name: entry.replace(/^summoner-sdk-/, ""), dir: projectDir };
+      }
+    })
+  );
+  return items;
 }
 
 function buildTxtFromSelections(selections: Record<string, string[]>): string {
@@ -768,6 +903,7 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
     try {
       const logId = resolveServerLogId(args, serverIndex);
       const lines = await loadLogLines(logId);
+      if (!lines) return { ok: true as const, items: [], before: 0, hasMore: false };
       const limit = Math.max(1, Math.min(1000, Number.isFinite(args.limit) ? Number(args.limit) : 300));
       const end = Number.isFinite(args.before) ? Math.min(Number(args.before), lines.length) : lines.length;
       const start = Math.max(0, end - limit);
@@ -873,13 +1009,27 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
       const python = await resolvePythonCommand(projectDir);
       const proc = spawn(python.cmd, [...python.prefixArgs, "server.py"], { cwd: projectDir, stdio: "inherit" });
       runningLocalServers.set(projectName, proc);
+      const persistPid = async () => {
+        const pid = proc.pid;
+        if (!pid || !Number.isFinite(pid)) return;
+        runningLocalServerPids.set(projectName, pid);
+        await writeLocalServerPid(projectName, pid);
+      };
+      void persistPid();
+      proc.once("spawn", () => {
+        void persistPid();
+      });
       if (!win.isDestroyed()) win.webContents.send("evt:localServer-start", { projectName });
       proc.on("exit", () => {
         runningLocalServers.delete(projectName);
+        runningLocalServerPids.delete(projectName);
+        void clearLocalServerPid(projectName);
         if (!win.isDestroyed()) win.webContents.send("evt:localServer-exit", { projectName });
       });
       proc.on("error", () => {
         runningLocalServers.delete(projectName);
+        runningLocalServerPids.delete(projectName);
+        void clearLocalServerPid(projectName);
         if (!win.isDestroyed()) win.webContents.send("evt:localServer-exit", { projectName });
       });
       return { ok: true as const };
@@ -891,9 +1041,40 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
   ipcMain.handle("localServer:stop", async (_e, args: { projectName: string }) => {
     try {
       const projectName = normalizeProjectName(args.projectName ?? "");
+      const projectDir = await resolveProjectDirByName(projectName);
+      const port = await readLocalServerPort(projectDir);
       const proc = runningLocalServers.get(projectName);
-      if (!proc) throw new Error("Local server is not running");
-      proc.kill();
+      if (proc) {
+        proc.kill();
+      }
+      const pid = runningLocalServerPids.get(projectName) ?? (await readLocalServerPid(projectName));
+      if (!pid || !isPidRunning(pid)) {
+        const pids = await findListeningPids(port);
+        if (pids.length === 0) {
+          throw new Error("Local server is not running");
+        }
+        for (const p of pids) {
+          await terminatePid(p);
+        }
+        const stillUp = await findListeningPids(port);
+        if (stillUp.length > 0) throw new Error("Failed to stop local server");
+        await clearLocalServerPid(projectName);
+        runningLocalServerPids.delete(projectName);
+        if (!win.isDestroyed()) win.webContents.send("evt:localServer-exit", { projectName });
+        return { ok: true as const };
+      }
+      const killed = await terminatePid(pid);
+      const stillListening = await findListeningPids(port);
+      if (stillListening.length > 0) {
+        for (const p of stillListening) {
+          await terminatePid(p);
+        }
+      }
+      const stillUp = await findListeningPids(port);
+      if (stillUp.length > 0) throw new Error("Failed to stop local server");
+      await clearLocalServerPid(projectName);
+      runningLocalServerPids.delete(projectName);
+      if (!win.isDestroyed()) win.webContents.send("evt:localServer-exit", { projectName });
       return { ok: true as const };
     } catch (e) {
       return { ok: false as const, error: safeError(e) };
@@ -902,7 +1083,34 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
 
   ipcMain.handle("localServer:listRunning", async () => {
     try {
-      return { ok: true as const, items: Array.from(runningLocalServers.keys()) };
+      const items = new Set<string>(runningLocalServers.keys());
+      const projects = await listProjectDirs();
+      for (const project of projects) {
+        const pid = await readLocalServerPid(project.name);
+        if (!pid) continue;
+        if (isPidRunning(pid)) {
+          items.add(project.name);
+          runningLocalServerPids.set(project.name, pid);
+        } else {
+          await clearLocalServerPid(project.name);
+          runningLocalServerPids.delete(project.name);
+        }
+      }
+      for (const project of projects) {
+        if (items.has(project.name)) continue;
+        try {
+          const port = await readLocalServerPort(project.dir);
+          const pids = await findListeningPids(port);
+          if (pids.length > 0) {
+            items.add(project.name);
+            runningLocalServerPids.set(project.name, pids[0]);
+            await writeLocalServerPid(project.name, pids[0]);
+          }
+        } catch {
+          // ignore probe failures
+        }
+      }
+      return { ok: true as const, items: Array.from(items) };
     } catch (e) {
       return { ok: false as const, error: safeError(e) };
     }
@@ -1132,18 +1340,14 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
 
   ipcMain.handle("maps:list", async () => {
     try {
-      const bundledRoot = getBundledMapsRoot();
       const localRoot = getMapsRoot();
+      await ensureLocalMapsSeeded();
       await fs.mkdir(localRoot, { recursive: true });
-      const [bundleItems, localItems] = await Promise.all([
-        listMapsFromDir(bundledRoot, "bundle"),
-        listMapsFromDir(localRoot, "local")
-      ]);
-      const items = [...bundleItems, ...localItems];
+      const items = await listMapsFromDir(localRoot, "local");
       const meta = await readMapsMeta();
       let selectedMapId = meta.selectedMapId;
       if (!selectedMapId || !items.find((m) => m.id === selectedMapId)) {
-        const defaultId = items.find((m) => m.id === "bundle:world_map_1")?.id ?? items[0]?.id;
+        const defaultId = items.find((m) => m.id === "local:world_map_1")?.id ?? items[0]?.id;
         selectedMapId = defaultId;
         await writeMapsMeta({ selectedMapId });
       }
@@ -1159,13 +1363,9 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
 
   ipcMain.handle("maps:load", async (_e, args: { id: string }) => {
     try {
-      const bundledRoot = getBundledMapsRoot();
       const localRoot = getMapsRoot();
-      const [bundleItems, localItems] = await Promise.all([
-        listMapsFromDir(bundledRoot, "bundle"),
-        listMapsFromDir(localRoot, "local")
-      ]);
-      const items = [...bundleItems, ...localItems];
+      await ensureLocalMapsSeeded();
+      const items = await listMapsFromDir(localRoot, "local");
       const item = items.find((m) => m.id === args.id);
       if (!item) throw new Error("Map not found");
       const [svg, params] = await Promise.all([
@@ -1327,6 +1527,7 @@ type RunningAgent = {
 
 const runningAgents = new Map<string, RunningAgent>();
 const runningLocalServers = new Map<string, ReturnType<typeof spawn>>();
+const runningLocalServerPids = new Map<string, number>();
 
 function isVersionTag(value: string): boolean {
   return /^v\d+_\d+_\d+$/.test(value);
@@ -1346,6 +1547,99 @@ async function readJsonFile<T>(filePath: string, fallback: T): Promise<T> {
     return JSON.parse(raw) as T;
   } catch {
     return fallback;
+  }
+}
+
+function pickPortFromConfig(config: Record<string, unknown>): number | null {
+  const candidates = [
+    config.port,
+    (config.server as Record<string, unknown> | undefined)?.port,
+    (config.network as Record<string, unknown> | undefined)?.port
+  ];
+  for (const value of candidates) {
+    if (typeof value === "number" && isValidPort(value)) return value;
+    if (typeof value === "string") {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed) && isValidPort(parsed)) return parsed;
+    }
+  }
+  return null;
+}
+
+async function readLocalServerPort(projectDir: string): Promise<number> {
+  const configPath = path.join(projectDir, "configs", "server_config.json");
+  const fallbackPath = path.join(projectDir, "summoner-sdk", "desktop_data", "default_config.json");
+  const config = await readJsonFile<Record<string, unknown>>(configPath, {});
+  const port = pickPortFromConfig(config);
+  if (port) return port;
+  const fallback = await readJsonFile<Record<string, unknown>>(fallbackPath, {});
+  return pickPortFromConfig(fallback) ?? 8888;
+}
+
+async function execFileAsync(cmd: string, args: string[]): Promise<{ stdout: string; stderr: string }> {
+  return new Promise((resolve, reject) => {
+    execFile(cmd, args, { encoding: "utf-8" }, (err, stdout, stderr) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve({ stdout: stdout ?? "", stderr: stderr ?? "" });
+    });
+  });
+}
+
+async function findListeningPids(port: number): Promise<number[]> {
+  try {
+    if (process.platform === "win32") {
+      const netstatCmds = ["netstat", "C:\\Windows\\System32\\netstat.exe"];
+      let stdout = "";
+      let ok = false;
+      for (const cmd of netstatCmds) {
+        try {
+          const res = await execFileAsync(cmd, ["-ano"]);
+          stdout = res.stdout;
+          ok = true;
+          break;
+        } catch {
+          // try next
+        }
+      }
+      if (!ok) return [];
+      const pids = new Set<number>();
+      stdout.split(/\r?\n/).forEach((line) => {
+        const parts = line.trim().split(/\s+/);
+        if (parts.length < 5) return;
+        if (!parts[0].toUpperCase().startsWith("TCP")) return;
+        const local = parts[1] ?? "";
+        if (!local.endsWith(`:${port}`)) return;
+        const state = parts[3] ?? "";
+        if (state.toUpperCase() !== "LISTENING") return;
+        const pid = Number(parts[4]);
+        if (Number.isFinite(pid) && pid > 0) pids.add(pid);
+      });
+      return Array.from(pids);
+    }
+    const lsofCmds = ["lsof", "/usr/sbin/lsof", "/usr/bin/lsof"];
+    let stdout = "";
+    let ok = false;
+    for (const cmd of lsofCmds) {
+      try {
+        const res = await execFileAsync(cmd, ["-tiTCP:" + String(port), "-sTCP:LISTEN"]);
+        stdout = res.stdout;
+        ok = true;
+        break;
+      } catch {
+        // try next
+      }
+    }
+    if (!ok) return [];
+    const pids = stdout
+      .split(/\r?\n/)
+      .map((line) => Number(line.trim()))
+      .filter((pid) => Number.isFinite(pid) && pid > 0);
+    return Array.from(new Set(pids));
+  } catch {
+    return [];
   }
 }
 

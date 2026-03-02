@@ -14,8 +14,6 @@ type RemoteAgent = {
 type MapItem = { id: string; name: string; source: "bundle" | "local" };
 type GeoInfo = { lat: number; lon: number; city?: string; country?: string };
 type ViewBoxRect = { x: number; y: number; width: number; height: number };
-const SHOW_MAP_DEBUG = false;
-
 function extractIpv4(addr: string): string | null {
   const match = addr.match(/(\d{1,3}(?:\.\d{1,3}){3})/);
   if (!match) return null;
@@ -45,6 +43,117 @@ function ensureSvgPreserveAspectRatio(svg: string): string {
   if (!svg.trim().startsWith("<svg")) return svg;
   if (/preserveAspectRatio\s*=/.test(svg)) return svg;
   return svg.replace("<svg", '<svg preserveAspectRatio="xMidYMid meet"');
+}
+
+function toCamelAttrName(name: string): string | null {
+  if (name.includes(":")) return null;
+  const lower = name.toLowerCase();
+  if (lower === "viewbox") return "viewBox";
+  if (lower === "preserveaspectratio") return "preserveAspectRatio";
+  if (!name.includes("-")) return name;
+  return name.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
+}
+
+function parseInlineStyle(styleText: string): Record<string, string> {
+  const style: Record<string, string> = {};
+  const chunks = styleText
+    .split(";")
+    .map((chunk) => chunk.trim())
+    .filter(Boolean);
+  for (const chunk of chunks) {
+    const idx = chunk.indexOf(":");
+    if (idx === -1) continue;
+    const rawKey = chunk.slice(0, idx).trim();
+    const value = chunk.slice(idx + 1).trim();
+    const key = toCamelAttrName(rawKey);
+    if (!key) continue;
+    style[key] = value;
+  }
+  return style;
+}
+
+function parseStyleDeclarations(styleText: string): Record<string, string> {
+  const style: Record<string, string> = {};
+  const chunks = styleText
+    .split(";")
+    .map((chunk) => chunk.trim())
+    .filter(Boolean);
+  for (const chunk of chunks) {
+    const idx = chunk.indexOf(":");
+    if (idx === -1) continue;
+    const rawKey = chunk.slice(0, idx).trim().toLowerCase();
+    const value = chunk.slice(idx + 1).trim();
+    if (!rawKey) continue;
+    style[rawKey] = value;
+  }
+  return style;
+}
+
+function sanitizeSvgStyleAttributes(svg: string): { svg: string; removed: number; converted: number } {
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(svg, "image/svg+xml");
+    const root = doc.documentElement;
+    if (!root || root.nodeName.toLowerCase() !== "svg") return { svg, removed: 0, converted: 0 };
+    const styled = Array.from(root.querySelectorAll("[style]"));
+    let removed = 0;
+    let converted = 0;
+    styled.forEach((el) => {
+      const styleText = el.getAttribute("style") ?? "";
+      const decls = parseStyleDeclarations(styleText);
+      Object.entries(decls).forEach(([k, v]) => {
+        if (!el.hasAttribute(k)) {
+          el.setAttribute(k, v);
+          converted += 1;
+        }
+      });
+      el.removeAttribute("style");
+      removed += 1;
+    });
+    const serializer = new XMLSerializer();
+    return { svg: serializer.serializeToString(doc), removed, converted };
+  } catch {
+    return { svg, removed: 0, converted: 0 };
+  }
+}
+
+function extractSvgRootAttrs(svg: string): { attrs: Record<string, string> } {
+  const attrs: Record<string, string> = {};
+  const openIdx = svg.indexOf("<svg");
+  if (openIdx === -1) return { attrs };
+  const endIdx = svg.indexOf(">", openIdx);
+  if (endIdx === -1) return { attrs };
+  const raw = svg.slice(openIdx + 4, endIdx);
+  const attrRegex = /([a-zA-Z_:][\w:.-]*)\s*=\s*(['"])(.*?)\2/g;
+  const skip = new Set([
+    "width",
+    "height",
+    "viewbox",
+    "preserveaspectratio",
+    "xmlns",
+    "xmlns:xlink",
+    "xml:space",
+    "id",
+    "class"
+  ]);
+  let m: RegExpExecArray | null;
+  while ((m = attrRegex.exec(raw))) {
+    const name = m[1];
+    const value = m[3] ?? "";
+    const lower = name.toLowerCase();
+    if (skip.has(lower) || lower.startsWith("xmlns")) continue;
+    if (lower === "style") {
+      const inline = parseInlineStyle(value);
+      Object.entries(inline).forEach(([k, v]) => {
+        attrs[k] = v;
+      });
+      continue;
+    }
+    const prop = toCamelAttrName(name);
+    if (!prop) continue;
+    attrs[prop] = value;
+  }
+  return { attrs };
 }
 
 function extractSvgInner(svg: string): string {
@@ -78,6 +187,19 @@ function getViewBoxFit(
   return { offsetX, offsetY, width, height };
 }
 
+function screenPointToViewBox(
+  point: { x: number; y: number },
+  stage: DOMRect,
+  viewBox: ViewBoxRect
+): { x: number; y: number } {
+  const fit = getViewBoxFit(stage, viewBox);
+  const localX = clamp(point.x - fit.offsetX, 0, fit.width);
+  const localY = clamp(point.y - fit.offsetY, 0, fit.height);
+  const vx = viewBox.x + (localX / fit.width) * viewBox.width;
+  const vy = viewBox.y + (localY / fit.height) * viewBox.height;
+  return { x: vx, y: vy };
+}
+
 function computeFittedViewBox(
   stage: DOMRect,
   base: ViewBoxRect
@@ -95,11 +217,6 @@ function computeFittedViewBox(
   const y = base.y + (base.height - viewHeight) / 2;
   const scale = base.width / viewWidth;
   return { view: { x, y, width: viewWidth, height: viewHeight }, minScale: scale };
-}
-
-function formatRect(label: string, rect: ViewBoxRect | null): string {
-  if (!rect) return `${label}: null`;
-  return `${label}: x=${rect.x.toFixed(2)} y=${rect.y.toFixed(2)} w=${rect.width.toFixed(2)} h=${rect.height.toFixed(2)}`;
 }
 
 function normalizeWheelDelta(deltaY: number, deltaMode: number, stageHeight: number): number {
@@ -122,13 +239,13 @@ export default function NetworkPage(props: {
   const [selectedMapId, setSelectedMapId] = useState<string | null>(null);
   const [mapSvg, setMapSvg] = useState<string>("");
   const [mapSvgInner, setMapSvgInner] = useState<string>("");
+  const [mapRootAttrs, setMapRootAttrs] = useState<Record<string, string>>({});
   const [mapParams, setMapParams] = useState<ReturnType<typeof validateMercatorParams> | null>(null);
   const [mapViewBox, setMapViewBox] = useState<string>("");
   const [mapRawViewBox, setMapRawViewBox] = useState<string>("");
   const [baseViewBoxRect, setBaseViewBoxRect] = useState<ViewBoxRect | null>(null);
   const [currentViewBoxRect, setCurrentViewBoxRect] = useState<ViewBoxRect | null>(null);
   const [minScale, setMinScale] = useState(1);
-  const [debugInfo, setDebugInfo] = useState("");
   const [geoByIp, setGeoByIp] = useState<Record<string, GeoInfo>>({});
   const pendingLookups = useRef<Set<string>>(new Set());
   const geoRef = useRef<Record<string, GeoInfo>>({});
@@ -180,9 +297,12 @@ export default function NetworkPage(props: {
     async function loadSelectedMap(id: string) {
       const res = await window.api.maps.load({ id });
       if (!res.ok || cancelled) return;
-      const svg = ensureSvgPreserveAspectRatio(res.svg);
+      const sanitized = sanitizeSvgStyleAttributes(res.svg);
+      const svg = ensureSvgPreserveAspectRatio(sanitized.svg);
       setMapSvg(svg);
       setMapSvgInner(extractSvgInner(svg));
+      const { attrs } = extractSvgRootAttrs(svg);
+      setMapRootAttrs(attrs);
       let parsedParams: ReturnType<typeof validateMercatorParams> | null = null;
       try {
         parsedParams = validateMercatorParams(JSON.parse(res.params));
@@ -264,7 +384,6 @@ export default function NetworkPage(props: {
   }, [agents, serverById]);
 
   const overlayViewBox = useMemo(() => mapViewBox || mapRawViewBox, [mapRawViewBox, mapViewBox]);
-
   useLayoutEffect(() => {
     if (!baseViewBoxRect || !mapStageRef.current) return;
     const stage = mapStageRef.current;
@@ -279,17 +398,6 @@ export default function NetworkPage(props: {
       }
       setMinScale(fitted.minScale);
       minScaleRef.current = fitted.minScale;
-      if (SHOW_MAP_DEBUG) {
-        const view = currentViewBoxRef.current ?? fitted.view;
-        const scale = baseViewBoxRect.width / view.width;
-        setDebugInfo(
-          [
-            formatRect("base", baseViewBoxRect),
-            formatRect("current", view),
-            `minScale=${fitted.minScale.toFixed(3)} scale=${scale.toFixed(3)}`
-          ].join("\n")
-        );
-      }
     };
     const tick = () => {
       update();
@@ -372,17 +480,6 @@ export default function NetworkPage(props: {
         setCurrentViewBoxRect(next);
         currentViewBoxRef.current = next;
         hasUserInteractedRef.current = true;
-        if (SHOW_MAP_DEBUG) {
-          const scale = base.width / next.width;
-          setDebugInfo(
-            [
-              formatRect("base", base),
-              formatRect("current", next),
-              `minScale=${minScaleRef.current.toFixed(3)} scale=${scale.toFixed(3)}`,
-              `accum=${accumulated.toFixed(2)} zoomFactor=${zoomFactor.toFixed(4)}`
-            ].join("\n")
-          );
-        }
       });
     };
     stage.addEventListener("wheel", handleWheel, { passive: false });
@@ -646,13 +743,14 @@ export default function NetworkPage(props: {
             >
               <svg
                 className="map-canvas"
+                {...mapRootAttrs}
+                opacity={currentViewBoxRect ? undefined : 0}
                 viewBox={
                   currentViewBoxRect
                     ? `${currentViewBoxRect.x} ${currentViewBoxRect.y} ${currentViewBoxRect.width} ${currentViewBoxRect.height}`
                     : overlayViewBox || undefined
                 }
                 preserveAspectRatio="xMidYMid meet"
-                style={currentViewBoxRect ? undefined : { opacity: 0 }}
               >
                 <g dangerouslySetInnerHTML={{ __html: mapSvgInner }} />
                 {currentViewBoxRect ? (
@@ -733,20 +831,44 @@ export default function NetworkPage(props: {
                         <animate attributeName="stroke-opacity" values="0.2;0.9;0.2" dur="1.8s" repeatCount="indefinite" />
                       </path>
                     ))}
+                    {hoveredMarker && mapStageRef.current ? (() => {
+                      const stageRect = mapStageRef.current?.getBoundingClientRect();
+                      if (!stageRect) return null;
+                      const pos = screenPointToViewBox(hoveredMarker, stageRect, currentViewBoxRect);
+                      const label = hoveredMarker.label;
+                      const fontSize = 12;
+                      const padX = 8;
+                      const padY = 5;
+                      const approxChar = 6.5;
+                      const textWidth = Math.min(320, Math.max(40, label.length * approxChar));
+                      const boxWidth = textWidth + padX * 2;
+                      const boxHeight = fontSize + padY * 2;
+                      const offsetY = 14;
+                      return (
+                        <g className="map-tooltip" transform={`translate(${pos.x} ${pos.y})`}>
+                          <rect
+                            className="map-tooltip-bg"
+                            x={-boxWidth / 2}
+                            y={-(boxHeight + offsetY)}
+                            width={boxWidth}
+                            height={boxHeight}
+                            rx={8}
+                            ry={8}
+                          />
+                          <text
+                            className="map-tooltip-text"
+                            x={-boxWidth / 2 + padX}
+                            y={-(boxHeight + offsetY) + padY + fontSize - 2}
+                          >
+                            {label}
+                          </text>
+                        </g>
+                      );
+                    })() : null}
                   </>
                 ) : null}
               </svg>
               {!currentViewBoxRect ? <div className="small">Loading map...</div> : null}
-              {hoveredMarker ? (
-                <div className="map-tooltip" style={{ left: hoveredMarker.x, top: hoveredMarker.y }}>
-                  {hoveredMarker.label}
-                </div>
-              ) : null}
-              {SHOW_MAP_DEBUG ? (
-                <pre className="map-debug">
-                  {debugInfo || "map debug: waiting..."}
-                </pre>
-              ) : null}
             </div>
           ) : (
             <div className="small">Loading map...</div>

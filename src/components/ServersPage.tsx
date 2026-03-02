@@ -270,6 +270,7 @@ export default function ServersPage(props: {
   }, [localhostStatus, selectedProject]);
 
   async function stopLocalServer(projectName: string) {
+    setLocalRunWarning((prev) => ({ ...prev, [projectName]: "Stopping local server…" }));
     const res = await window.api.localServer.stop({ projectName });
     if (!res.ok) {
       setConfigByProject((prev) => ({
@@ -290,14 +291,18 @@ export default function ServersPage(props: {
           error: res.error
         }
       }));
+      setLocalRunWarning((prev) => ({ ...prev, [projectName]: "Stop failed. Please try again." }));
+      return;
     }
     setLocalRunStatus((prev) => ({ ...prev, [projectName]: "idle" }));
+    setLocalRunWarning((prev) => ({ ...prev, [projectName]: "" }));
   }
 
   const projectOptions = useMemo(() => projects.map((p) => p.name), [projects]);
   const isRunning = selectedProject ? runningLocalServers.includes(selectedProject) : false;
   const isStarting = selectedProject ? localRunStatus[selectedProject] === "starting" : false;
   const warning = selectedProject ? localRunWarning[selectedProject] : "";
+  const isStopFailure = (warning ?? "").toLowerCase().includes("failed");
 
   function getTooltip(
     tooltips: Record<string, unknown>,
@@ -751,7 +756,9 @@ export default function ServersPage(props: {
             {isStarting && localhostStatus !== "connected" ? (
               <div className="small muted run-wait">Waiting for server to accept connections…</div>
             ) : null}
-            {warning ? <div className="small text-error">{warning}</div> : null}
+            {warning ? (
+              <div className={`small ${isStopFailure ? "text-error" : "muted"}`}>{warning}</div>
+            ) : null}
           </div>
         </div>
       </div>
