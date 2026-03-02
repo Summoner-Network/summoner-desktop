@@ -117,6 +117,36 @@ export type Api = {
       | { ok: false; error: string }
     >;
   };
+  settings: {
+    get: () => Promise<
+      | {
+          ok: true;
+          platform: NodeJS.Platform;
+          defaultSummonerBase: string;
+          displayDefaultSummonerBase: string;
+          summonerBase: string | null;
+          effectiveSummonerBase: string;
+          displayEffectiveSummonerBase: string;
+          effectiveSummonerRoot: string;
+          displayEffectiveSummonerRoot: string;
+        }
+      | { ok: false; error: string }
+    >;
+    set: (args: { summonerBase?: string | null }) => Promise<
+      | {
+          ok: true;
+          platform: NodeJS.Platform;
+          defaultSummonerBase: string;
+          displayDefaultSummonerBase: string;
+          summonerBase: string | null;
+          effectiveSummonerBase: string;
+          displayEffectiveSummonerBase: string;
+          effectiveSummonerRoot: string;
+          displayEffectiveSummonerRoot: string;
+        }
+      | { ok: false; error: string }
+    >;
+  };
 };
 
 const api: Api = {
@@ -186,6 +216,10 @@ const api: Api = {
     select: (args) => ipcRenderer.invoke("maps:select", args),
     openFolder: () => ipcRenderer.invoke("maps:openFolder"),
     geoLookup: (args) => ipcRenderer.invoke("maps:geoLookup", args)
+  },
+  settings: {
+    get: () => ipcRenderer.invoke("settings:get"),
+    set: (args) => ipcRenderer.invoke("settings:set", args)
   }
 };
 

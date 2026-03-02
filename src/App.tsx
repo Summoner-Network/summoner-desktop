@@ -105,6 +105,7 @@ export default function App() {
   const selectedIdentity = identities.find((id) => id.id === selectedIdentityId) ?? null;
 
   const [projects, setProjects] = useState<ProjectItem[]>([]);
+  const [workspaceNonce, setWorkspaceNonce] = useState(0);
 
   const [toMode, setToMode] = useState<"none" | "null" | "remote" | "agent">("none");
   const [selectedToKey, setSelectedToKey] = useState<string>("from");
@@ -157,6 +158,35 @@ export default function App() {
     return () => {
       off();
     };
+  }, []);
+
+  const refreshWorkspaceData = React.useCallback(async () => {
+    const [projectsRes, agentsRes, localRes] = await Promise.all([
+      window.api.projects.list(),
+      window.api.agents.listRunning(),
+      window.api.localServer.listRunning()
+    ]);
+    if (projectsRes.ok) {
+      setProjects(
+        projectsRes.items.map((p) => ({
+          ...p,
+          status: "ready" as const
+        }))
+      );
+    } else {
+      setProjects([]);
+    }
+    if (agentsRes.ok) {
+      setRunningAgents(agentsRes.items);
+    } else {
+      setRunningAgents([]);
+    }
+    if (localRes.ok) {
+      setRunningLocalServers(localRes.items);
+    } else {
+      setRunningLocalServers([]);
+    }
+    setWorkspaceNonce((prev) => prev + 1);
   }, []);
 
   useEffect(() => {
@@ -607,6 +637,7 @@ export default function App() {
       ) : null}
             {view === "agents" ? (
               <AgentsPage
+                key={`agents-${workspaceNonce}`}
                 projects={projects}
                 onImport={(args) => window.api.agents.import(args)}
                 onList={(args) => window.api.agents.list(args)}
@@ -650,6 +681,7 @@ export default function App() {
               />
             ) : view === "projects" ? (
               <ProjectsPage
+                key={`projects-${workspaceNonce}`}
                 projects={projects}
                 onCreate={handleCreateProject}
                 onReset={handleResetProject}
@@ -660,6 +692,7 @@ export default function App() {
             ) : null}
             {view === "network" ? (
               <NetworkPage
+                key={`network-${workspaceNonce}`}
                 remoteByAddr={remoteByAddr}
                 selectedRemoteAddr={selectedRemoteAddr}
                 onSelectRemoteAddr={setSelectedRemoteAddr}
@@ -682,7 +715,7 @@ export default function App() {
                 onUpdateIdentity={handleUpdateIdentity}
               />
             ) : null}
-            {view === "help" ? <HelpPage /> : null}
+            {view === "help" ? <HelpPage onWorkspaceChange={refreshWorkspaceData} /> : null}
           </div>
         ) : null}
       </div>

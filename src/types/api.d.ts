@@ -88,6 +88,36 @@ declare global {
           | { ok: false; error: string }
         >;
       };
+      settings: {
+        get: () => Promise<
+          | {
+              ok: true;
+              platform: string;
+              defaultSummonerBase: string;
+              displayDefaultSummonerBase: string;
+              summonerBase: string | null;
+              effectiveSummonerBase: string;
+              displayEffectiveSummonerBase: string;
+              effectiveSummonerRoot: string;
+              displayEffectiveSummonerRoot: string;
+            }
+          | { ok: false; error: string }
+        >;
+        set: (args: { summonerBase?: string | null }) => Promise<
+          | {
+              ok: true;
+              platform: string;
+              defaultSummonerBase: string;
+              displayDefaultSummonerBase: string;
+              summonerBase: string | null;
+              effectiveSummonerBase: string;
+              displayEffectiveSummonerBase: string;
+              effectiveSummonerRoot: string;
+              displayEffectiveSummonerRoot: string;
+            }
+          | { ok: false; error: string }
+        >;
+      };
     };
   }
 }

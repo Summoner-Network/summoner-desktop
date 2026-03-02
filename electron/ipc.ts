@@ -1,10 +1,10 @@
-import { ipcMain, BrowserWindow, shell, app } from "electron";
+import { ipcMain, BrowserWindow, shell } from "electron";
 import type { ServerProfile } from "./preload";
 import { TcpManager } from "./tcp/TcpManager";
 import path from "node:path";
 import os from "node:os";
 import { execFile, spawn } from "node:child_process";
-import { promises as fs } from "node:fs";
+import { promises as fs, readFileSync, constants as fsConstants } from "node:fs";
 
 const BUNDLE_REPOS: Record<string, string> = {
   agentclass: "https://github.com/Summoner-Network/extension-agentclass.git",
@@ -22,6 +22,7 @@ const MAX_LOG_LINES = 3000;
 const MAPS_META_FILE = "app.summoner.maps.json";
 const GEO_CACHE_FILE = "app.summoner.geo.json";
 const SERVERS_STATE_FILE = "app.summoner.servers.json";
+const SETTINGS_FILE = "app.summoner.settings.json";
 const GEO_RATE_LIMIT = 45;
 const GEO_RATE_WINDOW_MS = 60_000;
 
@@ -36,6 +37,7 @@ let geoQueue: Promise<void> = Promise.resolve();
 let geoCacheLoaded = false;
 let geoCacheWriteTimer: NodeJS.Timeout | null = null;
 const geoInFlight = new Map<string, Promise<{ ok: true; lat: number; lon: number; city?: string; country?: string; ts: number; cached: boolean; meta?: GeoMeta }>>();
+let settingsCache: { summonerBase?: string } | null = null;
 
 type GeoMeta = {
   queued: boolean;
@@ -66,13 +68,76 @@ function safeError(e: unknown): string {
   return "Unknown error";
 }
 
-function getSummonerRoot(): string {
+function getDefaultSummonerBase(): string {
   if (process.platform === "win32") {
     const base =
       process.env.LOCALAPPDATA || process.env.APPDATA || path.join(os.homedir(), "AppData", "Local");
-    return path.join(base, "summoner");
+    return base;
   }
-  return path.join(os.homedir(), ".local", "summoner");
+  return path.join(os.homedir(), ".local");
+}
+
+function getDefaultSummonerRoot(): string {
+  return path.join(getDefaultSummonerBase(), "summoner");
+}
+
+function getSettingsPath(): string {
+  return path.join(getDefaultSummonerRoot(), SETTINGS_FILE);
+}
+
+function normalizeSummonerBase(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const resolved = trimmed.startsWith("~")
+    ? path.join(os.homedir(), trimmed.slice(1))
+    : trimmed;
+  if (!path.isAbsolute(resolved)) return null;
+  return resolved;
+}
+
+function formatPathForDisplay(value: string): string {
+  if (process.platform === "win32") return value;
+  const home = os.homedir();
+  if (value === home) return "~";
+  if (value.startsWith(`${home}${path.sep}`)) return `~${value.slice(home.length)}`;
+  return value;
+}
+
+function readSettingsSync(): { summonerBase?: string } {
+  if (settingsCache) return settingsCache;
+  try {
+    const raw = readFileSync(getSettingsPath(), "utf-8");
+    const parsed = JSON.parse(raw) as { summonerBase?: string; summonerRoot?: string };
+    if (parsed && typeof parsed === "object") {
+      if (!parsed.summonerBase && typeof parsed.summonerRoot === "string") {
+        const maybeRoot = parsed.summonerRoot;
+        const base = path.basename(maybeRoot) === "summoner" ? path.dirname(maybeRoot) : maybeRoot;
+        settingsCache = { summonerBase: base };
+      } else {
+        settingsCache = { summonerBase: parsed.summonerBase };
+      }
+    } else {
+      settingsCache = {};
+    }
+  } catch {
+    settingsCache = {};
+  }
+  return settingsCache;
+}
+
+async function writeSettings(next: { summonerBase?: string }): Promise<void> {
+  settingsCache = next;
+  const filePath = getSettingsPath();
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.writeFile(filePath, JSON.stringify(next, null, 2) + "\n", "utf-8");
+}
+
+function getSummonerRoot(): string {
+  const settings = readSettingsSync();
+  const overrideBase = normalizeSummonerBase(settings.summonerBase);
+  const base = overrideBase ?? getDefaultSummonerBase();
+  return path.join(base, "summoner");
 }
 
 function getMapsRoot(): string {
@@ -650,6 +715,8 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
   ipcMain.removeHandler("maps:select");
   ipcMain.removeHandler("maps:openFolder");
   ipcMain.removeHandler("maps:geoLookup");
+  ipcMain.removeHandler("settings:get");
+  ipcMain.removeHandler("settings:set");
 
   ipcMain.handle("tcp:connect", async (_e, args: { server: ServerProfile }) => {
     try {
@@ -702,6 +769,66 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
       void appendLogLine(logId, { ts: Date.now(), direction: "out", raw: args.text });
 
       return { ok: true as const };
+    } catch (e) {
+      return { ok: false as const, error: safeError(e) };
+    }
+  });
+
+  ipcMain.handle("settings:get", async () => {
+    try {
+      const settings = readSettingsSync();
+      const defaultBase = getDefaultSummonerBase();
+      const overrideBase = normalizeSummonerBase(settings.summonerBase);
+      const effectiveBase = overrideBase ?? defaultBase;
+      const effectiveRoot = path.join(effectiveBase, "summoner");
+      return {
+        ok: true as const,
+        platform: process.platform,
+        defaultSummonerBase: defaultBase,
+        displayDefaultSummonerBase: formatPathForDisplay(defaultBase),
+        summonerBase: overrideBase ?? null,
+        effectiveSummonerBase: effectiveBase,
+        displayEffectiveSummonerBase: formatPathForDisplay(effectiveBase),
+        effectiveSummonerRoot: effectiveRoot,
+        displayEffectiveSummonerRoot: formatPathForDisplay(effectiveRoot)
+      };
+    } catch (e) {
+      return { ok: false as const, error: safeError(e) };
+    }
+  });
+
+  ipcMain.handle("settings:set", async (_e, args: { summonerBase?: string | null }) => {
+    try {
+      const normalizedBase = normalizeSummonerBase(args?.summonerBase ?? null);
+      if (args?.summonerBase && !normalizedBase) {
+        throw new Error("Workspace base must be an absolute path");
+      }
+      if (normalizedBase) {
+        await fs.mkdir(normalizedBase, { recursive: true });
+        const stat = await fs.stat(normalizedBase);
+        if (!stat.isDirectory()) {
+          throw new Error("Workspace base must be a directory");
+        }
+        await fs.access(normalizedBase, fsConstants.W_OK);
+        const workspaceRoot = path.join(normalizedBase, "summoner");
+        await fs.mkdir(workspaceRoot, { recursive: true });
+        await fs.access(workspaceRoot, fsConstants.W_OK);
+      }
+      await writeSettings({ summonerBase: normalizedBase ?? undefined });
+      const defaultBase = getDefaultSummonerBase();
+      const effectiveBase = normalizedBase ?? defaultBase;
+      const effectiveRoot = path.join(effectiveBase, "summoner");
+      return {
+        ok: true as const,
+        platform: process.platform,
+        defaultSummonerBase: defaultBase,
+        displayDefaultSummonerBase: formatPathForDisplay(defaultBase),
+        summonerBase: normalizedBase ?? null,
+        effectiveSummonerBase: effectiveBase,
+        displayEffectiveSummonerBase: formatPathForDisplay(effectiveBase),
+        effectiveSummonerRoot: effectiveRoot,
+        displayEffectiveSummonerRoot: formatPathForDisplay(effectiveRoot)
+      };
     } catch (e) {
       return { ok: false as const, error: safeError(e) };
     }
