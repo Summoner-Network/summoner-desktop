@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import githubMark from "../../assets/originals/github-mark.svg";
 import type { ProjectItem } from "./ProjectsPage";
 
-type AgentItem = { name: string; folderName: string; path: string; createdAt: number };
+type AgentItem = { name: string; folderName: string; path: string; createdAt: number; hasIdentityFile?: boolean };
 type RunningAgent = { projectName: string; name: string; folderName: string };
 
 export default function AgentsPage(props: {
@@ -21,6 +21,11 @@ export default function AgentsPage(props: {
   const [agents, setAgents] = useState<AgentItem[]>([]);
   const [optionsByAgent, setOptionsByAgent] = useState<Record<string, string>>({});
   const [agentError, setAgentError] = useState<Record<string, string>>({});
+  const [identityDraftByAgent, setIdentityDraftByAgent] = useState<Record<string, string>>({});
+  const [identityErrorByAgent, setIdentityErrorByAgent] = useState<Record<string, string>>({});
+  const [identityStatusByAgent, setIdentityStatusByAgent] = useState<Record<string, string>>({});
+  const [identityLoadingByAgent, setIdentityLoadingByAgent] = useState<Record<string, boolean>>({});
+  const [expandedByAgent, setExpandedByAgent] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<boolean>(false);
 
@@ -39,6 +44,46 @@ export default function AgentsPage(props: {
       setAgents(res.items);
     });
   }, [selectedProject, onList]);
+
+  async function loadIdentityFile(agent: AgentItem) {
+    if (!selectedProject) return;
+    const key = `${selectedProject}:${agent.folderName}`;
+    setIdentityLoadingByAgent((prev) => ({ ...prev, [key]: true }));
+    setIdentityErrorByAgent((prev) => ({ ...prev, [key]: "" }));
+    setIdentityStatusByAgent((prev) => ({ ...prev, [key]: "" }));
+    const res = await window.api.agents.identityRead({ projectName: selectedProject, folderName: agent.folderName });
+    if (!res.ok) {
+      setIdentityErrorByAgent((prev) => ({ ...prev, [key]: res.error }));
+      setIdentityLoadingByAgent((prev) => ({ ...prev, [key]: false }));
+      return;
+    }
+    if (!res.exists) {
+      setIdentityErrorByAgent((prev) => ({ ...prev, [key]: "id.json not found for this agent." }));
+    }
+    setIdentityDraftByAgent((prev) => ({ ...prev, [key]: res.content ?? "" }));
+    setIdentityLoadingByAgent((prev) => ({ ...prev, [key]: false }));
+  }
+
+  async function handleSaveIdentity(agent: AgentItem) {
+    if (!selectedProject) return;
+    const key = `${selectedProject}:${agent.folderName}`;
+    setIdentityLoadingByAgent((prev) => ({ ...prev, [key]: true }));
+    setIdentityErrorByAgent((prev) => ({ ...prev, [key]: "" }));
+    setIdentityStatusByAgent((prev) => ({ ...prev, [key]: "" }));
+    const content = identityDraftByAgent[key] ?? "";
+    const res = await window.api.agents.identityWrite({
+      projectName: selectedProject,
+      folderName: agent.folderName,
+      content
+    });
+    if (!res.ok) {
+      setIdentityErrorByAgent((prev) => ({ ...prev, [key]: res.error }));
+      setIdentityLoadingByAgent((prev) => ({ ...prev, [key]: false }));
+      return;
+    }
+    setIdentityStatusByAgent((prev) => ({ ...prev, [key]: "Identity saved." }));
+    setIdentityLoadingByAgent((prev) => ({ ...prev, [key]: false }));
+  }
 
   async function handleImport() {
     if (!selectedProject) {
@@ -124,6 +169,20 @@ export default function AgentsPage(props: {
         </div>
       </div>
 
+      <div className="agent-tip">
+        <div className="agent-tip-title">
+          <span className="agent-tip-icon" aria-hidden="true" />
+          <span className="fw600">Agent folder structure</span>
+        </div>
+        <div className="small mt6">
+          Required: <span className="mono">agent.py</span> is the entry point that runs your agent.
+        </div>
+        <div className="small mt6">
+          Optional: <span className="mono">requirements.txt</span> installs dependencies, and{" "}
+          <span className="mono">id.json</span> provides identity metadata.
+        </div>
+      </div>
+
       <div className="page-grid">
         <div className="panel">
           <div className="panel-title">Project Agents</div>
@@ -180,6 +239,54 @@ export default function AgentsPage(props: {
                       disabled={busy}
                     />
                   </div>
+                  {a.hasIdentityFile ? (
+                    <details
+                      className="identity-details mt10"
+                      open={!!expandedByAgent[`${selectedProject}:${a.folderName}`]}
+                      onToggle={(e) => {
+                        const nextOpen = (e.currentTarget as HTMLDetailsElement).open;
+                        const key = `${selectedProject}:${a.folderName}`;
+                        setExpandedByAgent((prev) => ({ ...prev, [key]: nextOpen }));
+                        if (nextOpen && !identityDraftByAgent[key]) {
+                          void loadIdentityFile(a);
+                        }
+                      }}
+                    >
+                      <summary className="identity-summary">Identity Detail</summary>
+                      <div className="identity-body">
+                        <div className="small muted">Edit the agent identity payload (id.json).</div>
+                        {identityLoadingByAgent[`${selectedProject}:${a.folderName}`] ? (
+                          <div className="small mt6">Loading identity...</div>
+                        ) : null}
+                        <textarea
+                          className="identity-textarea"
+                          value={identityDraftByAgent[`${selectedProject}:${a.folderName}`] ?? ""}
+                          onChange={(e) => {
+                            const key = `${selectedProject}:${a.folderName}`;
+                            setIdentityDraftByAgent((prev) => ({ ...prev, [key]: e.target.value }));
+                          }}
+                          placeholder={`{\n  "name": "Agent"\n}\n`}
+                          disabled={identityLoadingByAgent[`${selectedProject}:${a.folderName}`]}
+                        />
+                        <div className="identity-actions">
+                          <button
+                            type="button"
+                            className="primary"
+                            onClick={() => handleSaveIdentity(a)}
+                            disabled={identityLoadingByAgent[`${selectedProject}:${a.folderName}`]}
+                          >
+                            {identityLoadingByAgent[`${selectedProject}:${a.folderName}`] ? "Saving..." : "Save Identity"}
+                          </button>
+                        </div>
+                        {identityStatusByAgent[`${selectedProject}:${a.folderName}`] ? (
+                          <div className="small mt6">{identityStatusByAgent[`${selectedProject}:${a.folderName}`]}</div>
+                        ) : null}
+                        {identityErrorByAgent[`${selectedProject}:${a.folderName}`] ? (
+                          <div className="small text-error mt6">{identityErrorByAgent[`${selectedProject}:${a.folderName}`]}</div>
+                        ) : null}
+                      </div>
+                    </details>
+                  ) : null}
                   {agentError[a.name] ? <div className="small text-error mt6">{agentError[a.name]}</div> : null}
                 </div>
               ))}

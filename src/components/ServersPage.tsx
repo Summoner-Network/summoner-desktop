@@ -389,8 +389,13 @@ export default function ServersPage(props: {
 
     if (value && typeof value === "object" && !Array.isArray(value)) {
       const entries = Object.entries(value as Record<string, unknown>);
+      const isAccentSection = ["logger", "hyper_parameters", "backpressure_policy"].includes(key);
+      const isBackpressure = key === "backpressure_policy";
       return (
-        <div key={path.join(".")} className="config-section">
+        <div
+          key={path.join(".")}
+          className={`config-section ${isAccentSection ? "config-section-accent" : ""} ${isBackpressure ? "config-section-backpressure" : ""}`}
+        >
           <div className="config-section-title">{label}</div>
           {shortTip ? <div className="config-help">{shortTip}</div> : null}
           <div className="config-section-body">
@@ -707,14 +712,11 @@ export default function ServersPage(props: {
               setExpandedByProject((prev) => ({ ...prev, [selectedProject]: nextOpen }));
             }}
           >
-            <summary className="config-summary">
-              configs
-            </summary>
-            <div className="config-editor">
-              <div className="row-between align-center">
-                <div className="fw600">configs</div>
-                <div className="small muted">{configState?.configPath ?? "configs/server_config.json"}</div>
-              </div>
+            <summary className="config-summary">Configs</summary>
+            <div className="config-subtitle small muted">
+              {configState?.configPath ?? "configs/server_config.json"}
+            </div>
+            <div className="config-body">
               {selectedProject && (configState?.loading || !configState) ? (
                 <div className="small mt6">Loading config...</div>
               ) : null}
@@ -728,14 +730,14 @@ export default function ServersPage(props: {
                       Object.entries(configState.config).map(([k, v]) => renderField(k, v, [k], configState))
                     )}
                   </div>
-                  <div className="row gap10 mt10">
+                  <div className="row gap10 mt10 config-actions">
                     <button
                       type="button"
                       className="primary"
                       disabled={!configState.dirty || configState.saving}
                       onClick={() => saveConfig(selectedProject)}
                     >
-                      {configState.saving ? "Saving..." : "Save config"}
+                      {configState.saving ? "Saving..." : "Save Configs"}
                     </button>
                   </div>
                 </>

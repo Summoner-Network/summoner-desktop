@@ -35,7 +35,7 @@ declare global {
       agents: {
         import: (args: { projectName: string; source: string; name?: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
         list: (args: { projectName: string }) => Promise<
-          | { ok: true; items: { name: string; folderName: string; path: string; createdAt: number }[] }
+          | { ok: true; items: { name: string; folderName: string; path: string; createdAt: number; hasIdentityFile?: boolean }[] }
           | { ok: false; error: string }
         >;
         start: (args: { projectName: string; agentName: string; options?: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
@@ -46,6 +46,14 @@ declare global {
         >;
         getIdentity: (args: { projectName: string; agentName: string }) => Promise<
           | { ok: true; value: unknown }
+          | { ok: false; error: string }
+        >;
+        identityRead: (args: { projectName: string; folderName: string }) => Promise<
+          | { ok: true; exists: boolean; content: string }
+          | { ok: false; error: string }
+        >;
+        identityWrite: (args: { projectName: string; folderName: string; content: string }) => Promise<
+          | { ok: true }
           | { ok: false; error: string }
         >;
         onExit: (cb: (args: { projectName: string; name: string; folderName: string }) => void) => () => void;

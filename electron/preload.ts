@@ -64,7 +64,7 @@ export type Api = {
   agents: {
     import: (args: AgentImportSpec) => Promise<{ ok: true } | { ok: false; error: string }>;
     list: (args: { projectName: string }) => Promise<
-      | { ok: true; items: AgentListItem[] }
+      | { ok: true; items: (AgentListItem & { hasIdentityFile?: boolean })[] }
       | { ok: false; error: string }
     >;
     start: (args: { projectName: string; agentName: string; options?: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
@@ -75,6 +75,14 @@ export type Api = {
     >;
     getIdentity: (args: { projectName: string; agentName: string }) => Promise<
       | { ok: true; value: unknown }
+      | { ok: false; error: string }
+    >;
+    identityRead: (args: { projectName: string; folderName: string }) => Promise<
+      | { ok: true; exists: boolean; content: string }
+      | { ok: false; error: string }
+    >;
+    identityWrite: (args: { projectName: string; folderName: string; content: string }) => Promise<
+      | { ok: true }
       | { ok: false; error: string }
     >;
     onExit: (cb: (args: { projectName: string; name: string; folderName: string }) => void) => () => void;
@@ -186,6 +194,8 @@ const api: Api = {
     stop: (args) => ipcRenderer.invoke("agents:stop", args),
     listRunning: () => ipcRenderer.invoke("agents:listRunning"),
     getIdentity: (args) => ipcRenderer.invoke("agents:getIdentity", args),
+    identityRead: (args) => ipcRenderer.invoke("agents:identityRead", args),
+    identityWrite: (args) => ipcRenderer.invoke("agents:identityWrite", args),
     onExit: (cb) => {
       const h = (_: unknown, payload: { projectName: string; name: string; folderName: string }) => cb(payload);
       ipcRenderer.on("evt:agent-exit", h);

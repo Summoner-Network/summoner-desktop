@@ -709,6 +709,8 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
   ipcMain.removeHandler("agents:stop");
   ipcMain.removeHandler("agents:listRunning");
   ipcMain.removeHandler("agents:getIdentity");
+  ipcMain.removeHandler("agents:identityRead");
+  ipcMain.removeHandler("agents:identityWrite");
   ipcMain.removeHandler("agents:remove");
   ipcMain.removeHandler("maps:list");
   ipcMain.removeHandler("maps:load");
@@ -1438,6 +1440,61 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
     }
   });
 
+  ipcMain.handle(
+    "agents:identityRead",
+    async (_e, args: { projectName: string; folderName: string }) => {
+      try {
+        const projectName = normalizeProjectName(args.projectName ?? "");
+        const folderName = String(args.folderName ?? "");
+        if (!folderName || folderName.includes("/") || folderName.includes("\\") || folderName.includes("..")) {
+          throw new Error("Invalid agent folder");
+        }
+        const root = getSummonerRoot();
+        const projectDir = path.join(root, `summoner-sdk-${projectName}`);
+        const agentDir = path.join(projectDir, "agents", folderName);
+        await fs.access(agentDir);
+        const idPath = path.join(agentDir, "id.json");
+        try {
+          const raw = await fs.readFile(idPath, "utf-8");
+          return { ok: true as const, exists: true, content: raw };
+        } catch {
+          return { ok: true as const, exists: false, content: "" };
+        }
+      } catch (e) {
+        return { ok: false as const, error: safeError(e) };
+      }
+    }
+  );
+
+  ipcMain.handle(
+    "agents:identityWrite",
+    async (_e, args: { projectName: string; folderName: string; content: string }) => {
+      try {
+        const projectName = normalizeProjectName(args.projectName ?? "");
+        const folderName = String(args.folderName ?? "");
+        if (!folderName || folderName.includes("/") || folderName.includes("\\") || folderName.includes("..")) {
+          throw new Error("Invalid agent folder");
+        }
+        const content = typeof args.content === "string" ? args.content : "";
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(content);
+        } catch {
+          throw new Error("Identity JSON is not valid");
+        }
+        const root = getSummonerRoot();
+        const projectDir = path.join(root, `summoner-sdk-${projectName}`);
+        const agentDir = path.join(projectDir, "agents", folderName);
+        await fs.access(agentDir);
+        const idPath = path.join(agentDir, "id.json");
+        await fs.writeFile(idPath, JSON.stringify(parsed, null, 2) + "\n", "utf-8");
+        return { ok: true as const };
+      } catch (e) {
+        return { ok: false as const, error: safeError(e) };
+      }
+    }
+  );
+
   ipcMain.handle("agents:list", async (_e, args: { projectName: string }) => {
     try {
       const projectName = normalizeProjectName(args.projectName ?? "");
@@ -1456,7 +1513,14 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
           const full = path.join(agentsDir, name);
           const stat = await fs.stat(full);
           const display = name.startsWith(AGENT_PREFIX) ? name.slice(AGENT_PREFIX.length) : name;
-          return { name: display, folderName: name, path: full, createdAt: stat.mtimeMs };
+          let hasIdentityFile = false;
+          try {
+            await fs.access(path.join(full, "id.json"));
+            hasIdentityFile = true;
+          } catch {
+            hasIdentityFile = false;
+          }
+          return { name: display, folderName: name, path: full, createdAt: stat.mtimeMs, hasIdentityFile };
         })
       );
       return { ok: true as const, items };
