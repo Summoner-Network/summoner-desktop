@@ -1,7 +1,7 @@
 {
   "name": "summoner-desktop",
   "private": true,
-  "version": "1.1.0-alpha.1",
+  "version": "1.1.0-alpha.2",
   "description": "Desktop GUI for Summoner",
   "main": "dist/electron/main.js",
   "author": "Remy Tuyeras <rtuyeras@summoner.org>",
@@ -54,6 +54,10 @@
       {
         "from": "assets/summoner-geofit/maps",
         "to": "maps"
+      },
+      {
+        "from": "assets/originals/summoner-logo-mark-gold-type.png",
+        "to": "assets/summoner-logo-mark-gold-type.png"
       }
     ],
     "mac": {
