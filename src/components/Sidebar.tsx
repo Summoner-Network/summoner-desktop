@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { ServerProfile, ConnectionStatus, Identity } from "../App";
 import iconServer from "../../assets/svg_icons/server.svg";
 import iconAgents from "../../assets/svg_icons/robot.svg";
@@ -45,14 +45,59 @@ export default function Sidebar(props: {
     onSelectIdentityId
   } = props;
   const remotes = Object.values(remoteByAddr).sort((a, b) => b.lastSeen - a.lastSeen);
+  const serversListRef = useRef<HTMLDivElement | null>(null);
+  const agentsListRef = useRef<HTMLDivElement | null>(null);
+  const networkListRef = useRef<HTMLDivElement | null>(null);
+  const idsListRef = useRef<HTMLDivElement | null>(null);
+  const [scrollableBySection, setScrollableBySection] = useState({
+    servers: false,
+    agents: false,
+    network: false,
+    ids: false
+  });
+  const [collapsed, setCollapsed] = useState({
+    servers: false,
+    agents: false,
+    network: false,
+    ids: false
+  });
+
+  useEffect(() => {
+    const checkScrollable = () => {
+      setScrollableBySection({
+        servers: !!serversListRef.current && serversListRef.current.scrollHeight > serversListRef.current.clientHeight + 1,
+        agents: !!agentsListRef.current && agentsListRef.current.scrollHeight > agentsListRef.current.clientHeight + 1,
+        network: !!networkListRef.current && networkListRef.current.scrollHeight > networkListRef.current.clientHeight + 1,
+        ids: !!idsListRef.current && idsListRef.current.scrollHeight > idsListRef.current.clientHeight + 1
+      });
+    };
+    const raf = requestAnimationFrame(checkScrollable);
+    window.addEventListener("resize", checkScrollable);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", checkScrollable);
+    };
+  }, [servers.length, runningAgents.length, remotes.length, identities.length, selectedIdentityId, selectedServerId, selectedRemoteAddr, selectedAgentKey]);
 
   return (
     <div className="sidebar">
-      <div className="sidebar-header">
-        <div className="fw700">My Servers</div>
-      </div>
-      <div className="list">
-        {servers.map((s) => {
+      <div className={`sidebar-section sidebar-servers ${collapsed.servers ? "collapsed" : ""}`}>
+        <button
+          type="button"
+          className="sidebar-section-title"
+          onClick={() => setCollapsed((prev) => ({ ...prev, servers: !prev.servers }))}
+          aria-expanded={!collapsed.servers}
+        >
+          <span className="section-caret" aria-hidden="true" />
+          <span>My Servers</span>
+        </button>
+        <div className={`sidebar-list-frame ${scrollableBySection.servers ? "scrollable" : ""}`}>
+          <div
+            ref={serversListRef}
+            className="list sidebar-list"
+            aria-hidden={collapsed.servers}
+          >
+          {servers.map((s) => {
           const status = statusById[s.id] ?? "disconnected";
           const desired = desiredById[s.id] ?? false;
           const selected = selectedServerId ? s.id === selectedServerId : false;
@@ -64,14 +109,14 @@ export default function Sidebar(props: {
               role="button"
               tabIndex={0}
             >
-              <div className="row-between gap10">
+              <div className="row-between gap10 sidebar-row">
                 <div className="row align-center gap12">
                   <div className="list-icon-wrap">
                     <span className="list-icon icon-server" aria-hidden="true" />
                   </div>
-                  <div>
-                    <div className="fw600">{s.name}</div>
-                    <div className="small mt6">
+                  <div className="sidebar-text">
+                    <div className="fw600 sidebar-title">{s.name}</div>
+                    <div className="small sidebar-subtitle">
                       {s.host}:{s.port}
                     </div>
                   </div>
@@ -80,13 +125,29 @@ export default function Sidebar(props: {
               </div>
             </div>
           );
-        })}
+          })}
+          </div>
+        </div>
       </div>
 
-      <div className="fw700 mt18">My Agents</div>
-      <div className="list mt6">
-        {runningAgents.length === 0 ? <div className="small">No active agents.</div> : null}
-        {runningAgents.map((agent) => (
+      <div className={`sidebar-section sidebar-agents ${collapsed.agents ? "collapsed" : ""}`}>
+        <button
+          type="button"
+          className="sidebar-section-title"
+          onClick={() => setCollapsed((prev) => ({ ...prev, agents: !prev.agents }))}
+          aria-expanded={!collapsed.agents}
+        >
+          <span className="section-caret" aria-hidden="true" />
+          <span>My Agents</span>
+        </button>
+        <div className={`sidebar-list-frame ${scrollableBySection.agents ? "scrollable" : ""}`}>
+          <div
+            ref={agentsListRef}
+            className="list sidebar-list"
+            aria-hidden={collapsed.agents}
+          >
+          {runningAgents.length === 0 ? <div className="small">No active agents.</div> : null}
+          {runningAgents.map((agent) => (
           <div
             key={`${agent.projectName}:${agent.folderName}`}
             className={`list-item clickable ${
@@ -100,19 +161,35 @@ export default function Sidebar(props: {
               <div className="list-icon-wrap">
                 <span className="list-icon icon-agents" aria-hidden="true" />
               </div>
-              <div>
-                <div className="fw600">{agent.name}</div>
-                <div className="small mt6">{agent.projectName}</div>
+              <div className="sidebar-text">
+                <div className="fw600 sidebar-title">{agent.name}</div>
+                <div className="small sidebar-subtitle">{agent.projectName}</div>
               </div>
             </div>
           </div>
-        ))}
+          ))}
+          </div>
+        </div>
       </div>
 
-      <div className="fw700 mt18">My Network</div>
-      <div className="list mt6">
-        {remotes.length === 0 ? <div className="small">No remote agents yet.</div> : null}
-        {remotes.map((agent) => (
+      <div className={`sidebar-section sidebar-network ${collapsed.network ? "collapsed" : ""}`}>
+        <button
+          type="button"
+          className="sidebar-section-title"
+          onClick={() => setCollapsed((prev) => ({ ...prev, network: !prev.network }))}
+          aria-expanded={!collapsed.network}
+        >
+          <span className="section-caret" aria-hidden="true" />
+          <span>My Network</span>
+        </button>
+        <div className={`sidebar-list-frame ${scrollableBySection.network ? "scrollable" : ""}`}>
+          <div
+            ref={networkListRef}
+            className="list sidebar-list"
+            aria-hidden={collapsed.network}
+          >
+          {remotes.length === 0 ? <div className="small">No remote agents yet.</div> : null}
+          {remotes.map((agent) => (
           <div
             key={agent.addr}
             className={`list-item clickable ${agent.addr === selectedRemoteAddr ? "selected" : ""}`}
@@ -124,36 +201,52 @@ export default function Sidebar(props: {
               <div className="list-icon-wrap">
                 <span className="list-icon icon-network" aria-hidden="true" />
               </div>
-              <div>
-                <div className="fw600">{agent.addr}</div>
-                <div className="small mt6">
+              <div className="sidebar-text">
+                <div className="fw600 sidebar-title">{agent.addr}</div>
+                <div className="small sidebar-subtitle">
                   Last seen: {new Date(agent.lastSeen).toLocaleTimeString()}
                 </div>
               </div>
             </div>
           </div>
-        ))}
-      </div>
-
-      <div className="fw700 mt18">My IDs</div>
-      <div className="list mt6">
-        <div
-          className={`list-item clickable ${selectedIdentityId === null ? "selected" : ""}`}
-          onClick={() => onSelectIdentityId(null)}
-          role="button"
-          tabIndex={0}
-        >
-          <div className="row align-center gap12">
-            <div className="list-icon-wrap">
-              <span className="list-icon icon-identities" aria-hidden="true" />
-            </div>
-            <div>
-              <div className="fw600">None</div>
-              <div className="small mt6">Do not set "from"</div>
-            </div>
+          ))}
           </div>
         </div>
-        {identities.map((id) => (
+      </div>
+
+      <div className={`sidebar-section sidebar-ids ${collapsed.ids ? "collapsed" : ""}`}>
+        <button
+          type="button"
+          className="sidebar-section-title"
+          onClick={() => setCollapsed((prev) => ({ ...prev, ids: !prev.ids }))}
+          aria-expanded={!collapsed.ids}
+        >
+          <span className="section-caret" aria-hidden="true" />
+          <span>My IDs</span>
+        </button>
+        <div className={`sidebar-list-frame ${scrollableBySection.ids ? "scrollable" : ""}`}>
+          <div
+            ref={idsListRef}
+            className="list sidebar-list"
+            aria-hidden={collapsed.ids}
+          >
+          <div
+            className={`list-item clickable ${selectedIdentityId === null ? "selected" : ""}`}
+            onClick={() => onSelectIdentityId(null)}
+            role="button"
+            tabIndex={0}
+          >
+            <div className="row align-center gap12">
+              <div className="list-icon-wrap">
+                <span className="list-icon icon-identities" aria-hidden="true" />
+              </div>
+              <div className="sidebar-text">
+                <div className="fw600 sidebar-title">None</div>
+                <div className="small sidebar-subtitle">Do not set "from"</div>
+              </div>
+            </div>
+          </div>
+          {identities.map((id) => (
           <div
             key={id.id}
             className={`list-item clickable ${id.id === selectedIdentityId ? "selected" : ""}`}
@@ -165,15 +258,17 @@ export default function Sidebar(props: {
               <div className="list-icon-wrap">
                 <span className="list-icon icon-identities" aria-hidden="true" />
               </div>
-              <div>
-                <div className="fw600">{id.name}</div>
-                <div className="small mt6">
+              <div className="sidebar-text">
+                <div className="fw600 sidebar-title">{id.name}</div>
+                <div className="small sidebar-subtitle">
                   {typeof id.value === "object" ? "JSON payload" : String(id.value)}
                 </div>
               </div>
             </div>
           </div>
-        ))}
+          ))}
+          </div>
+        </div>
       </div>
     </div>
   );

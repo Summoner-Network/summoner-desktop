@@ -32,8 +32,12 @@ body {
 
 .app-shell {
   display: grid;
-  grid-template-columns: 72px 280px 1fr;
+  grid-template-columns: 72px 220px 1fr;
   height: 100vh;
+}
+
+.app-shell.sidebar-collapsed {
+  grid-template-columns: 72px 0 1fr;
 }
 
 .left-rail {
@@ -45,6 +49,24 @@ body {
   gap: 10px;
   align-items: center;
   border-right: 1px solid rgba(63, 53, 39, 0.05);
+}
+
+.rail-toggle {
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  border: 1px solid rgba(63, 53, 39, 0.15);
+  background: #fffdf8;
+  color: var(--rail-ink);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  cursor: pointer;
+}
+
+.rail-toggle-icon {
+  font-size: 16px;
+  line-height: 1;
 }
 
 .workspace-badge {
@@ -168,9 +190,15 @@ body {
 .sidebar {
   background: #faf7f2;
   color: var(--ink);
-  padding: 18px 16px;
+  padding: 12px 8px;
   border-right: 1px solid rgba(63, 53, 39, 0.08);
   overflow: auto;
+}
+
+.app-shell.sidebar-collapsed .sidebar {
+  padding: 0;
+  border-right: none;
+  overflow: hidden;
 }
 
 .sidebar-header {
@@ -1032,12 +1060,115 @@ button:disabled {
   gap: 10px;
 }
 
+.sidebar .list {
+  gap: 5px;
+}
+
+.sidebar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(63, 53, 39, 0.06);
+}
+
+.sidebar-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7c6f61;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sidebar-section-title::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: linear-gradient(90deg, rgba(63, 53, 39, 0.14), rgba(63, 53, 39, 0));
+}
+
+.section-caret {
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid rgba(63, 53, 39, 0.6);
+  border-bottom: 2px solid rgba(63, 53, 39, 0.6);
+  transform: rotate(-45deg);
+  margin-top: 1px;
+}
+
+.sidebar-section.collapsed .section-caret {
+  transform: rotate(45deg);
+}
+
+.sidebar-section.collapsed .sidebar-list-frame {
+  display: none;
+}
+
+.sidebar-list-frame {
+  position: relative;
+}
+
+.sidebar-list {
+  overflow: auto;
+  padding-right: 4px;
+  scrollbar-width: none;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.sidebar-list-frame.scrollable::before,
+.sidebar-list-frame.scrollable::after {
+  content: "";
+  position: absolute;
+  left: -4px;
+  right: -3px;
+  height: 8px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.sidebar-list-frame.scrollable::before {
+  top: 0;
+  background: linear-gradient(180deg, rgba(250, 247, 242, 1), rgba(250, 247, 242, 0));
+}
+
+.sidebar-list-frame.scrollable::after {
+  bottom: 0;
+  background: linear-gradient(0deg, rgba(250, 247, 242, 1), rgba(250, 247, 242, 0));
+}
+
+.sidebar-list::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.sidebar-servers .sidebar-list { max-height: 160px; }
+.sidebar-agents .sidebar-list { max-height: 160px; }
+.sidebar-network .sidebar-list { max-height: 160px; }
+.sidebar-ids .sidebar-list { max-height: 160px; }
+
 .list-item {
   padding: 12px;
   border-radius: 14px;
   border: 1px solid rgba(63, 53, 39, 0.12);
   background: #ffffff;
   color: var(--ink);
+}
+
+.sidebar .list-item {
+  padding: 6px 7px;
+  border-radius: 9px;
+  font-size: 12px;
 }
 
 .list-item.selected {
@@ -1054,6 +1185,56 @@ button:disabled {
 
 .sidebar .small { color: var(--muted); }
 
+.sidebar-subtitle {
+  margin-top: 3px;
+  font-size: 11px;
+}
+
+.sidebar-title {
+  font-size: 14px;
+}
+
+.sidebar-text {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.sidebar-title,
+.sidebar-subtitle {
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.sidebar-row .sidebar-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.sidebar-row .pill {
+  flex: 0 0 auto;
+}
+
+.sidebar-row {
+  align-items: center;
+}
+
+.sidebar-row .row.align-center.gap12 {
+  flex: 1;
+  min-width: 0;
+}
+
+.sidebar-title::-webkit-scrollbar,
+.sidebar-subtitle::-webkit-scrollbar {
+  height: 0;
+}
+
+.sidebar-title::-webkit-scrollbar-thumb,
+.sidebar-subtitle::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
 .list-icon-wrap {
   width: 34px;
   height: 34px;
@@ -1062,6 +1243,18 @@ button:disabled {
   place-items: center;
   flex: 0 0 34px;
   color: var(--muted);
+}
+
+.sidebar .list-icon-wrap {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  flex: 0 0 22px;
+}
+
+.sidebar .list-icon {
+  width: 15px;
+  height: 15px;
 }
 
 .list-icon {

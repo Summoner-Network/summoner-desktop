@@ -76,6 +76,7 @@ function findLocalhost(servers: ServerProfile[]) {
 
 export default function App() {
   const [view, setView] = useState<View>("dashboard");
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   // First iteration: one hardcoded server profile.
   // Next iteration: add CRUD + persistence.
@@ -492,8 +493,18 @@ export default function App() {
   }
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${isSidebarCollapsed ? "sidebar-collapsed" : ""}`}>
       <div className="left-rail">
+        <button
+          className="rail-toggle"
+          type="button"
+          onClick={() => setIsSidebarCollapsed((prev) => !prev)}
+          aria-label={isSidebarCollapsed ? "Show sidebar" : "Hide sidebar"}
+        >
+          <span className="rail-toggle-icon" aria-hidden="true">
+            {isSidebarCollapsed ? "›" : "‹"}
+          </span>
+        </button>
         <button
           className="workspace-badge"
           type="button"
