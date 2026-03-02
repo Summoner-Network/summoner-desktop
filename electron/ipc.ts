@@ -172,6 +172,20 @@ async function writeSettings(next: { summonerBase?: string }): Promise<void> {
   await fs.writeFile(filePath, JSON.stringify(next, null, 2) + "\n", "utf-8");
 }
 
+function resetWorkspaceScopedState(): void {
+  logStore.clear();
+  logQueues.clear();
+
+  geoCache.clear();
+  geoInFlight.clear();
+  geoQueue = Promise.resolve();
+  geoCacheLoaded = false;
+  if (geoCacheWriteTimer) {
+    clearTimeout(geoCacheWriteTimer);
+    geoCacheWriteTimer = null;
+  }
+}
+
 function getSummonerRoot(): string {
   const settings = readSettingsSync();
   const overrideBase = normalizeSummonerBase(settings.summonerBase);
@@ -462,7 +476,13 @@ async function loadLogLines(logId: string): Promise<string[] | null> {
   let content = "";
   try {
     content = await fs.readFile(filePath, "utf-8");
-  } catch {
+  } catch (e) {
+    const err = e as NodeJS.ErrnoException;
+    if (err?.code === "ENOENT") {
+      const lines: string[] = [];
+      logStore.set(logId, { loaded: true, lines });
+      return lines;
+    }
     return null;
   }
   const lines = content.split(/\r?\n/).filter(Boolean).slice(-MAX_LOG_LINES);
@@ -1050,6 +1070,8 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
         await fs.access(workspaceRoot, fsConstants.W_OK);
       }
       await writeSettings({ summonerBase: normalizedBase ?? undefined });
+      // Workspace-rooted caches must be reloaded after a workspace switch.
+      resetWorkspaceScopedState();
       const defaultBase = getDefaultSummonerBase();
       const effectiveBase = normalizedBase ?? defaultBase;
       const effectiveRoot = path.join(effectiveBase, "summoner");

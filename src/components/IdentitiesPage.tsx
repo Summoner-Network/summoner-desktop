@@ -6,8 +6,8 @@ export default function IdentitiesPage(props: {
   identities: Identity[];
   selectedIdentityId: string | null;
   onSelectIdentityId: (id: string | null) => void;
-  onAddIdentity: (next: { name: string; value: unknown }) => void;
-  onUpdateIdentity: (id: string, next: { name: string; value: unknown }) => void;
+  onAddIdentity: (next: { name: string; value: Record<string, unknown> }) => void;
+  onUpdateIdentity: (id: string, next: { name: string; value: Record<string, unknown> }) => void;
 }) {
   const { identities, selectedIdentityId, onSelectIdentityId, onAddIdentity, onUpdateIdentity } = props;
   const selected = selectedIdentityId ? identities.find((id) => id.id === selectedIdentityId) ?? null : null;
@@ -33,7 +33,7 @@ export default function IdentitiesPage(props: {
       return setError("Identity JSON must be a single object.");
     }
     if (!draftName.trim()) return setError("Name is required.");
-    onUpdateIdentity(selected.id, { name: draftName.trim(), value: parsed });
+    onUpdateIdentity(selected.id, { name: draftName.trim(), value: parsed as Record<string, unknown> });
   }
 
   function add() {
@@ -43,7 +43,7 @@ export default function IdentitiesPage(props: {
       return setError("New identity JSON must be a single object.");
     }
     if (!newName.trim()) return setError("New identity name is required.");
-    onAddIdentity({ name: newName.trim(), value: parsed });
+    onAddIdentity({ name: newName.trim(), value: parsed as Record<string, unknown> });
     setNewName("");
     setNewJson("{\n  \n}");
   }

@@ -20,7 +20,7 @@ export type ServerProfile = {
 };
 
 export type ConnectionStatus = "disconnected" | "connecting" | "connected";
-export type Identity = { id: string; name: string; value: unknown };
+export type Identity = { id: string; name: string; value: Record<string, unknown> };
 type View = "chat" | "servers" | "projects" | "agents" | "network" | "identities" | "help" | "dashboard";
 type RemoteAgent = {
   addr: string;
@@ -436,7 +436,7 @@ export default function App() {
     return res;
   }
 
-  function handleAddIdentity(next: { name: string; value: unknown }) {
+  function handleAddIdentity(next: { name: string; value: Record<string, unknown> }) {
     const base = next.name.trim().toLowerCase()
       .replace(/[^a-z0-9._-]+/g, "-")
       .replace(/-+/g, "-")
@@ -456,7 +456,7 @@ export default function App() {
     setSelectedIdentityId(identity.id);
   }
 
-  function handleUpdateIdentity(id: string, next: { name: string; value: unknown }) {
+  function handleUpdateIdentity(id: string, next: { name: string; value: Record<string, unknown> }) {
     setIdentities((prev) => prev.map((it) => (it.id === id ? { ...it, ...next } : it)));
   }
 

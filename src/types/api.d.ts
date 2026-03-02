@@ -136,6 +136,13 @@ declare global {
           | { ok: false; error: string }
         >;
       };
+      servers: {
+        list: () => Promise<{ ok: true; items: { id: string; name: string; host: string; port: number }[]; desiredById: Record<string, boolean> } | { ok: false; error: string }>;
+        save: (args: { servers: { id: string; name: string; host: string; port: number }[]; desiredById?: Record<string, boolean> }) => Promise<
+          | { ok: true }
+          | { ok: false; error: string }
+        >;
+      };
     };
   }
 }
