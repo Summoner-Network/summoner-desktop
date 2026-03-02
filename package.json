@@ -80,14 +80,5 @@
         "deb"
       ]
     }
-  },
-  "overrides": {
-    "minimatch": "10.2.3",
-    "@electron/universal": {
-      "minimatch": "9.0.7"
-    },
-    "cacache": {
-      "minimatch": "9.0.7"
-    }
   }
 }
