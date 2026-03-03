@@ -232,11 +232,54 @@ export default function App() {
   }, []);
 
   const refreshWorkspaceData = React.useCallback(async () => {
-    const [projectsRes, agentsRes, localRes] = await Promise.all([
+    if (identitiesSaveTimerRef.current !== null) {
+      window.clearTimeout(identitiesSaveTimerRef.current);
+      identitiesSaveTimerRef.current = null;
+    }
+    setIdentitiesHydrated(false);
+    setServersHydrated(false);
+    serversPersistReadyRef.current = false;
+
+    const [projectsRes, agentsRes, localRes, identitiesRes, serversRes] = await Promise.all([
       window.api.projects.list(),
       window.api.agents.listRunning(),
-      window.api.localServer.listRunning()
+      window.api.localServer.listRunning(),
+      window.api.identities.get(),
+      window.api.servers.list()
     ]);
+
+    if (identitiesRes.ok) {
+      setIdentities(identitiesRes.identities);
+      setSelectedIdentityId(identitiesRes.selectedIdentityId);
+      setIdentitiesHydrated(true);
+    } else {
+      setIdentities([]);
+      setSelectedIdentityId(null);
+      setIdentitiesHydrated(false);
+    }
+
+    if (serversRes.ok) {
+      setServers(serversRes.items);
+      setConn(buildInitialStatus(serversRes.items));
+      setLastConnectedAt(buildInitialLastConnected(serversRes.items));
+      setDesired(() => {
+        const base = buildInitialDesired(serversRes.items);
+        Object.entries(serversRes.desiredById ?? {}).forEach(([id, value]) => {
+          if (typeof value === "boolean") base[id] = value;
+        });
+        return base;
+      });
+      setSelectedServerId(serversRes.items[0]?.id ?? null);
+      setServersHydrated(true);
+    } else {
+      setServers([]);
+      setConn({});
+      setLastConnectedAt({});
+      setDesired({});
+      setSelectedServerId(null);
+      setServersHydrated(true);
+    }
+
     if (projectsRes.ok) {
       setProjects(
         projectsRes.items.map((p) => ({
@@ -257,6 +300,16 @@ export default function App() {
     } else {
       setRunningLocalServers([]);
     }
+
+    // Clear path-scoped runtime selections after switching workspace.
+    setRemoteByAddr({});
+    setSelectedRemoteAddr(null);
+    setSelectedAgentKey(null);
+    setAgentToValue(null);
+    setAgentToLabel(null);
+    setToMode("none");
+    setSelectedToKey("from");
+
     setWorkspaceNonce((prev) => prev + 1);
   }, []);
 
@@ -715,6 +768,7 @@ export default function App() {
         {view === "chat" ? (
           selectedServer ? (
             <ChatView
+              key={`chat-${workspaceNonce}-${selectedServer.id}`}
               server={selectedServer}
               status={status}
               desired={isDesired}

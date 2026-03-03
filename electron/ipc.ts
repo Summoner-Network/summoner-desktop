@@ -184,6 +184,8 @@ function resetWorkspaceScopedState(): void {
     clearTimeout(geoCacheWriteTimer);
     geoCacheWriteTimer = null;
   }
+
+  runningLocalServerPids.clear();
 }
 
 function getSummonerRoot(): string {
@@ -1565,8 +1567,18 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
 
   ipcMain.handle("localServer:listRunning", async () => {
     try {
-      const items = new Set<string>(runningLocalServers.keys());
       const projects = await listProjectDirs();
+      const projectIds = new Set(projects.map((p) => p.id));
+      const items = new Set<string>();
+
+      for (const [projectName] of runningLocalServers) {
+        if (projectIds.has(projectName)) items.add(projectName);
+      }
+
+      for (const [projectName] of runningLocalServerPids) {
+        if (!projectIds.has(projectName)) runningLocalServerPids.delete(projectName);
+      }
+
       for (const project of projects) {
         const pid = await readLocalServerPid(project.id);
         if (!pid) continue;
@@ -1751,13 +1763,17 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
 
   ipcMain.handle("agents:listRunning", async () => {
     try {
-      const items = Array.from(runningAgents.values()).map((r) => ({
-        projectName: r.projectName,
-        name: r.displayName,
-        folderName: r.folderName,
-        path: r.path,
-        startedAt: r.startedAt
-      }));
+      const projects = await listProjectDirs();
+      const projectIds = new Set(projects.map((p) => p.id));
+      const items = Array.from(runningAgents.values())
+        .filter((r) => projectIds.has(r.projectName))
+        .map((r) => ({
+          projectName: r.projectName,
+          name: r.displayName,
+          folderName: r.folderName,
+          path: r.path,
+          startedAt: r.startedAt
+        }));
       return { ok: true as const, items };
     } catch (e) {
       return { ok: false as const, error: safeError(e) };
