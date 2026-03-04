@@ -15,7 +15,7 @@ Summoner Desktop is a chat-based Electron app for interacting with TCP servers. 
 </p>
 
 <p align="center">
-  <a href="https://youtu.be/rOVRLYdC11U" target="_blank" rel="noopener noreferrer">
+  <a href="https://youtu.be/yvD712Uj3vI" target="_blank" rel="noopener noreferrer">
     <img src="assets/img/thumbnail_play_rounded.png" width="560" alt="Watch the Summoner Desktop demo on YouTube">
   </a>
 </p>
