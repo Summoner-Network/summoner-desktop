@@ -8,10 +8,16 @@ Summoner Desktop is a chat-based Electron app for interacting with TCP servers. 
 
 [![Build & Release (mac + linux + windows)](https://github.com/Summoner-Network/summoner-desktop/actions/workflows/build-release.yml/badge.svg)](https://github.com/Summoner-Network/summoner-desktop/actions/workflows/build-release.yml)
 
-## Preview
+## YouTube Demo Video
 
 <p align="center">
-  <img src="assets/img/screenshot_3.png" width="700">  
+  See Summoner Desktop in action in 4 minutes. Click the thumbnail to watch the walkthrough.
+</p>
+
+<p align="center">
+  <a href="https://youtu.be/rOVRLYdC11U" target="_blank" rel="noopener noreferrer">
+    <img src="assets/img/thumbnail_play_rounded.png" width="560" alt="Watch the Summoner Desktop demo on YouTube">
+  </a>
 </p>
 
 ## Getting Started
@@ -106,6 +112,12 @@ This section is designed so you can use the desktop app without running into mis
 
 ## How to use
 
+This is the main chat view for agent management, interaction, and monitoring message flow.
+
+<p align="center">
+  <img src="assets/img/screenshot_rounded.png" width="400">  
+</p>
+
 ### 1) Pick a server
 - Open **Servers** to add or select a TCP server.
 - The default servers are:
@@ -132,6 +144,7 @@ Identities are JSON objects that become the `from` field in outgoing messages.
 
 - Go to **Identities** and create or edit an identity.
 - In chat, choose **Sending as** to set `from`.
+
 
 ## Message format
 

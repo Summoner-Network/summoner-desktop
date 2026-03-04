@@ -3,6 +3,8 @@
 *_palette.png
 *.old
 release/
+venv
+assets/process_image.py
 
 # Logs
 logs
