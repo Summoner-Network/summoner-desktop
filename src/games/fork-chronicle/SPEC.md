@@ -976,3 +976,245 @@ Once the MVP is working:
    (custom agents, event packs, epochs)
 3. Add `events/` and `epochs/` as the community contribution targets
 4. Tag the first working build as `v0.1.0-mvp`
+
+---
+
+## 17. Forward Architecture — v1.1 and v2.0
+
+> **For Claude Code:** Do not implement this section now. Build the interfaces and stubs
+> marked `[STUB]` where indicated so the MVP is ready to upgrade without refactoring.
+> Everything else here is architecture documentation for future phases.
+
+---
+
+### 17.1 Electron Desktop App Integration
+
+Fork runs inside the existing Summoner Desktop Electron app as a dedicated game panel.
+Do not rebuild any UI components that already exist in the app.
+
+**`[STUB]`** Create `src/games/fork-chronicle/electron/bridge.ts`:
+
+```typescript
+// IPC bridge between Fork game engine and Electron main process.
+// In MVP this is a stub. In v1.0 this wires Fork's MapRenderPayload
+// to the existing Summoner map component via Electron IPC.
+
+export interface ForkElectronBridge {
+  // Send updated map state to the existing desktop map component
+  sendMapUpdate(payload: MapRenderPayload): void;
+
+  // Send era card to the existing Scorcerer analytics panel
+  sendEraCard(card: EraCard): void;
+
+  // Send agent decision to the existing agent activity feed
+  sendAgentDecision(decision: AgentDecision): void;
+
+  // Listen for player actions coming from the desktop UI
+  onPlayerAction(handler: (action: PlayerAction) => void): void;
+}
+
+// MVP stub — logs to console, replace with real IPC in v1.0
+export const forkBridge: ForkElectronBridge = {
+  sendMapUpdate: (payload) => console.log('[Fork] Map update:', payload),
+  sendEraCard: (card) => console.log('[Fork] Era card:', card),
+  sendAgentDecision: (decision) => console.log('[Fork] Agent decision:', decision),
+  onPlayerAction: (handler) => console.log('[Fork] Player action handler registered'),
+};
+```
+
+**Integration path for v1.0:**
+1. Claude Code scans existing `src/` for the map component IPC channel name
+2. Replace stub methods with real `ipcRenderer.send()` / `ipcRenderer.on()` calls
+3. Add a "Launch Fork" button to the existing Electron app nav
+4. Fork game panel opens as a new `BrowserWindow` or tab within the existing shell
+
+---
+
+### 17.2 Claude-Powered Agents (v1.1)
+
+In MVP, `agentDeliberate()` uses rule-based weights. In v1.1 it calls the Anthropic
+API so agents reason in natural language and produce richer decisions.
+
+**`[STUB]`** Add this interface to `src/games/fork-chronicle/src/engine/agent.ts`:
+
+```typescript
+// AgentIntelligence defines the deliberation backend.
+// Swap rule-based for Claude-powered without changing any calling code.
+
+export interface AgentIntelligence {
+  deliberate(agent: Agent, state: GameState): Promise<AgentAction>;
+}
+
+// ── MVP: Rule-based (implement this now) ────────────────────────────────────
+export class RuleBasedIntelligence implements AgentIntelligence {
+  async deliberate(agent: Agent, state: GameState): Promise<AgentAction> {
+    // Implement archetype weight logic from Section 3 Phase 3 here
+    throw new Error('Not implemented');
+  }
+}
+
+// ── v1.1: Claude-powered (stub only — do not implement in MVP) ───────────────
+export class ClaudeIntelligence implements AgentIntelligence {
+  private apiKey: string;
+  private model = 'claude-sonnet-4-20250514';
+
+  constructor(apiKey: string) {
+    this.apiKey = apiKey;
+  }
+
+  async deliberate(agent: Agent, state: GameState): Promise<AgentAction> {
+    // v1.1 implementation:
+    // 1. Serialize relevant GameState slice (agent's territories, neighbors,
+    //    active alliances, recent events, interaction memory)
+    // 2. Build prompt from agent archetype + personality + game state
+    // 3. Call Anthropic API with JSON response format
+    // 4. Parse response into AgentAction + rationale
+    // 5. Validate action is legal given current game state
+    throw new Error('ClaudeIntelligence not implemented until v1.1');
+  }
+
+  private buildPrompt(agent: Agent, state: GameState): string {
+    // Prompt template for v1.1 — defines agent voice by archetype
+    const archetypeVoice: Record<AgentArchetype, string> = {
+      conqueror: 'You are an aggressive military strategist who prioritizes territorial expansion above all else.',
+      diplomat: 'You are a careful alliance-builder who values long-term trust and stable coalitions.',
+      economist: 'You are a resource optimizer who expands through trade leverage and economic control.',
+      historian: 'You are an opportunist who studies historical patterns to inject chaos at the right moment.',
+    };
+
+    return `
+You are ${agent.name}, a ${agent.archetype} agent controlling ${agent.homeTerritory}.
+${archetypeVoice[agent.archetype]}
+
+Your personality:
+- Aggression: ${agent.personality.aggression.toFixed(2)}
+- Loyalty: ${agent.personality.loyalty.toFixed(2)}
+- Risk tolerance: ${agent.personality.riskTolerance.toFixed(2)}
+- Expansionism: ${agent.personality.expansionism.toFixed(2)}
+
+Current turn: ${state.currentTurn}, Era: ${state.currentEra}
+Your faction controls: ${state.factions[agent.factionId].territories.join(', ')}
+Your faction reputation: ${state.factions[agent.factionId].reputation}
+Active alliances: ${state.alliances.filter(a => a.factionIds.includes(agent.factionId) && a.status === 'active').map(a => a.id).join(', ') || 'none'}
+
+Recent interaction memory:
+${agent.memory.slice(-5).map(m => `- Turn ${m.turn}: ${m.interactionType} with ${m.targetAgentId} → ${m.outcome}`).join('\n')}
+
+Choose exactly one action. Respond with valid JSON matching this schema:
+{
+  "action": { "type": "...", ...AgentAction fields },
+  "rationale": "1-2 sentences explaining your decision in political/historical language"
+}
+
+Do not use game-mechanics language. Write rationale as a statesman would speak.
+    `.trim();
+  }
+}
+
+// ── Factory — controls which intelligence backend is active ──────────────────
+export function createAgentIntelligence(mode: 'rule-based' | 'claude'): AgentIntelligence {
+  if (mode === 'claude') {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) throw new Error('ANTHROPIC_API_KEY required for Claude-powered agents');
+    return new ClaudeIntelligence(apiKey);
+  }
+  return new RuleBasedIntelligence();
+}
+```
+
+**`[RULE]`** The `agentDeliberate()` function in the game engine must call
+`AgentIntelligence.deliberate()` — never implement deliberation logic inline.
+This keeps the swap from rule-based to Claude-powered a one-line config change.
+
+---
+
+### 17.3 Geographically Distributed Agents (v2.0)
+
+In v2.0, each agent runs as a real Summoner agent on a VPS physically located in
+the country it represents. Agent coordination uses the live SPLT protocol across
+real geographic boundaries.
+
+**Architecture overview:**
+
+```
+┌─────────────────────────────────────────────────────┐
+│  Summoner Desktop (player's machine)                │
+│  Fork game engine · Map renderer · Scorcerer        │
+│  Coordinates turns, collects actions, renders state │
+└────────────────────┬────────────────────────────────┘
+                     │ SPLT protocol
+         ┌───────────┼───────────┐
+         │           │           │
+┌────────▼──┐  ┌─────▼─────┐  ┌─▼──────────┐
+│ VPS: FRA  │  │ VPS: RUS  │  │ VPS: CHN   │
+│ Paris     │  │ Moscow    │  │ Shanghai   │
+│ France    │  │ Russia    │  │ China      │
+│ agent     │  │ agent     │  │ agent      │
+└───────────┘  └───────────┘  └────────────┘
+```
+
+**What each country VPS runs:**
+- Summoner relay server
+- One agent process (the country's deliberation logic or Claude API call)
+- Registers with a self-issued DID anchored to its geographic region
+- Listens for turn instructions from the game engine coordination space
+- Responds with `AgentAction` + `rationale` via SPLT structured message
+
+**Community hosting model:**
+Developers around the world volunteer to host an agent in their country.
+This is the open source contribution model for v2.0:
+
+```
+CONTRIBUTING.md will include:
+"Run the [Country] agent on your server"
+- Minimum specs: 1 vCPU, 512MB RAM, any Linux VPS
+- Setup: clone repo, run `npm run agent --country=IND --relay=your-server-ip`
+- Agent registers itself and joins the next available game automatically
+```
+
+**`[STUB]`** Add this to `src/games/fork-chronicle/src/engine/agent.ts`:
+
+```typescript
+// v2.0: RemoteAgentIntelligence delegates deliberation to a geographically
+// distributed Summoner agent via SPLT. Stub only — do not implement in MVP.
+
+export class RemoteAgentIntelligence implements AgentIntelligence {
+  private agentDID: string;      // e.g. "did:summoner:fra-paris-01"
+  private relayEndpoint: string; // e.g. "https://relay.paris.summoner.org"
+
+  constructor(agentDID: string, relayEndpoint: string) {
+    this.agentDID = agentDID;
+    this.relayEndpoint = relayEndpoint;
+  }
+
+  async deliberate(agent: Agent, state: GameState): Promise<AgentAction> {
+    // v2.0 implementation:
+    // 1. Serialize GameState slice
+    // 2. Send to remote agent via SPLT structured message
+    // 3. Await AgentAction response (with timeout + fallback to rule-based)
+    // 4. Verify response signature against agent DID
+    // 5. Return verified AgentAction
+    throw new Error('RemoteAgentIntelligence not implemented until v2.0');
+  }
+}
+```
+
+---
+
+### 17.4 Build Phases Summary
+
+| Phase | Agent Intelligence | App Integration | Infrastructure |
+|-------|--------------------|-----------------|----------------|
+| MVP (now) | Rule-based weights | Console/stub | Local only |
+| v1.0 | Rule-based weights | Electron IPC live | Local only |
+| v1.1 | Claude API | Electron IPC live | Local only |
+| v2.0 | Claude API + SPLT | Electron IPC live | Global VPS network |
+
+**One-line upgrade path from MVP → v1.1:**
+```typescript
+// Change this one line in game config:
+const intelligence = createAgentIntelligence('rule-based'); // MVP
+const intelligence = createAgentIntelligence('claude');     // v1.1
+```
+
+Everything else stays the same. The interface contract in Section 17.2 guarantees this.
