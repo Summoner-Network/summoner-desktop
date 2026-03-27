@@ -1,0 +1,244 @@
+[
+  {
+    "id": "nile_famine",
+    "title": "Famine in the Nile Delta",
+    "description": "A devastating drought strikes Northeast Africa, crippling food production.",
+    "era": null,
+    "source": "historical",
+    "effects": [
+      {
+        "type": "resource_delta",
+        "targetType": "territory",
+        "targetId": "EGY",
+        "magnitude": -20,
+        "description": "Egypt loses 20 food"
+      }
+    ],
+    "rippleEffects": [],
+    "probability": 0.15
+  },
+  {
+    "id": "siberian_gold",
+    "title": "Siberian Gold Rush",
+    "description": "Vast gold deposits discovered in the Russian Far East spark an industrial boom.",
+    "era": null,
+    "source": "historical",
+    "effects": [
+      {
+        "type": "resource_delta",
+        "targetType": "territory",
+        "targetId": "RUS",
+        "magnitude": 30,
+        "description": "Russia gains 30 industry"
+      }
+    ],
+    "rippleEffects": [],
+    "probability": 0.12
+  },
+  {
+    "id": "balkan_uprising",
+    "title": "Balkan Political Unrest",
+    "description": "Revolutionary movements sweep through the Balkans, destabilizing the region.",
+    "era": null,
+    "source": "historical",
+    "effects": [
+      {
+        "type": "strength_delta",
+        "targetType": "territory",
+        "targetId": "POL",
+        "magnitude": -15,
+        "description": "Poland loses 15 strength"
+      }
+    ],
+    "rippleEffects": [],
+    "probability": 0.18
+  },
+  {
+    "id": "silk_road_revival",
+    "title": "Silk Road Trade Revival",
+    "description": "Ancient trade routes reopen, bringing prosperity to Central Asia.",
+    "era": null,
+    "source": "counterfactual",
+    "effects": [
+      {
+        "type": "resource_delta",
+        "targetType": "territory",
+        "targetId": "CHN",
+        "magnitude": 15,
+        "description": "China gains 15 tech"
+      }
+    ],
+    "rippleEffects": [],
+    "probability": 0.10
+  },
+  {
+    "id": "volcanic_eruption",
+    "title": "Pacific Volcanic Eruption",
+    "description": "A massive volcanic eruption disrupts agriculture and trade across the Pacific.",
+    "era": null,
+    "source": "historical",
+    "effects": [
+      {
+        "type": "strength_delta",
+        "targetType": "territory",
+        "targetId": "JPN",
+        "magnitude": -25,
+        "description": "Japan loses 25 strength"
+      }
+    ],
+    "rippleEffects": [
+      {
+        "type": "resource_delta",
+        "targetType": "territory",
+        "targetId": "CHN",
+        "magnitude": -10,
+        "description": "China loses 10 food from ash fallout"
+      }
+    ],
+    "probability": 0.08
+  },
+  {
+    "id": "early_industrialization_asia",
+    "title": "Early Asian Industrialization",
+    "description": "The Industrial Revolution arrives decades early in Asian territories.",
+    "era": null,
+    "source": "counterfactual",
+    "effects": [
+      {
+        "type": "tech_boost",
+        "targetType": "global",
+        "magnitude": 25,
+        "description": "All Asian territories gain 25 tech"
+      }
+    ],
+    "rippleEffects": [],
+    "probability": 0.05
+  },
+  {
+    "id": "european_pandemic",
+    "title": "European Pandemic",
+    "description": "A deadly disease sweeps across Europe, weakening all nations.",
+    "era": null,
+    "source": "historical",
+    "effects": [
+      {
+        "type": "strength_delta",
+        "targetType": "global",
+        "magnitude": -20,
+        "description": "All European territories lose 20 strength"
+      }
+    ],
+    "rippleEffects": [],
+    "probability": 0.07
+  },
+  {
+    "id": "african_union_early",
+    "title": "Early African Political Union",
+    "description": "African nations unite politically centuries ahead of history.",
+    "era": null,
+    "source": "counterfactual",
+    "effects": [
+      {
+        "type": "reputation_delta",
+        "targetType": "global",
+        "magnitude": 10,
+        "description": "All African territories gain 10 reputation modifier"
+      }
+    ],
+    "rippleEffects": [],
+    "probability": 0.06
+  },
+  {
+    "id": "american_isolation",
+    "title": "American Isolationism",
+    "description": "The Americas withdraw from world affairs, strengthening internal defenses.",
+    "era": null,
+    "source": "historical",
+    "effects": [
+      {
+        "type": "strength_delta",
+        "targetType": "global",
+        "magnitude": 5,
+        "description": "American territories gain 5 strength"
+      }
+    ],
+    "rippleEffects": [],
+    "probability": 0.12
+  },
+  {
+    "id": "middle_east_oil_boom",
+    "title": "Middle Eastern Oil Discovery",
+    "description": "Vast oil reserves transform the Middle East into an industrial powerhouse.",
+    "era": null,
+    "source": "historical",
+    "effects": [
+      {
+        "type": "resource_delta",
+        "targetType": "global",
+        "magnitude": 40,
+        "description": "All Middle Eastern territories gain 40 industry"
+      }
+    ],
+    "rippleEffects": [],
+    "probability": 0.10
+  },
+  {
+    "id": "byzantine_survives",
+    "title": "Byzantine Empire Endures",
+    "description": "The Byzantine Empire never fell, maintaining control of the Eastern Mediterranean.",
+    "era": null,
+    "source": "counterfactual",
+    "effects": [
+      {
+        "type": "control_transfer",
+        "targetType": "territory",
+        "targetId": "TUR",
+        "magnitude": 0,
+        "description": "Turkey becomes neutral Byzantine zone"
+      }
+    ],
+    "rippleEffects": [],
+    "probability": 0.03
+  },
+  {
+    "id": "mongol_unity",
+    "title": "Mongol Empire Holds",
+    "description": "The Mongol Empire never fragmented, creating a unified Central Asian superpower.",
+    "era": null,
+    "source": "counterfactual",
+    "effects": [
+      {
+        "type": "strength_delta",
+        "targetType": "territory",
+        "targetId": "RUS",
+        "magnitude": 30,
+        "description": "Russia gains 30 strength from Mongol unity"
+      }
+    ],
+    "rippleEffects": [],
+    "probability": 0.04
+  },
+  {
+    "id": "black_death_averted",
+    "title": "Black Death Averted",
+    "description": "The plague never reaches Europe, allowing uninterrupted population growth.",
+    "era": null,
+    "source": "counterfactual",
+    "effects": [
+      {
+        "type": "resource_delta",
+        "targetType": "global",
+        "magnitude": 20,
+        "description": "All European territories gain 20 food"
+      },
+      {
+        "type": "tech_boost",
+        "targetType": "global",
+        "magnitude": 15,
+        "description": "Europe gains 15 tech permanently"
+      }
+    ],
+    "rippleEffects": [],
+    "probability": 0.02
+  }
+]

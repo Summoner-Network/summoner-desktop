@@ -14,7 +14,7 @@
 - Built on **Summoner Protocol (SPLT)** for agent coordination and messaging
 - Map rendered via Summoner desktop app map component
 - Agent communication uses SPLT structured negotiation flows
-- Analytics via Scorcerer (audit log, decision traces)
+- Analytics via Summoner Analytics (audit log, decision traces)
 - Language: TypeScript/Python (match existing Summoner SDK)
 
 ### MVP Scope
@@ -729,9 +729,9 @@ interface GameConfig {
 
 ---
 
-## 11. Scorcerer Analytics Integration
+## 11. Summoner Analytics Integration
 
-Every `AgentDecision` must be written to the Scorcerer audit log with:
+Every `AgentDecision` must be written to the Summoner Analytics audit log with:
 - `agentId`, `factionId`, `turn`, `era`
 - `action` (full serialized `AgentAction`)
 - `rationale` (plain English string)
@@ -832,7 +832,7 @@ Implement in this order to reach a playable state as fast as possible:
 10. **Patron backing** (Section 5.3)
 11. **Personality drift** (Section 6)
 12. **Era summary + narrative engine** (Section 3, Era Summary)
-13. **Scorcerer integration + Fork Chronicle export** (Section 11)
+13. **Summoner Analytics integration + Fork Chronicle export** (Section 11)
 14. **Map rendering contract** (Section 9)
 15. **Player scoring + Director titles** (Section 12)
 16. **Extensibility interfaces** — formalize and document (Section 10)
@@ -869,7 +869,7 @@ fork-chronicle/
 │   ├── engine/               ← Core game loop (Sections 2–6)
 │   ├── player/               ← Human interaction systems (Section 5)
 │   ├── narrative/            ← Narrative + era summary (Section 8)
-│   ├── analytics/            ← Scorcerer integration (Section 11)
+│   ├── analytics/            ← Summoner Analytics integration (Section 11)
 │   └── extensions/           ← Extensibility interfaces (Section 10)
 ├── data/
 │   ├── epochs/               ← Epoch JSON files
@@ -1003,7 +1003,7 @@ export interface ForkElectronBridge {
   // Send updated map state to the existing desktop map component
   sendMapUpdate(payload: MapRenderPayload): void;
 
-  // Send era card to the existing Scorcerer analytics panel
+  // Send era card to the existing Summoner Analytics panel
   sendEraCard(card: EraCard): void;
 
   // Send agent decision to the existing agent activity feed
@@ -1139,7 +1139,7 @@ real geographic boundaries.
 ```
 ┌─────────────────────────────────────────────────────┐
 │  Summoner Desktop (player's machine)                │
-│  Fork game engine · Map renderer · Scorcerer        │
+│  Fork game engine · Map renderer · Summoner Analytics │
 │  Coordinates turns, collects actions, renders state │
 └────────────────────┬────────────────────────────────┘
                      │ SPLT protocol

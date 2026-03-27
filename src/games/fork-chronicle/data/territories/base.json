@@ -1,0 +1,222 @@
+[
+  {
+    "id": "USA",
+    "name": "United States",
+    "continent": "north_america",
+    "adjacencies": ["CAN", "MEX"],
+    "resources": { "food": 70, "industry": 80, "tech": 85 },
+    "strength": 75,
+    "controlledBy": null,
+    "contestedBy": null,
+    "historicalModifiers": []
+  },
+  {
+    "id": "CAN",
+    "name": "Canada",
+    "continent": "north_america",
+    "adjacencies": ["USA"],
+    "resources": { "food": 60, "industry": 55, "tech": 70 },
+    "strength": 45,
+    "controlledBy": null,
+    "contestedBy": null,
+    "historicalModifiers": []
+  },
+  {
+    "id": "MEX",
+    "name": "Mexico",
+    "continent": "north_america",
+    "adjacencies": ["USA"],
+    "resources": { "food": 55, "industry": 45, "tech": 40 },
+    "strength": 35,
+    "controlledBy": null,
+    "contestedBy": null,
+    "historicalModifiers": []
+  },
+  {
+    "id": "GBR",
+    "name": "United Kingdom",
+    "continent": "europe",
+    "adjacencies": ["FRA", "DEU"],
+    "resources": { "food": 50, "industry": 75, "tech": 80 },
+    "strength": 65,
+    "controlledBy": null,
+    "contestedBy": null,
+    "historicalModifiers": []
+  },
+  {
+    "id": "FRA",
+    "name": "France",
+    "continent": "europe",
+    "adjacencies": ["GBR", "DEU", "ESP", "ITA"],
+    "resources": { "food": 65, "industry": 70, "tech": 75 },
+    "strength": 60,
+    "controlledBy": null,
+    "contestedBy": null,
+    "historicalModifiers": []
+  },
+  {
+    "id": "DEU",
+    "name": "Germany",
+    "continent": "europe",
+    "adjacencies": ["GBR", "FRA", "POL", "RUS"],
+    "resources": { "food": 60, "industry": 85, "tech": 80 },
+    "strength": 70,
+    "controlledBy": null,
+    "contestedBy": null,
+    "historicalModifiers": []
+  },
+  {
+    "id": "RUS",
+    "name": "Russia",
+    "continent": "europe",
+    "adjacencies": ["DEU", "POL", "CHN"],
+    "resources": { "food": 55, "industry": 60, "tech": 55 },
+    "strength": 80,
+    "controlledBy": null,
+    "contestedBy": null,
+    "historicalModifiers": []
+  },
+  {
+    "id": "POL",
+    "name": "Poland",
+    "continent": "europe",
+    "adjacencies": ["DEU", "RUS"],
+    "resources": { "food": 50, "industry": 45, "tech": 50 },
+    "strength": 40,
+    "controlledBy": null,
+    "contestedBy": null,
+    "historicalModifiers": []
+  },
+  {
+    "id": "ESP",
+    "name": "Spain",
+    "continent": "europe",
+    "adjacencies": ["FRA"],
+    "resources": { "food": 55, "industry": 50, "tech": 55 },
+    "strength": 45,
+    "controlledBy": null,
+    "contestedBy": null,
+    "historicalModifiers": []
+  },
+  {
+    "id": "ITA",
+    "name": "Italy",
+    "continent": "europe",
+    "adjacencies": ["FRA"],
+    "resources": { "food": 60, "industry": 65, "tech": 60 },
+    "strength": 50,
+    "controlledBy": null,
+    "contestedBy": null,
+    "historicalModifiers": []
+  },
+  {
+    "id": "CHN",
+    "name": "China",
+    "continent": "asia",
+    "adjacencies": ["RUS", "JPN", "IND"],
+    "resources": { "food": 70, "industry": 55, "tech": 50 },
+    "strength": 75,
+    "controlledBy": null,
+    "contestedBy": null,
+    "historicalModifiers": []
+  },
+  {
+    "id": "JPN",
+    "name": "Japan",
+    "continent": "asia",
+    "adjacencies": ["CHN"],
+    "resources": { "food": 45, "industry": 75, "tech": 80 },
+    "strength": 65,
+    "controlledBy": null,
+    "contestedBy": null,
+    "historicalModifiers": []
+  },
+  {
+    "id": "IND",
+    "name": "India",
+    "continent": "asia",
+    "adjacencies": ["CHN"],
+    "resources": { "food": 75, "industry": 45, "tech": 50 },
+    "strength": 60,
+    "controlledBy": null,
+    "contestedBy": null,
+    "historicalModifiers": []
+  },
+  {
+    "id": "EGY",
+    "name": "Egypt",
+    "continent": "africa",
+    "adjacencies": ["SAU"],
+    "resources": { "food": 50, "industry": 35, "tech": 40 },
+    "strength": 40,
+    "controlledBy": null,
+    "contestedBy": null,
+    "historicalModifiers": []
+  },
+  {
+    "id": "ZAF",
+    "name": "South Africa",
+    "continent": "africa",
+    "adjacencies": [],
+    "resources": { "food": 60, "industry": 55, "tech": 50 },
+    "strength": 45,
+    "controlledBy": null,
+    "contestedBy": null,
+    "historicalModifiers": []
+  },
+  {
+    "id": "SAU",
+    "name": "Saudi Arabia",
+    "continent": "middle_east",
+    "adjacencies": ["EGY", "TUR"],
+    "resources": { "food": 30, "industry": 70, "tech": 45 },
+    "strength": 50,
+    "controlledBy": null,
+    "contestedBy": null,
+    "historicalModifiers": []
+  },
+  {
+    "id": "TUR",
+    "name": "Turkey",
+    "continent": "middle_east",
+    "adjacencies": ["SAU"],
+    "resources": { "food": 55, "industry": 50, "tech": 50 },
+    "strength": 55,
+    "controlledBy": null,
+    "contestedBy": null,
+    "historicalModifiers": []
+  },
+  {
+    "id": "BRA",
+    "name": "Brazil",
+    "continent": "south_america",
+    "adjacencies": ["ARG"],
+    "resources": { "food": 75, "industry": 50, "tech": 45 },
+    "strength": 50,
+    "controlledBy": null,
+    "contestedBy": null,
+    "historicalModifiers": []
+  },
+  {
+    "id": "ARG",
+    "name": "Argentina",
+    "continent": "south_america",
+    "adjacencies": ["BRA"],
+    "resources": { "food": 70, "industry": 45, "tech": 50 },
+    "strength": 45,
+    "controlledBy": null,
+    "contestedBy": null,
+    "historicalModifiers": []
+  },
+  {
+    "id": "AUS",
+    "name": "Australia",
+    "continent": "oceania",
+    "adjacencies": [],
+    "resources": { "food": 65, "industry": 60, "tech": 70 },
+    "strength": 50,
+    "controlledBy": null,
+    "contestedBy": null,
+    "historicalModifiers": []
+  }
+]
