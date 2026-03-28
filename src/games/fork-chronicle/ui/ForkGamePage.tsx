@@ -31,6 +31,10 @@ export interface ForkGamePageProps {
   onPauseGame: () => void;
   onResumeGame: () => void;
   onSetTurnSpeed: (ms: number) => void;
+  directiveCountdown: number;
+  tickerMessages: string[];
+  activeEventBanner: { title: string; description: string } | null;
+  onSubmitDirective: (directive: string) => void;
   onPlaceBet: (bet: Omit<import("../src/types/player").BetAction, "type" | "placedOnTurn" | "odds">) => void;
   onPlayEventCard: () => void;
   onPatronBacking: (action: Omit<PatronAction, "type">) => void;
@@ -57,6 +61,10 @@ export default function ForkGamePage(props: ForkGamePageProps) {
     onResumeGame,
     onSetTurnSpeed,
     onPlayEventCard,
+    directiveCountdown,
+    tickerMessages,
+    activeEventBanner,
+    onSubmitDirective,
   } = props;
 
   const [selectedEpochId, setSelectedEpochId] = useState<string | null>(null);
@@ -455,14 +463,51 @@ export default function ForkGamePage(props: ForkGamePageProps) {
             </div>
 
             {/* Commander Directive Input (New Era Only) */}
-            {selectedFactionId && gameState.currentTurn % 5 === 1 && (
+            {selectedFactionId && (isPaused && directiveCountdown > 0 || gameState.currentTurn % 5 === 1) && (
               <div style={{ marginBottom: 16, padding: 12, background: 'var(--bg-secondary)', borderRadius: 6, border: '1px solid var(--border)' }}>
-                <h4 style={{ fontSize: 12, marginBottom: 8, color: 'var(--text-primary)' }}>
-                  ★ Commander Directive
-                </h4>
-                <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 8 }}>
-                  New era begins! Issue strategic guidance for your faction.
-                </p>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 8,
+                }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+                    Era {gameState.currentEra} Directive
+                  </div>
+                  {directiveCountdown > 0 && (
+                    <div style={{
+                      fontSize: 12,
+                      color: directiveCountdown <= 5
+                        ? '#E24B4A'
+                        : 'var(--text-secondary)',
+                      fontWeight: 600,
+                    }}>
+                      Resuming in {directiveCountdown}s
+                    </div>
+                  )}
+                </div>
+
+                {/* Countdown progress bar */}
+                {directiveCountdown > 0 && (
+                  <div style={{
+                    height: 2,
+                    background: 'var(--border)',
+                    borderRadius: 1,
+                    marginBottom: 10,
+                    overflow: 'hidden',
+                  }}>
+                    <div style={{
+                      height: '100%',
+                      width: `${(directiveCountdown / 15) * 100}%`,
+                      background: directiveCountdown <= 5
+                        ? '#E24B4A'
+                        : 'var(--text-primary)',
+                      borderRadius: 1,
+                      transition: 'width 0.9s linear',
+                    }} />
+                  </div>
+                )}
+
                 <textarea
                   value={directive}
                   onChange={(e) => setDirective(e.target.value)}
@@ -482,8 +527,7 @@ export default function ForkGamePage(props: ForkGamePageProps) {
                 />
                 <button
                   onClick={() => {
-                    console.log('[Commander] Directive issued:', directive);
-                    // TODO v1.1: Pass directive to ClaudeIntelligence prompt
+                    onSubmitDirective(directive);
                     setDirective('');
                   }}
                   disabled={!directive.trim()}
@@ -802,6 +846,65 @@ export default function ForkGamePage(props: ForkGamePageProps) {
               ) : (
                 'First to 70% for 2 eras wins'
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Action Ticker Strip */}
+        {gameState && (
+          <div style={{
+            padding: '6px 16px',
+            borderBottom: '1px solid var(--border-subtle)',
+            background: 'var(--bg-secondary)',
+            overflow: 'hidden',
+            whiteSpace: 'nowrap',
+            position: 'relative',
+          }}>
+            <div style={{
+              display: 'inline-flex',
+              gap: 32,
+              animation: tickerMessages.length > 0
+                ? 'tickerScroll 30s linear infinite'
+                : 'none',
+              animationPlayState: isPaused ? 'paused' : 'running',
+              fontSize: 12,
+              color: 'var(--text-secondary)',
+            }}>
+              {tickerMessages.length > 0
+                ? tickerMessages.map((msg, i) => (
+                    <span key={i} style={{ flexShrink: 0 }}>{msg}</span>
+                  ))
+                : <span>Awaiting first actions...</span>
+              }
+              {/* Duplicate for seamless loop */}
+              {tickerMessages.map((msg, i) => (
+                <span key={`dup-${i}`} style={{ flexShrink: 0 }}>{msg}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Event Banner */}
+        {activeEventBanner && (
+          <div style={{
+            position: 'absolute',
+            top: gameState ? 80 : 10,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 50,
+            background: 'rgba(0, 0, 0, 0.9)',
+            border: '1px solid rgba(255, 215, 0, 0.4)',
+            borderRadius: 8,
+            padding: '12px 24px',
+            maxWidth: 400,
+            textAlign: 'center',
+            animation: 'fadeIn 0.3s ease',
+          }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#fbbf24', marginBottom: 4 }}>
+              🎴 {activeEventBanner.title}
+            </div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.4 }}>
+              {activeEventBanner.description.slice(0, 150)}
             </div>
           </div>
         )}

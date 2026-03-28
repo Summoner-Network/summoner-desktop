@@ -5,6 +5,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { initializeGame } from "../src/engine/setup";
 import { executeTurn } from "../src/engine/turn-loop";
+import { playEventCard as enginePlayEventCard } from "../src/engine/events";
 import type { GameState, GameConfig } from "../src/types/game-state";
 import type { PlayerState, BetAction, EventInjectionAction, PatronAction } from "../src/types/player";
 import { fetchWikipediaEventsForToday, wikiEventToGameEvent } from "../src/utils/wikipedia-events";
@@ -32,6 +33,10 @@ export interface UseForkGameReturn {
   pauseGame: () => void;
   resumeGame: () => void;
   setTurnSpeed: (ms: number) => void;
+  directiveCountdown: number;
+  tickerMessages: string[];
+  submitDirective: (directive: string) => void;
+  activeEventBanner: { title: string; description: string } | null;
   placeBet: (bet: Omit<BetAction, "type" | "placedOnTurn" | "odds">) => void;
   playEventCard: () => void;
   patronBacking: (action: Omit<PatronAction, "type">) => void;
@@ -45,7 +50,11 @@ export function useForkGame(): UseForkGameReturn {
   const [gameEnded, setGameEnded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [liveLog, setLiveLog] = useState<LiveLogEntry[]>([]);
+  const [directiveCountdown, setDirectiveCountdown] = useState(0);
+  const [tickerMessages, setTickerMessages] = useState<string[]>([]);
   const turnTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const directiveTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastEraRef = useRef(0);
 
   // Draw a Wikipedia event card for the player
   const drawPlayerEventCard = useCallback(async (state: GameState): Promise<GameState> => {
@@ -54,7 +63,9 @@ export function useForkGame(): UseForkGameReturn {
     if (!playerState) return state;
 
     try {
+      console.log('[Fork] Fetching Wikipedia events for today...');
       const wikiEvents = await fetchWikipediaEventsForToday();
+      console.log('[Fork] Wikipedia returned', wikiEvents?.length ?? 0, 'events');
       if (wikiEvents && wikiEvents.length > 0) {
         const randomIndex = Math.floor(Math.random() * Math.min(wikiEvents.length, 20));
         const picked = wikiEvents[randomIndex];
@@ -74,6 +85,7 @@ export function useForkGame(): UseForkGameReturn {
     }
 
     // Fallback to deck
+    console.log('[Fork] Using fallback deck card');
     const deck = state.eventDeck;
     if (deck.length > 0) {
       return {
@@ -123,10 +135,15 @@ export function useForkGame(): UseForkGameReturn {
       clearTimeout(turnTimerRef.current);
       turnTimerRef.current = null;
     }
+    if (directiveTimerRef.current) {
+      clearInterval(directiveTimerRef.current);
+      directiveTimerRef.current = null;
+    }
     // Reset all refs
     isRunningRef.current = false;
     isPausedRef.current = false;
     gameStateRef.current = null;
+    lastEraRef.current = 0;
     // Reset all state
     setGameState(null);
     setIsRunning(false);
@@ -134,6 +151,9 @@ export function useForkGame(): UseForkGameReturn {
     setGameEnded(false);
     setLiveLog([]);
     setError(null);
+    setDirectiveCountdown(0);
+    setTickerMessages([]);
+    setActiveEventBanner(null);
   }, []);
 
   const pauseGame = useCallback(() => {
@@ -145,6 +165,17 @@ export function useForkGame(): UseForkGameReturn {
   }, []);
 
   const resumeGame = useCallback(() => {
+    setIsPaused(false);
+  }, []);
+
+  const submitDirective = useCallback((directive: string) => {
+    console.log('[Commander] Directive issued:', directive);
+    // Clear countdown timer and resume
+    if (directiveTimerRef.current) {
+      clearInterval(directiveTimerRef.current);
+      directiveTimerRef.current = null;
+    }
+    setDirectiveCountdown(0);
     setIsPaused(false);
   }, []);
 
@@ -186,6 +217,56 @@ export function useForkGame(): UseForkGameReturn {
 
       gameStateRef.current = next;
       setGameState(next);
+
+      // Detect new era — auto-pause for directive input
+      if (next.currentEra > lastEraRef.current && lastEraRef.current > 0) {
+        isPausedRef.current = true;
+        setIsPaused(true);
+        setDirectiveCountdown(15);
+        if (directiveTimerRef.current) clearInterval(directiveTimerRef.current);
+        directiveTimerRef.current = setInterval(() => {
+          setDirectiveCountdown(prev => {
+            if (prev <= 1) {
+              if (directiveTimerRef.current) clearInterval(directiveTimerRef.current);
+              directiveTimerRef.current = null;
+              isPausedRef.current = false;
+              setIsPaused(false);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      }
+      lastEraRef.current = next.currentEra;
+
+      // Extract ticker messages from combat/conquest/alliance events
+      if (next.history.length > 0) {
+        const latestRecord = next.history[next.history.length - 1];
+        const combatEvents = latestRecord.events
+          .filter(msg =>
+            msg.includes('conquered') ||
+            msg.includes('defended') ||
+            msg.includes('formed an alliance') ||
+            msg.includes('Event:')
+          )
+          .map(msg => {
+            let clean = msg;
+            Object.entries(next.factions).forEach(([id, f]) => {
+              clean = clean.replaceAll(id, f.name);
+            });
+            clean = clean
+              .replace(/diplomat \d+/gi, '')
+              .replace(/conqueror \d+/gi, '')
+              .replace(/economist \d+/gi, '')
+              .replace(/historian \d+/gi, '')
+              .trim();
+            return clean;
+          });
+
+        if (combatEvents.length > 0) {
+          setTickerMessages(prev => [...combatEvents, ...prev].slice(0, 20));
+        }
+      }
 
       // Extract new log entries from the latest turn record
       if (next.history.length > 0) {
@@ -325,51 +406,48 @@ export function useForkGame(): UseForkGameReturn {
     [gameState]
   );
 
+  const [activeEventBanner, setActiveEventBanner] = useState<{ title: string; description: string } | null>(null);
+
   const playEventCard = useCallback(() => {
-    setGameState((prev) => {
-      if (!prev) return prev;
+    const current = gameStateRef.current;
+    if (!current) return;
 
-      // Assume single player with id "player_1"
-      const playerId = "player_1";
-      const playerState = prev.playerStates[playerId];
-      if (!playerState || !playerState.currentDrawnCard) return prev;
+    const playerId = "player_1";
+    const playerState = current.playerStates[playerId];
+    if (!playerState?.currentDrawnCard) return;
 
-      const event = playerState.currentDrawnCard;
-      const cost = event.tier * 20; // Tier 1=20, Tier 2=40, Tier 3=60
+    const card = playerState.currentDrawnCard;
 
-      // Deduct cost and inject event
-      const action: EventInjectionAction = {
-        type: "event_injection",
-        playerId,
-        eventId: event.id,
-        injectedOnTurn: prev.currentTurn,
-        cost,
-      };
+    // Use the engine's playEventCard which handles:
+    // IP deduction, effect application, ripple queuing, discard, analytics
+    const result = enginePlayEventCard(playerId, current);
 
-      const updatedPlayerState: PlayerState = {
-        ...playerState,
-        influencePoints: playerState.influencePoints - cost,
-        currentDrawnCard: null,
-        actionsThisTurn: [...playerState.actionsThisTurn, action],
-      };
+    if (!result.success) {
+      setError(result.error ?? 'Failed to play event card');
+      return;
+    }
 
-      // Add event to active events
-      return {
-        ...prev,
-        activeEvents: [
-          ...prev.activeEvents,
-          {
-            event,
-            activatedOnTurn: prev.currentTurn,
-            expiresOnTurn: null, // Events don't expire in this implementation
-          },
-        ],
-        playerStates: {
-          ...prev.playerStates,
-          [playerId]: updatedPlayerState,
-        },
-      };
-    });
+    console.log('[Fork] Played event card:', card.title,
+      'Effects:', card.effects.length,
+      'Results:', result.results);
+
+    // Engine mutates state directly, so spread to trigger React update
+    const newState = { ...current };
+    gameStateRef.current = newState;
+    setGameState(newState);
+
+    // Add to live log
+    setLiveLog(prev => [{
+      turn: current.currentTurn,
+      era: current.currentEra,
+      type: 'event' as const,
+      emoji: '🎴',
+      message: `You played: ${card.title} (Tier ${card.tier}, -${card.ipCost} IP)`,
+    }, ...prev]);
+
+    // Show event banner for 4 seconds
+    setActiveEventBanner({ title: card.title, description: card.description });
+    setTimeout(() => setActiveEventBanner(null), 4000);
   }, []);
 
   const patronBacking = useCallback(
@@ -433,6 +511,10 @@ export function useForkGame(): UseForkGameReturn {
     pauseGame,
     resumeGame,
     setTurnSpeed,
+    directiveCountdown,
+    tickerMessages,
+    submitDirective,
+    activeEventBanner,
     placeBet,
     playEventCard,
     patronBacking,

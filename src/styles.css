@@ -2046,6 +2046,11 @@ button:disabled {
   100% { transform: scale(1); }
 }
 
+@keyframes tickerScroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
 .game-over-result {
   font-size: 64px;
   font-weight: 900;

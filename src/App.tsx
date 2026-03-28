@@ -917,6 +917,10 @@ export default function App() {
                 onPauseGame={forkGame.pauseGame}
                 onResumeGame={forkGame.resumeGame}
                 onSetTurnSpeed={forkGame.setTurnSpeed}
+                directiveCountdown={forkGame.directiveCountdown}
+                tickerMessages={forkGame.tickerMessages}
+                activeEventBanner={forkGame.activeEventBanner}
+                onSubmitDirective={forkGame.submitDirective}
                 onPlaceBet={forkGame.placeBet}
                 onPlayEventCard={forkGame.playEventCard}
                 onPatronBacking={forkGame.patronBacking}
