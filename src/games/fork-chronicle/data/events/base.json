@@ -2,7 +2,8 @@
   {
     "id": "nile_famine",
     "title": "Famine in the Nile Delta",
-    "description": "A devastating drought strikes Northeast Africa, crippling food production.",
+    "description": "A catastrophic drought strikes the fertile Nile valley, devastating Egyptian agriculture and threatening the stability of the entire region.",
+    "tier": 1,
     "era": null,
     "source": "historical",
     "effects": [
@@ -11,16 +12,25 @@
         "targetType": "territory",
         "targetId": "EGY",
         "magnitude": -20,
-        "description": "Egypt loses 20 food"
+        "description": "Egypt food -20"
       }
     ],
-    "rippleEffects": [],
+    "rippleEffects": [
+      {
+        "type": "strength_delta",
+        "targetType": "territory",
+        "targetId": "EGY",
+        "magnitude": -10,
+        "description": "Egypt strength -10 (fires next era)"
+      }
+    ],
     "probability": 0.15
   },
   {
     "id": "siberian_gold",
-    "title": "Siberian Gold Rush",
-    "description": "Vast gold deposits discovered in the Russian Far East spark an industrial boom.",
+    "title": "Gold Discovered in Siberia",
+    "description": "Prospectors strike gold in the Siberian interior, drawing a wave of investment eastward and transforming Russia's Far East.",
+    "tier": 1,
     "era": null,
     "source": "historical",
     "effects": [
@@ -29,16 +39,25 @@
         "targetType": "territory",
         "targetId": "RUS",
         "magnitude": 30,
-        "description": "Russia gains 30 industry"
+        "description": "Russia industry +30"
       }
     ],
-    "rippleEffects": [],
+    "rippleEffects": [
+      {
+        "type": "resource_delta",
+        "targetType": "territory",
+        "targetId": "RUS",
+        "magnitude": 15,
+        "description": "Russia tech +15 (fires next era)"
+      }
+    ],
     "probability": 0.12
   },
   {
     "id": "balkan_uprising",
-    "title": "Balkan Political Unrest",
-    "description": "Revolutionary movements sweep through the Balkans, destabilizing the region.",
+    "title": "Uprising in the Balkans",
+    "description": "Nationalist movements ignite across the Balkan interior, destabilizing the region's fragile political order and threatening wider European stability.",
+    "tier": 1,
     "era": null,
     "source": "historical",
     "effects": [
@@ -47,7 +66,14 @@
         "targetType": "territory",
         "targetId": "POL",
         "magnitude": -15,
-        "description": "Poland loses 15 strength"
+        "description": "Poland strength -15"
+      },
+      {
+        "type": "strength_delta",
+        "targetType": "territory",
+        "targetId": "ITA",
+        "magnitude": -10,
+        "description": "Italy strength -10"
       }
     ],
     "rippleEffects": [],
@@ -55,187 +81,593 @@
   },
   {
     "id": "silk_road_revival",
-    "title": "Silk Road Trade Revival",
-    "description": "Ancient trade routes reopen, bringing prosperity to Central Asia.",
+    "title": "The Silk Road Reopens",
+    "description": "Ancient trade routes through Central Asia are restored, revitalizing commerce from Persia to China and bringing prosperity to the steppe.",
+    "tier": 1,
     "era": null,
     "source": "counterfactual",
     "effects": [
       {
         "type": "resource_delta",
         "targetType": "territory",
-        "targetId": "CHN",
+        "targetId": "KAZ",
         "magnitude": 15,
-        "description": "China gains 15 tech"
+        "description": "Kazakhstan tech +15"
+      },
+      {
+        "type": "resource_delta",
+        "targetType": "territory",
+        "targetId": "IRN",
+        "magnitude": 10,
+        "description": "Iran food +10"
+      },
+      {
+        "type": "resource_delta",
+        "targetType": "territory",
+        "targetId": "CHN",
+        "magnitude": 10,
+        "description": "China food +10"
       }
     ],
     "rippleEffects": [],
     "probability": 0.10
   },
   {
-    "id": "volcanic_eruption",
-    "title": "Pacific Volcanic Eruption",
-    "description": "A massive volcanic eruption disrupts agriculture and trade across the Pacific.",
+    "id": "suez_crisis_early",
+    "title": "Suez Canal Dispute",
+    "description": "A dispute over Suez Canal transit rights erupts into a diplomatic standoff, disrupting trade between Europe and Asia while strengthening Egyptian sovereignty.",
+    "tier": 1,
     "era": null,
     "source": "historical",
     "effects": [
       {
         "type": "strength_delta",
         "targetType": "territory",
-        "targetId": "JPN",
-        "magnitude": -25,
-        "description": "Japan loses 25 strength"
+        "targetId": "EGY",
+        "magnitude": 20,
+        "description": "Egypt strength +20"
+      },
+      {
+        "type": "resource_delta",
+        "targetType": "territory",
+        "targetId": "GBR",
+        "magnitude": -15,
+        "description": "United Kingdom industry -15"
+      }
+    ],
+    "rippleEffects": [
+      {
+        "type": "reputation_delta",
+        "targetType": "territory",
+        "targetId": "EGY",
+        "magnitude": 10,
+        "description": "Egypt reputation +10 (fires next era)"
+      }
+    ],
+    "probability": 0.14
+  },
+  {
+    "id": "great_war_avoided",
+    "title": "The Great War Never Comes",
+    "description": "A series of last-minute diplomatic interventions prevents the assassination crisis from escalating into continental war, leaving Europe's empires intact but uneasy.",
+    "tier": 2,
+    "era": null,
+    "source": "counterfactual",
+    "effects": [
+      {
+        "type": "strength_delta",
+        "targetType": "global",
+        "targetId": "europe",
+        "magnitude": 15,
+        "description": "All European territories gain 15 strength (demilitarization)"
+      },
+      {
+        "type": "reputation_delta",
+        "targetType": "global",
+        "targetId": "europe",
+        "magnitude": 10,
+        "description": "All factions gain 10 reputation (diplomatic triumph)"
       }
     ],
     "rippleEffects": [
       {
         "type": "resource_delta",
         "targetType": "territory",
+        "targetId": "DEU",
+        "magnitude": 20,
+        "description": "Germany industry +20 (fires next era - peacetime investment)"
+      },
+      {
+        "type": "resource_delta",
+        "targetType": "territory",
+        "targetId": "FRA",
+        "magnitude": 20,
+        "description": "France industry +20 (fires next era - peacetime investment)"
+      }
+    ],
+    "probability": 0.05
+  },
+  {
+    "id": "early_industrialization_asia",
+    "title": "Asia Industrializes Early",
+    "description": "Japanese and Chinese industrial output accelerates a generation ahead of schedule, reshaping the balance of power in the Pacific.",
+    "tier": 2,
+    "era": null,
+    "source": "counterfactual",
+    "effects": [
+      {
+        "type": "resource_delta",
+        "targetType": "territory",
+        "targetId": "JPN",
+        "magnitude": 25,
+        "description": "Japan tech +25"
+      },
+      {
+        "type": "resource_delta",
+        "targetType": "territory",
         "targetId": "CHN",
+        "magnitude": 20,
+        "description": "China industry +20"
+      },
+      {
+        "type": "resource_delta",
+        "targetType": "territory",
+        "targetId": "IND",
+        "magnitude": 15,
+        "description": "India industry +15"
+      }
+    ],
+    "rippleEffects": [
+      {
+        "type": "strength_delta",
+        "targetType": "territory",
+        "targetId": "JPN",
+        "magnitude": 15,
+        "description": "Japan strength +15 (fires next era)"
+      }
+    ],
+    "probability": 0.06
+  },
+  {
+    "id": "pandemic_sweeps_europe",
+    "title": "Pandemic Sweeps Europe",
+    "description": "A virulent epidemic spreads through European cities, decimating populations and straining the capacity of every major power.",
+    "tier": 2,
+    "era": null,
+    "source": "historical",
+    "effects": [
+      {
+        "type": "strength_delta",
+        "targetType": "global",
+        "targetId": "europe",
+        "magnitude": -20,
+        "description": "All European territories strength -20"
+      },
+      {
+        "type": "resource_delta",
+        "targetType": "global",
+        "targetId": "europe",
+        "magnitude": -15,
+        "description": "All European territories food -15"
+      }
+    ],
+    "rippleEffects": [
+      {
+        "type": "resource_delta",
+        "targetType": "global",
+        "targetId": "europe",
         "magnitude": -10,
-        "description": "China loses 10 food from ash fallout"
+        "description": "All European territories industry -10 (fires next era)"
+      }
+    ],
+    "probability": 0.07
+  },
+  {
+    "id": "african_independence_wave",
+    "title": "Africa Rises Early",
+    "description": "Independence movements sweep the African continent decades ahead of their historical emergence, forcing colonial powers to negotiate rather than dominate.",
+    "tier": 2,
+    "era": null,
+    "source": "counterfactual",
+    "effects": [
+      {
+        "type": "strength_delta",
+        "targetType": "global",
+        "targetId": "africa",
+        "magnitude": 20,
+        "description": "All African territories strength +20"
+      },
+      {
+        "type": "reputation_delta",
+        "targetType": "global",
+        "targetId": "africa",
+        "magnitude": 15,
+        "description": "All African territories reputation +15"
+      }
+    ],
+    "rippleEffects": [
+      {
+        "type": "resource_delta",
+        "targetType": "territory",
+        "targetId": "NGA",
+        "magnitude": 15,
+        "description": "Nigeria industry +15 (fires next era)"
+      },
+      {
+        "type": "resource_delta",
+        "targetType": "territory",
+        "targetId": "ZAF",
+        "magnitude": 15,
+        "description": "South Africa industry +15 (fires next era)"
+      }
+    ],
+    "probability": 0.06
+  },
+  {
+    "id": "american_isolation",
+    "title": "America Turns Inward",
+    "description": "A powerful isolationist movement takes hold in Washington, withdrawing American engagement from European and Asian affairs to focus on domestic development.",
+    "tier": 2,
+    "era": null,
+    "source": "historical",
+    "effects": [
+      {
+        "type": "strength_delta",
+        "targetType": "territory",
+        "targetId": "USA",
+        "magnitude": 10,
+        "description": "United States strength +10 (domestic focus)"
+      },
+      {
+        "type": "resource_delta",
+        "targetType": "territory",
+        "targetId": "USA",
+        "magnitude": 15,
+        "description": "United States industry +15 (domestic investment)"
+      }
+    ],
+    "rippleEffects": [
+      {
+        "type": "resource_delta",
+        "targetType": "territory",
+        "targetId": "USA",
+        "magnitude": 20,
+        "description": "United States tech +20 (fires next era - R&D boom)"
       }
     ],
     "probability": 0.08
   },
   {
-    "id": "early_industrialization_asia",
-    "title": "Early Asian Industrialization",
-    "description": "The Industrial Revolution arrives decades early in Asian territories.",
-    "era": null,
-    "source": "counterfactual",
-    "effects": [
-      {
-        "type": "tech_boost",
-        "targetType": "global",
-        "magnitude": 25,
-        "description": "All Asian territories gain 25 tech"
-      }
-    ],
-    "rippleEffects": [],
-    "probability": 0.05
-  },
-  {
-    "id": "european_pandemic",
-    "title": "European Pandemic",
-    "description": "A deadly disease sweeps across Europe, weakening all nations.",
-    "era": null,
-    "source": "historical",
-    "effects": [
-      {
-        "type": "strength_delta",
-        "targetType": "global",
-        "magnitude": -20,
-        "description": "All European territories lose 20 strength"
-      }
-    ],
-    "rippleEffects": [],
-    "probability": 0.07
-  },
-  {
-    "id": "african_union_early",
-    "title": "Early African Political Union",
-    "description": "African nations unite politically centuries ahead of history.",
-    "era": null,
-    "source": "counterfactual",
-    "effects": [
-      {
-        "type": "reputation_delta",
-        "targetType": "global",
-        "magnitude": 10,
-        "description": "All African territories gain 10 reputation modifier"
-      }
-    ],
-    "rippleEffects": [],
-    "probability": 0.06
-  },
-  {
-    "id": "american_isolation",
-    "title": "American Isolationism",
-    "description": "The Americas withdraw from world affairs, strengthening internal defenses.",
-    "era": null,
-    "source": "historical",
-    "effects": [
-      {
-        "type": "strength_delta",
-        "targetType": "global",
-        "magnitude": 5,
-        "description": "American territories gain 5 strength"
-      }
-    ],
-    "rippleEffects": [],
-    "probability": 0.12
-  },
-  {
-    "id": "middle_east_oil_boom",
-    "title": "Middle Eastern Oil Discovery",
-    "description": "Vast oil reserves transform the Middle East into an industrial powerhouse.",
-    "era": null,
-    "source": "historical",
-    "effects": [
-      {
-        "type": "resource_delta",
-        "targetType": "global",
-        "magnitude": 40,
-        "description": "All Middle Eastern territories gain 40 industry"
-      }
-    ],
-    "rippleEffects": [],
-    "probability": 0.10
-  },
-  {
     "id": "byzantine_survives",
-    "title": "Byzantine Empire Endures",
-    "description": "The Byzantine Empire never fell, maintaining control of the Eastern Mediterranean.",
+    "title": "The Byzantine Empire Endures",
+    "description": "Constantinople never falls. The Eastern Roman Empire survives into the modern era, reshaping the political geography of Europe, Anatolia, and the Levant.",
+    "tier": 3,
     "era": null,
     "source": "counterfactual",
     "effects": [
       {
-        "type": "control_transfer",
+        "type": "strength_delta",
         "targetType": "territory",
         "targetId": "TUR",
-        "magnitude": 0,
-        "description": "Turkey becomes neutral Byzantine zone"
+        "magnitude": -20,
+        "description": "Turkey strength -20"
+      },
+      {
+        "type": "strength_delta",
+        "targetType": "territory",
+        "targetId": "POL",
+        "magnitude": 25,
+        "description": "Poland strength +25 (representing Byzantine restoration)"
+      },
+      {
+        "type": "strength_delta",
+        "targetType": "territory",
+        "targetId": "ITA",
+        "magnitude": -10,
+        "description": "Italy strength -10"
       }
     ],
-    "rippleEffects": [],
+    "rippleEffects": [
+      {
+        "type": "alliance_break",
+        "targetType": "global",
+        "targetId": "middle_east",
+        "magnitude": 0,
+        "description": "All Middle Eastern alliances broken (fires next era - power vacuum)"
+      }
+    ],
     "probability": 0.03
   },
   {
-    "id": "mongol_unity",
-    "title": "Mongol Empire Holds",
-    "description": "The Mongol Empire never fragmented, creating a unified Central Asian superpower.",
+    "id": "mongol_unity_holds",
+    "title": "The Mongol Empire Never Fragments",
+    "description": "The great Mongol confederation holds together across Central Asia, creating a vast steppe empire that reshapes the politics of Russia, China, and Persia.",
+    "tier": 3,
     "era": null,
     "source": "counterfactual",
     "effects": [
+      {
+        "type": "strength_delta",
+        "targetType": "territory",
+        "targetId": "MNG",
+        "magnitude": 35,
+        "description": "Mongolia strength +35"
+      },
+      {
+        "type": "strength_delta",
+        "targetType": "territory",
+        "targetId": "KAZ",
+        "magnitude": 30,
+        "description": "Kazakhstan strength +30"
+      },
       {
         "type": "strength_delta",
         "targetType": "territory",
         "targetId": "RUS",
-        "magnitude": 30,
-        "description": "Russia gains 30 strength from Mongol unity"
+        "magnitude": -15,
+        "description": "Russia strength -15"
+      },
+      {
+        "type": "strength_delta",
+        "targetType": "territory",
+        "targetId": "CHN",
+        "magnitude": -15,
+        "description": "China strength -15"
       }
     ],
-    "rippleEffects": [],
+    "rippleEffects": [
+      {
+        "type": "resource_delta",
+        "targetType": "territory",
+        "targetId": "MNG",
+        "magnitude": 20,
+        "description": "Mongolia industry +20 (fires next era)"
+      },
+      {
+        "type": "resource_delta",
+        "targetType": "territory",
+        "targetId": "KAZ",
+        "magnitude": 15,
+        "description": "Kazakhstan food +15 (fires next era)"
+      }
+    ],
     "probability": 0.04
   },
   {
     "id": "black_death_averted",
-    "title": "Black Death Averted",
-    "description": "The plague never reaches Europe, allowing uninterrupted population growth.",
+    "title": "The Black Death Never Comes",
+    "description": "The great plague that killed a third of Europe never reaches the continent. A vastly larger and more prosperous Europe enters the modern era with far greater industrial and military capacity.",
+    "tier": 3,
     "era": null,
     "source": "counterfactual",
     "effects": [
       {
         "type": "resource_delta",
         "targetType": "global",
-        "magnitude": 20,
-        "description": "All European territories gain 20 food"
+        "targetId": "europe",
+        "magnitude": 25,
+        "description": "All European territories food +25"
       },
+      {
+        "type": "resource_delta",
+        "targetType": "global",
+        "targetId": "europe",
+        "magnitude": 20,
+        "description": "All European territories industry +20"
+      },
+      {
+        "type": "resource_delta",
+        "targetType": "global",
+        "targetId": "europe",
+        "magnitude": 15,
+        "description": "All European territories tech +15"
+      },
+      {
+        "type": "strength_delta",
+        "targetType": "global",
+        "targetId": "europe",
+        "magnitude": 20,
+        "description": "All European territories strength +20"
+      }
+    ],
+    "rippleEffects": [
+      {
+        "type": "resource_delta",
+        "targetType": "territory",
+        "targetId": "GBR",
+        "magnitude": 25,
+        "description": "United Kingdom tech +25 (fires next era)"
+      },
+      {
+        "type": "resource_delta",
+        "targetType": "territory",
+        "targetId": "DEU",
+        "magnitude": 25,
+        "description": "Germany tech +25 (fires next era)"
+      },
+      {
+        "type": "resource_delta",
+        "targetType": "territory",
+        "targetId": "FRA",
+        "magnitude": 20,
+        "description": "France tech +20 (fires next era)"
+      }
+    ],
+    "probability": 0.02
+  },
+  {
+    "id": "early_ai_1950",
+    "title": "Thinking Machines Emerge",
+    "description": "Computational machinery capable of autonomous reasoning is developed decades ahead of schedule, transforming industry, military planning, and diplomacy worldwide.",
+    "tier": 3,
+    "era": null,
+    "source": "future_projection",
+    "effects": [
       {
         "type": "tech_boost",
         "targetType": "global",
+        "magnitude": 20,
+        "description": "All territories tech +20 globally"
+      }
+    ],
+    "rippleEffects": [
+      {
+        "type": "resource_delta",
+        "targetType": "territory",
+        "targetId": "USA",
+        "magnitude": 30,
+        "description": "United States tech +30 (fires next era - tech leader)"
+      },
+      {
+        "type": "resource_delta",
+        "targetType": "territory",
+        "targetId": "GBR",
+        "magnitude": 25,
+        "description": "United Kingdom tech +25 (fires next era)"
+      },
+      {
+        "type": "resource_delta",
+        "targetType": "territory",
+        "targetId": "DEU",
+        "magnitude": 25,
+        "description": "Germany tech +25 (fires next era)"
+      }
+    ],
+    "probability": 0.01
+  },
+  {
+    "id": "climate_crisis_accelerated",
+    "title": "The Climate Breaks Early",
+    "description": "Environmental collapse arrives a generation ahead of schedule. Coastal cities flood, harvests fail, and the map of viable territory shifts dramatically inland.",
+    "tier": 3,
+    "era": null,
+    "source": "future_projection",
+    "effects": [
+      {
+        "type": "strength_delta",
+        "targetType": "territory",
+        "targetId": "GBR",
+        "magnitude": -20,
+        "description": "United Kingdom strength -20 (coastal)"
+      },
+      {
+        "type": "strength_delta",
+        "targetType": "territory",
+        "targetId": "JPN",
+        "magnitude": -20,
+        "description": "Japan strength -20 (coastal)"
+      },
+      {
+        "type": "strength_delta",
+        "targetType": "territory",
+        "targetId": "NLD",
+        "magnitude": -20,
+        "description": "Netherlands strength -20 (coastal)"
+      },
+      {
+        "type": "strength_delta",
+        "targetType": "territory",
+        "targetId": "EGY",
+        "magnitude": -20,
+        "description": "Egypt strength -20 (coastal)"
+      },
+      {
+        "type": "strength_delta",
+        "targetType": "territory",
+        "targetId": "NGA",
+        "magnitude": -20,
+        "description": "Nigeria strength -20 (coastal)"
+      },
+      {
+        "type": "strength_delta",
+        "targetType": "territory",
+        "targetId": "VNM",
+        "magnitude": -20,
+        "description": "Vietnam strength -20 (coastal)"
+      },
+      {
+        "type": "strength_delta",
+        "targetType": "territory",
+        "targetId": "THA",
+        "magnitude": -20,
+        "description": "Thailand strength -20 (coastal)"
+      },
+      {
+        "type": "strength_delta",
+        "targetType": "territory",
+        "targetId": "DOM",
+        "magnitude": -20,
+        "description": "Dominican Republic strength -20 (coastal)"
+      },
+      {
+        "type": "strength_delta",
+        "targetType": "territory",
+        "targetId": "HTI",
+        "magnitude": -20,
+        "description": "Haiti strength -20 (coastal)"
+      },
+      {
+        "type": "strength_delta",
+        "targetType": "territory",
+        "targetId": "FJI",
+        "magnitude": -20,
+        "description": "Fiji strength -20 (coastal)"
+      },
+      {
+        "type": "strength_delta",
+        "targetType": "territory",
+        "targetId": "PNG",
+        "magnitude": -20,
+        "description": "Papua New Guinea strength -20 (coastal)"
+      },
+      {
+        "type": "resource_delta",
+        "targetType": "territory",
+        "targetId": "RUS",
         "magnitude": 15,
-        "description": "Europe gains 15 tech permanently"
+        "description": "Russia food +15 (interior)"
+      },
+      {
+        "type": "resource_delta",
+        "targetType": "territory",
+        "targetId": "KAZ",
+        "magnitude": 15,
+        "description": "Kazakhstan food +15 (interior)"
+      },
+      {
+        "type": "resource_delta",
+        "targetType": "territory",
+        "targetId": "MNG",
+        "magnitude": 15,
+        "description": "Mongolia food +15 (interior)"
+      },
+      {
+        "type": "resource_delta",
+        "targetType": "territory",
+        "targetId": "BRA",
+        "magnitude": 15,
+        "description": "Brazil food +15 (interior)"
+      },
+      {
+        "type": "resource_delta",
+        "targetType": "territory",
+        "targetId": "ARG",
+        "magnitude": 15,
+        "description": "Argentina food +15 (interior)"
+      },
+      {
+        "type": "resource_delta",
+        "targetType": "territory",
+        "targetId": "USA",
+        "magnitude": 15,
+        "description": "United States food +15 (interior)"
+      },
+      {
+        "type": "resource_delta",
+        "targetType": "territory",
+        "targetId": "CAN",
+        "magnitude": 15,
+        "description": "Canada food +15 (interior)"
       }
     ],
     "rippleEffects": [],

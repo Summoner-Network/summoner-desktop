@@ -5,6 +5,8 @@
 import type { Territory } from "../types/territory";
 import type { Epoch } from "../types/epoch";
 import type { HistoricalEvent } from "../types/event";
+import * as fs from "fs";
+import * as path from "path";
 
 // Data is inlined for MVP to avoid JSON import issues
 // In production, this would load from the file system or API
@@ -930,133 +932,28 @@ const eventsData: HistoricalEvent[] = [
 ];
 
 export function loadTerritories(): Territory[] {
-  return territoriesData.map(t => ({ ...t }));
+  const territoriesPath = path.join(__dirname, `../../data/territories/base.json`);
+  const territoriesData = JSON.parse(fs.readFileSync(territoriesPath, 'utf-8'));
+  return territoriesData.map((t: Territory) => ({ ...t }));
 }
 
 export function loadEpoch(epochId: string): Epoch {
-  // For MVP, only support 1914_brink
-  if (epochId === "1914_brink") {
-    return {
-      "id": "1914_brink",
-      "name": "1914 — The World at the Brink",
-      "year": 1914,
-      "description": "The great powers stand on the edge of total war. Ancient empires and rising nations compete for dominance.",
-      "startingTerritoryControl": {
-        // British Empire - faction_1 (11 territories)
-        "GBR": "faction_1",
-        "CAN": "faction_1",
-        "IND": "faction_1",
-        "AUS": "faction_1",
-        "NZL": "faction_1",
-        "EGY": "faction_1",
-        "ZAF": "faction_1",
-        "NGA": "faction_1",
-        "PAK": "faction_1",
-        "PNG": "faction_1",
-        "FJI": "faction_1",
+  const epochPath = path.join(__dirname, `../../data/epochs/${epochId}.json`);
 
-        // Central Powers - faction_2 (11 territories)
-        "DEU": "faction_2",
-        "RUS": "faction_2",
-        "POL": "faction_2",
-        "TUR": "faction_2",
-        "IRN": "faction_2",
-        "KAZ": "faction_2",
-        "MNG": "faction_2",
-        "IRQ": "faction_2",
-        "SAU": "faction_2",
-        "ETH": "faction_2",
-        "MAR": "faction_2",
-
-        // Allied Powers - faction_3 (10 territories)
-        "FRA": "faction_3",
-        "ITA": "faction_3",
-        "ESP": "faction_3",
-        "USA": "faction_3",
-        "BRA": "faction_3",
-        "ARG": "faction_3",
-        "PER": "faction_3",
-        "COL": "faction_3",
-        "COD": "faction_3",
-        "MEX": "faction_3",
-
-        // Asian Powers - faction_4 (10 territories)
-        "JPN": "faction_4",
-        "CHN": "faction_4",
-        "THA": "faction_4",
-        "VNM": "faction_4",
-        "CUB": "faction_4",
-        "DOM": "faction_4",
-        "HTI": "faction_4",
-        "GTM": "faction_4",
-        "PAN": "faction_4",
-        "CRI": "faction_4"
-      },
-      "startingStrengths": {
-        // North America
-        "USA": 75,
-        "CAN": 45,
-        "MEX": 35,
-        "GTM": 20,
-        "CUB": 25,
-        "DOM": 15,
-        "HTI": 15,
-        "PAN": 20,
-        "CRI": 20,
-        // Europe
-        "GBR": 65,
-        "FRA": 60,
-        "DEU": 70,
-        "RUS": 80,
-        "POL": 40,
-        "ESP": 45,
-        "ITA": 50,
-        // Asia
-        "CHN": 75,
-        "IND": 60,
-        "JPN": 65,
-        "MNG": 30,
-        "KAZ": 35,
-        "IRN": 45,
-        "SAU": 50,
-        "IRQ": 40,
-        "PAK": 40,
-        "TUR": 55,
-        "VNM": 35,
-        "THA": 35,
-        // South America
-        "BRA": 50,
-        "ARG": 45,
-        "PER": 30,
-        "COL": 35,
-        // Africa
-        "EGY": 40,
-        "NGA": 35,
-        "ZAF": 45,
-        "COD": 25,
-        "ETH": 25,
-        "MAR": 30,
-        // Oceania
-        "AUS": 50,
-        "NZL": 40,
-        "PNG": 20,
-        "FJI": 15
-      },
-      "eventPool": [
-        "nile_famine",
-        "siberian_gold",
-        "balkan_uprising"
-      ],
-      "unlockCondition": null
-    };
+  if (!fs.existsSync(epochPath)) {
+    throw new Error(`Unknown epoch: ${epochId}`);
   }
-  throw new Error(`Unknown epoch: ${epochId}`);
+
+  const epochData = JSON.parse(fs.readFileSync(epochPath, 'utf-8'));
+  return epochData as Epoch;
 }
 
 export function loadEvents(eventPackIds: string[]): HistoricalEvent[] {
   // For MVP, only support "base" pack
   if (eventPackIds.length === 1 && eventPackIds[0] === "base") {
-    return eventsData.map(e => ({ ...e }));
+    const eventsPath = path.join(__dirname, `../../data/events/base.json`);
+    const eventsData = JSON.parse(fs.readFileSync(eventsPath, 'utf-8'));
+    return eventsData.map((e: HistoricalEvent) => ({ ...e }));
   }
   throw new Error(`Unsupported event pack IDs: ${eventPackIds.join(", ")}`);
 }

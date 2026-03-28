@@ -166,7 +166,7 @@ function initializeFactions(
   factionIds.forEach((factionId, index) => {
     factions[factionId] = {
       id: factionId,
-      name: `Faction ${index + 1}`,
+      name: epoch.factionNames?.[factionId] || `Faction ${index + 1}`,
       color: colors[index] || `#${Math.floor(rng.next() * 16777215).toString(16)}`,
       agents: [], // Will be populated below
       territories: [],

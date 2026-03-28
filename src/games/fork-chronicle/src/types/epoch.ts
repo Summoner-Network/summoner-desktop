@@ -19,6 +19,7 @@ export interface Epoch {
   startingStrengths: Record<string, number>;
   eventPool: string[]; // Event IDs valid for this epoch
   unlockCondition: UnlockCondition | null; // null = available from start
+  factionNames?: Record<FactionId, string>; // Display names for factions in this epoch
 }
 
 // [RULE] MVP ships with 3 epochs. Additional epochs are unlocked by win conditions.

@@ -6,6 +6,17 @@
 import type { GameState, EraCard, TurnRecord } from "../types/game-state";
 import type { FactionId } from "../types/faction";
 import type { DirectorTitle, PlayerScore } from "../types/player";
+import type { Continent } from "../types/territory";
+
+const continentDisplayNames: Record<Continent, string> = {
+  europe: "the European continent",
+  asia: "the Pacific Rim",
+  africa: "the African interior",
+  north_america: "the Americas",
+  south_america: "the Southern Hemisphere",
+  oceania: "the Pacific",
+  middle_east: "the Middle East"
+};
 
 /**
  * Generate EraCard for the current era
@@ -218,10 +229,11 @@ function generateNarrativeSummary(eraCard: EraCard, history: TurnRecord[], state
 
     if (conqueredTerritories.length > 0) {
       const territoryList = conqueredTerritories.join(" and ");
-      const continent = state.territories[state.factions[eraCard.biggestGain.factionId].territories[0]]?.continent || "the region";
+      const continent = state.territories[state.factions[eraCard.biggestGain.factionId].territories[0]]?.continent;
+      const continentName = continent ? continentDisplayNames[continent] : "the region";
 
       parts.push(
-        `${state.factions[eraCard.biggestGain.factionId].name} extended its dominion across ${territoryList}, reshaping the balance of power in ${continent}.`
+        `${state.factions[eraCard.biggestGain.factionId].name} extended its dominion across ${territoryList}, reshaping the balance of power in ${continentName}.`
       );
     } else {
       parts.push(`${leaderName} consolidated its position during this period of expansion.`);
@@ -233,8 +245,8 @@ function generateNarrativeSummary(eraCard: EraCard, history: TurnRecord[], state
       .find((e) => e.includes("formed an alliance"));
 
     if (allianceEvent) {
-      // Extract faction names from alliance event
-      const match = allianceEvent.match(/(.+) and (.+) formed an alliance/);
+      // Extract faction names from alliance event (skip emoji)
+      const match = allianceEvent.match(/🤝\s*([^\s].*?)\s+and\s+([^\s].*?)\s+formed an alliance/);
       if (match) {
         parts.push(
           `This era was defined by the alliance between ${match[1]} and ${match[2]}, forging a coalition that would test the resolve of their rivals.`
@@ -246,9 +258,10 @@ function generateNarrativeSummary(eraCard: EraCard, history: TurnRecord[], state
       parts.push(`Diplomatic efforts dominated this era as factions sought to secure their positions through negotiation.`);
     }
   } else {
-    const leaderContinent = state.territories[state.factions[eraCard.leaderFaction].territories[0]]?.continent || "the known world";
+    const leaderContinent = state.territories[state.factions[eraCard.leaderFaction].territories[0]]?.continent;
+    const leaderContinentName = leaderContinent ? continentDisplayNames[leaderContinent] : "the known world";
     parts.push(
-      `A period of consolidation settled over the world as ${leaderName} tightened its grip on ${leaderContinent}.`
+      `A period of consolidation settled over the world as ${leaderName} tightened its grip on ${leaderContinentName}.`
     );
   }
 
