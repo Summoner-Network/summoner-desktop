@@ -260,18 +260,16 @@ export async function initializeGame(config: GameConfig): Promise<GameState> {
       // Initialize factions with starting control
       const factions = initializeFactions(config, territories, rng);
 
-      // Check faction balance
+      // Check faction balance — retry with new seed if imbalanced
       if (!isFactionBalanceValid(factions, territories)) {
-        if (attempts === MAX_BALANCE_RETRIES - 1) {
-          throw new Error(
-            `Failed to create balanced starting state after ${MAX_BALANCE_RETRIES} attempts. ` +
-            `Try a different seed or epoch configuration.`
-          );
+        if (attempts < MAX_BALANCE_RETRIES - 1) {
+          // Increment seed and retry
+          seed = `${seed}-${attempts + 1}`;
+          attempts++;
+          continue;
         }
-        // Increment seed and retry
-        seed = (parseInt(seed) + 1).toString();
-        attempts++;
-        continue;
+        // On final attempt, proceed with best effort instead of crashing
+        console.warn('[Fork] Could not achieve perfect balance after', MAX_BALANCE_RETRIES, 'attempts, proceeding anyway');
       }
 
       // Step 3: Shuffle the event deck using the game seed

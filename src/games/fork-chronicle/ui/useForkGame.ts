@@ -60,6 +60,7 @@ export function useForkGame(): UseForkGameReturn {
   const turnTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const directiveTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastEraRef = useRef(0);
+  const usedWikiEventIds = useRef<Set<string>>(new Set());
 
   // Draw a Wikipedia event card for the player
   const drawPlayerEventCard = useCallback(async (state: GameState): Promise<GameState> => {
@@ -72,8 +73,15 @@ export function useForkGame(): UseForkGameReturn {
       const currentGameYear = epochStartYear + (state.currentEra - 1) * 5;
       const wikiEvents = await fetchWikipediaEventsForYear(currentGameYear);
       if (wikiEvents && wikiEvents.length > 0) {
-        const randomIndex = Math.floor(Math.random() * Math.min(wikiEvents.length, 10));
-        const picked = wikiEvents[randomIndex];
+        // Filter out already-used events to avoid repeats
+        const unusedEvents = wikiEvents.filter(e => {
+          const id = `${e.year}-${e.text.slice(0, 30)}`;
+          return !usedWikiEventIds.current.has(id);
+        });
+        const pool = unusedEvents.length > 0 ? unusedEvents : wikiEvents;
+        const picked = pool[Math.floor(Math.random() * pool.length)];
+        // Mark as used
+        usedWikiEventIds.current.add(`${picked.year}-${picked.text.slice(0, 30)}`);
         const tier: 1 | 2 | 3 = Math.random() < 0.15 ? 3 : Math.random() < 0.45 ? 2 : 1;
         const gameEvent = wikiEventToGameEvent(picked, tier);
         console.log('[Fork] Wikipedia event drawn for year', currentGameYear, ':', gameEvent.title, '(Wikipedia year:', picked.year, ')');
@@ -117,11 +125,24 @@ export function useForkGame(): UseForkGameReturn {
   const startGame = useCallback(async (config: GameConfig) => {
     setError(null);
     setLiveLog([]);
-    let state = await initializeGame(config);
-    // Draw initial Wikipedia event card for the player
-    state = await drawPlayerEventCard(state);
-    setGameState(state);
-    setIsRunning(true);
+    setTickerMessages([]);
+    try {
+      // Always generate a fresh seed to avoid reusing previous game's seed
+      const freshConfig: GameConfig = {
+        ...config,
+        seed: `fork-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      };
+      let state = await initializeGame(freshConfig);
+      // Draw initial Wikipedia event card for the player
+      state = await drawPlayerEventCard(state);
+      gameStateRef.current = state;
+      isRunningRef.current = true;
+      setGameState(state);
+      setIsRunning(true);
+    } catch (err) {
+      console.error('[Fork] Failed to initialize game:', err);
+      setError(`Failed to start game: ${String(err)}. Try a different epoch or faction count.`);
+    }
   }, [drawPlayerEventCard]);
 
   const stopGame = useCallback(() => {
@@ -162,6 +183,8 @@ export function useForkGame(): UseForkGameReturn {
     setLastDirectiveEra(0);
     setTickerMessages([]);
     setActiveEventBanner(null);
+    setEventImpact(null);
+    usedWikiEventIds.current = new Set();
   }, []);
 
   const pauseGame = useCallback(() => {

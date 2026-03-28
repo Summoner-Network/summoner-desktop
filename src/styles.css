@@ -2226,8 +2226,7 @@ button:disabled {
   position: absolute;
   inset: 0;
   z-index: 100;
-  background: var(--color-background-primary, var(--bg-primary));
-  opacity: 1.0;
+  background: var(--color-background-primary, var(--bg-primary, #1a1a1a));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2282,13 +2281,12 @@ button:disabled {
 .fork-setup-card {
   position: relative;
   z-index: 10;
-  background: var(--color-background-primary, var(--bg-primary));
-  border: 1px solid var(--color-border-secondary, var(--border));
+  background: var(--color-background-primary, var(--bg-primary, #1a1a1a));
+  border: 1px solid var(--color-border-secondary, var(--border, #333));
   border-radius: 12px;
   padding: 20px;
   cursor: pointer;
   transition: all 0.2s ease;
-  backdrop-filter: none;
 }
 
 .fork-setup-card:hover {
@@ -2297,8 +2295,8 @@ button:disabled {
 }
 
 .fork-setup-card.selected {
-  border: 2px solid var(--color-text-primary, var(--text-primary));
-  background: var(--bg-tertiary);
+  border: 2px solid var(--color-text-primary, var(--text-primary, #fff));
+  background: var(--bg-tertiary, #2a2a2a);
 }
 
 .fork-setup-card-header {
@@ -2358,8 +2356,8 @@ button:disabled {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  background: var(--color-text-primary, var(--text-primary));
-  color: var(--color-background-primary, var(--bg-primary));
+  background: var(--color-text-primary, var(--text-primary, #e5e5e5));
+  color: var(--color-background-primary, var(--bg-primary, #1a1a1a));
   border: none;
   border-radius: 8px;
   cursor: pointer;

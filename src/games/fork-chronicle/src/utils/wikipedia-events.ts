@@ -52,7 +52,9 @@ export async function fetchWikipediaEventsForYear(
 ): Promise<WikipediaEvent[]> {
   const now = new Date();
   const month = now.getMonth() + 1;
-  const day = now.getDate();
+  // Vary the day ±3 to get different event pools each draw
+  const dayVariance = Math.floor(Math.random() * 7) - 3;
+  const day = Math.max(1, Math.min(28, now.getDate() + dayVariance));
 
   console.log('[Fork] Fetching Wikipedia events via IPC...', month, day);
 

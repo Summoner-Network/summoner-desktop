@@ -369,12 +369,12 @@ export default function ForkGamePage(props: ForkGamePageProps) {
                       fontSize: 14,
                       fontWeight: 600,
                       background: factionCount === n
-                        ? 'var(--text-primary)'
-                        : 'var(--bg-secondary)',
+                        ? 'var(--text-primary, #e5e5e5)'
+                        : 'var(--bg-secondary, #222)',
                       color: factionCount === n
-                        ? 'var(--bg-primary)'
-                        : 'var(--text-secondary)',
-                      border: '1px solid var(--border)',
+                        ? 'var(--bg-primary, #1a1a1a)'
+                        : 'var(--text-secondary, #aaa)',
+                      border: '1px solid var(--border, #333)',
                       borderRadius: 8,
                       cursor: 'pointer',
                     }}
@@ -415,11 +415,11 @@ export default function ForkGamePage(props: ForkGamePageProps) {
                     style={{
                       padding: '10px 12px',
                       background: selectedCountryId === country.id
-                        ? 'var(--bg-tertiary)'
-                        : 'var(--bg-primary)',
+                        ? 'var(--bg-tertiary, #2a2a2a)'
+                        : 'var(--bg-primary, #1a1a1a)',
                       border: selectedCountryId === country.id
-                        ? '2px solid var(--text-primary)'
-                        : '1px solid var(--border)',
+                        ? '2px solid var(--text-primary, #e5e5e5)'
+                        : '1px solid var(--border, #333)',
                       borderRadius: 8,
                       cursor: 'pointer',
                       textAlign: 'center',
