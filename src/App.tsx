@@ -918,11 +918,13 @@ export default function App() {
                 onResumeGame={forkGame.resumeGame}
                 onSetTurnSpeed={forkGame.setTurnSpeed}
                 directiveCountdown={forkGame.directiveCountdown}
+                showDirective={forkGame.showDirective}
                 tickerMessages={forkGame.tickerMessages}
                 activeEventBanner={forkGame.activeEventBanner}
+                eventImpact={forkGame.eventImpact}
                 onSubmitDirective={forkGame.submitDirective}
                 onPlaceBet={forkGame.placeBet}
-                onPlayEventCard={forkGame.playEventCard}
+                onPlayEventCard={forkGame.playEventCardWithImpact}
                 onPatronBacking={forkGame.patronBacking}
               />
             ) : null}

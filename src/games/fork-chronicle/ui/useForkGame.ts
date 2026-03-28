@@ -34,11 +34,14 @@ export interface UseForkGameReturn {
   resumeGame: () => void;
   setTurnSpeed: (ms: number) => void;
   directiveCountdown: number;
+  showDirective: boolean;
   tickerMessages: string[];
   submitDirective: (directive: string) => void;
   activeEventBanner: { title: string; description: string } | null;
+  eventImpact: { title: string; lines: string[]; tier: number } | null;
   placeBet: (bet: Omit<BetAction, "type" | "placedOnTurn" | "odds">) => void;
   playEventCard: () => void;
+  playEventCardWithImpact: () => void;
   patronBacking: (action: Omit<PatronAction, "type">) => void;
 }
 
@@ -51,6 +54,8 @@ export function useForkGame(): UseForkGameReturn {
   const [error, setError] = useState<string | null>(null);
   const [liveLog, setLiveLog] = useState<LiveLogEntry[]>([]);
   const [directiveCountdown, setDirectiveCountdown] = useState(0);
+  const [showDirective, setShowDirective] = useState(false);
+  const [lastDirectiveEra, setLastDirectiveEra] = useState(0);
   const [tickerMessages, setTickerMessages] = useState<string[]>([]);
   const turnTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const directiveTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -144,6 +149,7 @@ export function useForkGame(): UseForkGameReturn {
     isPausedRef.current = false;
     gameStateRef.current = null;
     lastEraRef.current = 0;
+    lastDirectiveEraRef.current = 0;
     // Reset all state
     setGameState(null);
     setIsRunning(false);
@@ -152,6 +158,8 @@ export function useForkGame(): UseForkGameReturn {
     setLiveLog([]);
     setError(null);
     setDirectiveCountdown(0);
+    setShowDirective(false);
+    setLastDirectiveEra(0);
     setTickerMessages([]);
     setActiveEventBanner(null);
   }, []);
@@ -175,6 +183,7 @@ export function useForkGame(): UseForkGameReturn {
       clearInterval(directiveTimerRef.current);
       directiveTimerRef.current = null;
     }
+    setShowDirective(false);
     setDirectiveCountdown(0);
     setIsPaused(false);
   }, []);
@@ -195,6 +204,7 @@ export function useForkGame(): UseForkGameReturn {
   const isPausedRef = useRef(false);
   const gameStateRef = useRef<GameState | null>(null);
   const turnSpeedRef = useRef(3000);
+  const lastDirectiveEraRef = useRef(0);
 
   // Keep refs in sync with state
   useEffect(() => { isRunningRef.current = isRunning; }, [isRunning]);
@@ -226,8 +236,11 @@ export function useForkGame(): UseForkGameReturn {
       gameStateRef.current = next;
       setGameState(next);
 
-      // Detect new era — auto-pause for directive input
-      if (next.currentEra > lastEraRef.current && lastEraRef.current > 0) {
+      // Detect new era — auto-pause for directive input (once per era only)
+      if (next.currentEra > lastDirectiveEraRef.current && lastEraRef.current > 0) {
+        lastDirectiveEraRef.current = next.currentEra;
+        setLastDirectiveEra(next.currentEra);
+        setShowDirective(true);
         isPausedRef.current = true;
         setIsPaused(true);
         setDirectiveCountdown(15);
@@ -237,6 +250,7 @@ export function useForkGame(): UseForkGameReturn {
             if (prev <= 1) {
               if (directiveTimerRef.current) clearInterval(directiveTimerRef.current);
               directiveTimerRef.current = null;
+              setShowDirective(false);
               isPausedRef.current = false;
               setIsPaused(false);
               return 0;
@@ -478,6 +492,60 @@ export function useForkGame(): UseForkGameReturn {
     setTimeout(() => setActiveEventBanner(null), 4000);
   }, []);
 
+  const [eventImpact, setEventImpact] = useState<{
+    title: string;
+    lines: string[];
+    tier: number;
+  } | null>(null);
+
+  const playEventCardWithImpact = useCallback(() => {
+    const before = gameStateRef.current;
+    if (!before) return;
+
+    const card = before.playerStates['player_1']?.currentDrawnCard;
+    if (!card) return;
+
+    // Snapshot territory strengths + control before playing
+    const beforeStrengths: Record<string, number> = {};
+    const beforeControl: Record<string, string | null> = {};
+    Object.entries(before.territories).forEach(([id, t]) => {
+      beforeStrengths[id] = t.strength;
+      beforeControl[id] = t.controlledBy;
+    });
+
+    // Play the card (mutates state)
+    playEventCard();
+
+    const after = gameStateRef.current;
+    if (!after) return;
+
+    // Calculate what changed
+    const impactLines: string[] = [];
+
+    Object.entries(after.territories).forEach(([id, territory]) => {
+      const strengthDelta = territory.strength - (beforeStrengths[id] ?? territory.strength);
+      if (Math.abs(strengthDelta) >= 5) {
+        const sign = strengthDelta > 0 ? '+' : '';
+        impactLines.push(`${territory.name}: strength ${sign}${Math.round(strengthDelta)}`);
+      }
+      if (territory.controlledBy !== beforeControl[id]) {
+        const newFaction = territory.controlledBy
+          ? after.factions[territory.controlledBy]?.name
+          : 'Neutral';
+        impactLines.push(`${territory.name} → ${newFaction}`);
+      }
+    });
+
+    if (impactLines.length > 0) {
+      setEventImpact({
+        title: card.title,
+        lines: impactLines.slice(0, 6),
+        tier: card.tier ?? 1,
+      });
+      setTimeout(() => setEventImpact(null), 5000);
+    }
+  }, [playEventCard]);
+
   const patronBacking = useCallback(
     (action: Omit<PatronAction, "type">) => {
       setGameState((prev) => {
@@ -540,11 +608,14 @@ export function useForkGame(): UseForkGameReturn {
     resumeGame,
     setTurnSpeed,
     directiveCountdown,
+    showDirective,
     tickerMessages,
     submitDirective,
     activeEventBanner,
+    eventImpact,
     placeBet,
     playEventCard,
+    playEventCardWithImpact,
     patronBacking,
   };
 }

@@ -69,8 +69,10 @@ export interface ForkGamePageProps {
   onResumeGame: () => void;
   onSetTurnSpeed: (ms: number) => void;
   directiveCountdown: number;
+  showDirective: boolean;
   tickerMessages: string[];
   activeEventBanner: { title: string; description: string } | null;
+  eventImpact: { title: string; lines: string[]; tier: number } | null;
   onSubmitDirective: (directive: string) => void;
   onPlaceBet: (bet: Omit<import("../src/types/player").BetAction, "type" | "placedOnTurn" | "odds">) => void;
   onPlayEventCard: () => void;
@@ -99,8 +101,10 @@ export default function ForkGamePage(props: ForkGamePageProps) {
     onSetTurnSpeed,
     onPlayEventCard,
     directiveCountdown,
+    showDirective,
     tickerMessages,
     activeEventBanner,
+    eventImpact,
     onSubmitDirective,
   } = props;
 
@@ -111,6 +115,7 @@ export default function ForkGamePage(props: ForkGamePageProps) {
   const [directive, setDirective] = useState<string>("");
   const [exportConfirmed, setExportConfirmed] = useState(false);
   const [showingReveal, setShowingReveal] = useState(false);
+  const [cardRevealed, setCardRevealed] = useState(false);
   const [hoveredTerritory, setHoveredTerritory] = useState<{
     name: string;
     faction: string;
@@ -302,6 +307,11 @@ export default function ForkGamePage(props: ForkGamePageProps) {
     }
   }, [gameState]);
 
+  // Reset card revealed state when a new card is drawn
+  useEffect(() => {
+    setCardRevealed(false);
+  }, [playerState?.currentDrawnCard?.id]);
+
   // Debug map rendering
   useEffect(() => {
     console.log('[Fork Map Debug]', {
@@ -343,6 +353,48 @@ export default function ForkGamePage(props: ForkGamePageProps) {
               ))}
             </div>
           </div>
+
+          {/* Faction Count */}
+          {selectedEpochId && (
+            <div className="fork-setup-section">
+              <div className="fork-setup-section-title">Number of Factions</div>
+              <div style={{ display: 'flex', gap: 8, maxWidth: 500, margin: '0 auto' }}>
+                {([2, 3, 4] as const).map(n => (
+                  <button
+                    key={n}
+                    onClick={() => setFactionCount(n)}
+                    style={{
+                      flex: 1,
+                      padding: 10,
+                      fontSize: 14,
+                      fontWeight: 600,
+                      background: factionCount === n
+                        ? 'var(--text-primary)'
+                        : 'var(--bg-secondary)',
+                      color: factionCount === n
+                        ? 'var(--bg-primary)'
+                        : 'var(--text-secondary)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 8,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {n} factions
+                  </button>
+                ))}
+              </div>
+              <div style={{
+                fontSize: 12,
+                color: 'var(--text-tertiary)',
+                marginTop: 6,
+                textAlign: 'center',
+              }}>
+                {factionCount === 2 ? 'Two dominant powers compete for the world'
+                  : factionCount === 3 ? 'Three factions in an unstable balance of power'
+                  : 'Four factions — the full geopolitical complexity'}
+              </div>
+            </div>
+          )}
 
           {/* Country Selection */}
           {selectedEpochId && (
@@ -446,62 +498,7 @@ export default function ForkGamePage(props: ForkGamePageProps) {
 
       {/* LEFT PANEL */}
       <div className="fork-left-panel">
-        {/* Game Controls */}
-        {!gameState ? (
-          <div>
-            <h3 style={{ marginTop: 0, marginBottom: 12, fontSize: 14 }}>Start New Game</h3>
-
-            <label style={{ display: "block", marginBottom: 8, fontSize: 12 }}>
-              Epoch
-              <select
-                value={selectedEpochId}
-                onChange={(e) => setSelectedEpochId(e.target.value)}
-                style={{ width: "100%", marginTop: 4, padding: 6 }}
-              >
-                <option value="1914_brink">1914 — The World at the Brink</option>
-                <option value="1945_aftermath">1945 — The World Remade</option>
-                <option value="1991_unipolar">1991 — The Unipolar Moment</option>
-              </select>
-            </label>
-
-            <label style={{ display: "block", marginBottom: 12, fontSize: 12 }}>
-              Faction Count
-              <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
-                {[2, 3, 4].map((count) => (
-                  <button
-                    key={count}
-                    onClick={() => setFactionCount(count as 2 | 3 | 4)}
-                    style={{
-                      flex: 1,
-                      padding: "6px 12px",
-                      background: factionCount === count ? "#4ECDC4" : "#2c2c2c",
-                      border: "1px solid #444",
-                      color: "white",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {count}
-                  </button>
-                ))}
-              </div>
-            </label>
-
-            <button
-              onClick={handleStartGame}
-              style={{
-                width: "100%",
-                padding: "8px 16px",
-                background: "#4ECDC4",
-                border: "none",
-                color: "white",
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
-            >
-              Start Game
-            </button>
-          </div>
-        ) : (
+        {gameState && (
           <div>
             {/* Animated Turn/Era Counter */}
             <div style={{
@@ -600,8 +597,8 @@ export default function ForkGamePage(props: ForkGamePageProps) {
               })}
             </div>
 
-            {/* Commander Directive Input (New Era Only) */}
-            {selectedFactionId && (isPaused && directiveCountdown > 0 || gameState.currentTurn % 5 === 1) && (
+            {/* Commander Directive Input (once per era) */}
+            {selectedFactionId && showDirective && (
               <div style={{ marginBottom: 16, padding: 12, background: 'var(--bg-secondary)', borderRadius: 6, border: '1px solid var(--border)' }}>
                 <div style={{
                   display: 'flex',
@@ -808,73 +805,137 @@ export default function ForkGamePage(props: ForkGamePageProps) {
                 <div style={{ marginTop: 12 }}>
                   <h4 style={{ fontSize: 12, marginBottom: 8 }}>Event Card</h4>
                   {playerState.currentDrawnCard ? (
-                    <div>
-                      {/* Wikipedia Thumbnail (prefer base64 data URL to bypass CSP) */}
-                      {(playerState.currentDrawnCard.wikiThumbnailDataUrl || playerState.currentDrawnCard.wikiThumbnail) && (
-                        <img
-                          src={
-                            playerState.currentDrawnCard.wikiThumbnailDataUrl
-                            || playerState.currentDrawnCard.wikiThumbnail
-                          }
-                          style={{
-                            width: '100%',
-                            height: 72,
-                            objectFit: 'cover',
-                            borderRadius: 6,
-                            marginBottom: 8,
-                          }}
-                          alt="Historical event"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                        />
-                      )}
-
-                      <div className="fork-card-hidden">
-                        <div className={`fork-tier-badge fork-tier-${playerState.currentDrawnCard.tier}`}>
-                          Tier {playerState.currentDrawnCard.tier}
+                    !cardRevealed ? (
+                      /* Mystery card — before reveal */
+                      <div style={{
+                        background: 'var(--bg-secondary)',
+                        border: '1px dashed var(--border)',
+                        borderRadius: 8,
+                        padding: 12,
+                        textAlign: 'center',
+                      }}>
+                        <div style={{
+                          fontSize: 11, fontWeight: 600,
+                          color: 'var(--text-tertiary)',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.08em',
+                          marginBottom: 8,
+                        }}>
+                          Event Card
                         </div>
-
-                        {/* Wikipedia Source */}
-                        {playerState.currentDrawnCard.wikiYear && (
-                          <div style={{fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4}}>
-                            From Wikipedia · {playerState.currentDrawnCard.wikiYear}
-                          </div>
-                        )}
-
-                        {/* Wikipedia Original Text */}
-                        {playerState.currentDrawnCard.wikiText ? (
-                          <div style={{
-                            fontSize: 13,
-                            fontStyle: 'italic',
-                            color: 'var(--text-secondary)',
-                            marginTop: 8,
-                            lineHeight: 1.5,
-                          }}>
-                            "{playerState.currentDrawnCard.wikiText.slice(0, 120)}..."
-                          </div>
-                        ) : (
-                          <div style={{ marginTop: 8, fontSize: 13 }}>
-                            ???
-                          </div>
-                        )}
+                        <div style={{ fontSize: 28, marginBottom: 8 }}>?</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 4 }}>
+                          From Wikipedia
+                        </div>
+                        <div style={{
+                          fontSize: 13, fontWeight: 600,
+                          color: 'var(--text-primary)',
+                          marginBottom: 12,
+                        }}>
+                          {playerState.currentDrawnCard.wikiYear ?? '???'}
+                        </div>
+                        <div style={{
+                          display: 'flex', alignItems: 'center',
+                          justifyContent: 'center', gap: 6, marginBottom: 12,
+                        }}>
+                          <span className={`fork-tier-badge fork-tier-${playerState.currentDrawnCard.tier}`}>
+                            Tier {playerState.currentDrawnCard.tier}
+                          </span>
+                          <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+                            {playerState.currentDrawnCard.tier === 3 ? 'Global event'
+                              : playerState.currentDrawnCard.tier === 2 ? 'Regional event'
+                              : 'Local event'}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => setCardRevealed(true)}
+                          style={{
+                            width: '100%', padding: 8,
+                            background: 'transparent',
+                            border: '1px solid var(--border)',
+                            borderRadius: 6, fontSize: 12,
+                            fontWeight: 600, cursor: 'pointer',
+                            color: 'var(--text-primary)',
+                          }}
+                        >
+                          Reveal Card
+                        </button>
                       </div>
-
-                      <button
-                        onClick={onPlayEventCard}
-                        disabled={playerState.influencePoints < playerState.currentDrawnCard.tier * 20}
-                        style={{
-                          width: "100%",
-                          marginTop: 8,
-                          padding: "6px 12px",
-                          background: playerState.influencePoints >= playerState.currentDrawnCard.tier * 20 ? "#4ECDC4" : "#555",
-                          border: "none",
-                          color: "white",
-                          cursor: playerState.influencePoints >= playerState.currentDrawnCard.tier * 20 ? "pointer" : "not-allowed",
-                          fontSize: 12,
-                        }}
-                      >
-                        Reveal & Play ({playerState.currentDrawnCard.tier * 20} IP)
-                      </button>
-                    </div>
+                    ) : (
+                      /* Revealed card — full details + play button */
+                      <div style={{
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 8,
+                        padding: 12,
+                      }}>
+                        {/* Wikipedia thumbnail */}
+                        {(playerState.currentDrawnCard.wikiThumbnailDataUrl || playerState.currentDrawnCard.wikiThumbnail) && (
+                          <img
+                            src={playerState.currentDrawnCard.wikiThumbnailDataUrl || playerState.currentDrawnCard.wikiThumbnail}
+                            style={{ width: '100%', height: 64, objectFit: 'cover', borderRadius: 6, marginBottom: 8 }}
+                            alt="Historical event"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
+                        )}
+                        {/* Tier + source */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                          <span className={`fork-tier-badge fork-tier-${playerState.currentDrawnCard.tier}`}>
+                            Tier {playerState.currentDrawnCard.tier}
+                          </span>
+                          {playerState.currentDrawnCard.wikiYear && (
+                            <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                              Wikipedia · {playerState.currentDrawnCard.wikiYear}
+                            </span>
+                          )}
+                        </div>
+                        {/* Title */}
+                        <div style={{
+                          fontSize: 13, fontWeight: 600,
+                          color: 'var(--text-primary)',
+                          marginBottom: 6, lineHeight: 1.4,
+                        }}>
+                          {playerState.currentDrawnCard.title}
+                        </div>
+                        {/* Wikipedia excerpt */}
+                        {playerState.currentDrawnCard.wikiText && (
+                          <div style={{
+                            fontSize: 12, fontStyle: 'italic',
+                            color: 'var(--text-secondary)', lineHeight: 1.5,
+                            marginBottom: 10,
+                            borderLeft: '2px solid var(--border)',
+                            paddingLeft: 8,
+                          }}>
+                            &ldquo;{playerState.currentDrawnCard.wikiText.slice(0, 100)}...&rdquo;
+                          </div>
+                        )}
+                        {/* Effects preview */}
+                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 10 }}>
+                          {playerState.currentDrawnCard.effects.length} effect{playerState.currentDrawnCard.effects.length !== 1 ? 's' : ''} on{' '}
+                          {playerState.currentDrawnCard.tier === 3 ? 'global territories'
+                            : playerState.currentDrawnCard.tier === 2 ? 'regional territories'
+                            : 'local territories'}
+                        </div>
+                        {/* Play button */}
+                        <button
+                          onClick={onPlayEventCard}
+                          disabled={playerState.influencePoints < playerState.currentDrawnCard.ipCost}
+                          style={{
+                            width: '100%', padding: 9,
+                            background: playerState.influencePoints >= playerState.currentDrawnCard.ipCost
+                              ? 'var(--text-primary)' : 'var(--border)',
+                            color: playerState.influencePoints >= playerState.currentDrawnCard.ipCost
+                              ? 'var(--bg-primary)' : 'var(--text-tertiary)',
+                            border: 'none', borderRadius: 6,
+                            fontSize: 13, fontWeight: 600,
+                            cursor: playerState.influencePoints >= playerState.currentDrawnCard.ipCost
+                              ? 'pointer' : 'not-allowed',
+                          }}
+                        >
+                          Play Card ({playerState.currentDrawnCard.ipCost} IP)
+                        </button>
+                      </div>
+                    )
                   ) : (
                     <div style={{ fontSize: 12, color: "#999" }}>No card drawn yet</div>
                   )}
@@ -1062,6 +1123,65 @@ export default function ForkGamePage(props: ForkGamePageProps) {
             </div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.4 }}>
               {activeEventBanner.description.slice(0, 150)}
+            </div>
+          </div>
+        )}
+
+        {/* Event Impact Overlay */}
+        {eventImpact && (
+          <div style={{
+            position: 'absolute',
+            top: 60,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 100,
+            background: eventImpact.tier === 3 ? '#712B13'
+              : eventImpact.tier === 2 ? '#633806'
+              : '#085041',
+            color: 'white',
+            padding: '16px 24px',
+            borderRadius: 10,
+            maxWidth: 420,
+            width: '90%',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+            animation: 'fadeIn 0.3s ease',
+          }}>
+            <div style={{
+              fontSize: 11, fontWeight: 700,
+              textTransform: 'uppercase', letterSpacing: '0.1em',
+              opacity: 0.75, marginBottom: 4,
+            }}>
+              Event Played
+            </div>
+            <div style={{
+              fontSize: 15, fontWeight: 700,
+              marginBottom: 12, lineHeight: 1.3,
+            }}>
+              {eventImpact.title}
+            </div>
+            <div style={{
+              fontSize: 12, fontWeight: 600,
+              opacity: 0.75, textTransform: 'uppercase',
+              letterSpacing: '0.08em', marginBottom: 8,
+            }}>
+              Impact on the timeline
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {eventImpact.lines.map((line, i) => (
+                <div key={i} style={{
+                  fontSize: 13, opacity: 0.9,
+                  display: 'flex', alignItems: 'center', gap: 6,
+                }}>
+                  <span style={{ opacity: 0.6 }}>→</span>
+                  {line}
+                </div>
+              ))}
+            </div>
+            <div style={{
+              fontSize: 11, opacity: 0.5,
+              marginTop: 12, textAlign: 'right',
+            }}>
+              Dismisses automatically
             </div>
           </div>
         )}
