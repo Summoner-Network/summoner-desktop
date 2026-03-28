@@ -284,129 +284,88 @@ export function useForkGame(): UseForkGameReturn {
       }
       lastEraRef.current = next.currentEra;
 
-      // Collect ALL events from ALL new history records added this turn
-      // (executeTurn adds one record per phase: event_reveal, player_actions,
-      //  agent_deliberation, agent_negotiation, agent_action, resolution, [era_summary])
+      // Collect new history records added this turn, split by phase
       const newRecords = next.history.slice(historyLenBefore);
-      const allTurnEvents = newRecords.flatMap(r => r.events);
-      const turnMeta = newRecords[0] ?? next.history[next.history.length - 1];
 
-      // Extract ticker messages — agent actions only (combat, diplomacy, investment)
+      // Helper: clean faction IDs to names in a message
+      const cleanMsg = (msg: string): string => {
+        let clean = msg;
+        Object.entries(next.factions).forEach(([id, f]) => {
+          clean = clean.replaceAll(id, (f as any).name);
+        });
+        return clean
+          .replace(/diplomat \d+/gi, 'Diplomat')
+          .replace(/conqueror \d+/gi, 'Conqueror')
+          .replace(/economist \d+/gi, 'Economist')
+          .replace(/historian \d+/gi, 'Historian')
+          .replace(/\s+/g, ' ')
+          .trim();
+      };
+
+      // TICKER STREAM — agent_action + agent_negotiation phases only
       {
-        const agentActionEvents = allTurnEvents
+        const agentRecords = newRecords.filter(r =>
+          r.phase === 'agent_action' || r.phase === 'agent_negotiation'
+        );
+        const agentEvents = agentRecords.flatMap(r => r.events)
           .filter(msg =>
-            msg.includes('conquered') ||
-            msg.includes('defended') ||
-            msg.includes('reinforced') ||
-            msg.includes('invested') ||
-            msg.includes('formed an alliance') ||
-            msg.includes('rejected') ||
-            msg.includes('passed')
+            !msg.includes('Advancing to phase') &&
+            !msg.includes('Agent action execution') &&
+            !msg.includes('Agent negotiation phase') &&
+            !msg.includes('No agent actions') &&
+            !msg.includes('No alliance proposals') &&
+            !msg.includes('Alliance negotiation phase') &&
+            !msg.includes('Agent actions being executed') &&
+            !msg.includes('passed')
           )
-          .filter(msg => !msg.includes('Ripple'))
-          .filter(msg => !msg.includes('event_reveal'))
-          .map(msg => {
-            let clean = msg;
-            if (next.factions) {
-              Object.entries(next.factions).forEach(([id, f]) => {
-                clean = clean.replaceAll(id, (f as any).name);
-              });
-            }
-            clean = clean
-              .replace(/diplomat \d+/gi, 'Diplomat')
-              .replace(/conqueror \d+/gi, 'Conqueror')
-              .replace(/economist \d+/gi, 'Economist')
-              .replace(/historian \d+/gi, 'Historian')
-              .replace(/\s+/g, ' ')
-              .trim();
-            return clean;
-          })
+          .map(cleanMsg)
           .filter(msg => msg.length > 0);
 
-        if (agentActionEvents.length > 0) {
-          setTickerMessages(prev => [...agentActionEvents, ...prev].slice(0, 30));
+        if (agentEvents.length > 0) {
+          setTickerMessages(prev => [...agentEvents, ...prev].slice(0, 30));
         }
       }
 
-      // Extract live log entries from all new records
+      // LIVE LOG STREAM — event_reveal, resolution, era_summary phases
       {
-        // Filter out engine noise — keep only meaningful agent actions
-        const noisePatterns = [
-          /No events remaining/i,
-          /Advancing to phase/i,
-          /Player actions window/i,
-          /Waiting for player/i,
-          /Agents deliberating/i,
-          /Agent negotiation phase/i,
-          /Agent action execution/i,
-          /Agent actions being executed/i,
-          /Resolving turn outcomes/i,
-          /Generating era summary/i,
-          /Personality drift/i,
-          /agents completed deliberation/i,
-          /Players may now act/i,
-          /Odds updated/i,
-          /Turn resolution phase/i,
-          /Alliance negotiation phase/i,
-          /Agent deliberation phase/i,
-          /No agent actions/i,
-          /No alliance proposals/i,
-          /Recalculating faction/i,
-        ];
-
-        const meaningfulEvents = allTurnEvents.filter(event =>
-          !noisePatterns.some(pattern => pattern.test(event))
+        const worldRecords = newRecords.filter(r =>
+          r.phase === 'event_reveal' || r.phase === 'resolution' || r.phase === 'era_summary'
         );
+        const worldEvents = worldRecords.flatMap(r => r.events)
+          .filter(msg =>
+            !msg.includes('Advancing to phase') &&
+            !msg.includes('Revealing world event') &&
+            !msg.includes('Resolving turn outcomes') &&
+            !msg.includes('Turn resolution phase') &&
+            !msg.includes('Player actions window') &&
+            !msg.includes('Waiting for player') &&
+            !msg.includes('Recalculating') &&
+            !msg.includes('No events remaining') &&
+            !msg.includes('Odds calculated') &&
+            !msg.includes('Odds updated')
+          );
 
-        const newEntries: LiveLogEntry[] = meaningfulEvents.map(event => {
-          // Pattern matching for event types and icons
-          const patterns = [
-            { match: /conquered/i, emoji: '⚔️', type: 'combat' as const },
-            { match: /defended/i, emoji: '🛡️', type: 'combat' as const },
-            { match: /reinforced/i, emoji: '🔰', type: 'combat' as const },
-            { match: /invested/i, emoji: '💰', type: 'investment' as const },
-            { match: /formed an alliance/i, emoji: '🤝', type: 'alliance' as const },
-            { match: /rejected.*alliance/i, emoji: '🚫', type: 'alliance' as const },
-            { match: /Event:|World event/i, emoji: '🎴', type: 'event' as const },
-            { match: /earned.*IP/i, emoji: '📈', type: 'ip' as const },
-            { match: /Ripple/i, emoji: '⏱️', type: 'event' as const },
-          ];
-
+        const newEntries: LiveLogEntry[] = worldEvents.map(event => {
           let type: LiveLogEntry['type'] = 'general';
-          let emoji = '📝';
+          let emoji = '•';
 
-          for (const pattern of patterns) {
-            if (pattern.match.test(event)) {
-              emoji = pattern.emoji;
-              type = pattern.type;
-              break;
-            }
-          }
-
-          // Clean up message text
-          let message = event.replace(/^[📝🤝⚔️🎴📈💰🛡️🔰🚫⏱️]\s*/, '');
-
-          // Replace faction_1, faction_2, etc. with actual faction names
-          Object.entries(next.factions).forEach(([factionId, faction]) => {
-            message = message.replace(new RegExp(factionId, 'g'), faction.name);
-          });
-
-          // Remove archetype instance numbers (e.g., "diplomat 1" -> "Diplomat")
-          message = message.replace(/\b(diplomat|conqueror|merchant|scholar|general)\s+\d+\b/gi, (match) => {
-            return match.split(' ')[0].charAt(0).toUpperCase() + match.split(' ')[0].slice(1).toLowerCase();
-          });
+          if (/Event:|World event|🎴/.test(event)) { emoji = '🎴'; type = 'event'; }
+          else if (/earned.*IP/i.test(event)) { emoji = '📈'; type = 'ip'; }
+          else if (/Ripple/i.test(event)) { emoji = '⏱️'; type = 'event'; }
+          else if (/era/i.test(event)) { emoji = '📜'; type = 'general'; }
 
           return {
-            turn: turnMeta?.turn ?? next.currentTurn,
-            era: turnMeta?.era ?? next.currentEra,
+            turn: next.currentTurn,
+            era: next.currentEra,
             type,
-            message,
-            emoji
+            message: cleanMsg(event),
+            emoji,
           };
         });
 
-        // Newest first — prepend new entries
-        setLiveLog(prev => [...newEntries, ...prev].slice(0, 100));
+        if (newEntries.length > 0) {
+          setLiveLog(prev => [...newEntries, ...prev].slice(0, 100));
+        }
       }
     } catch (err) {
       console.error('[Fork] Turn failed:', err);

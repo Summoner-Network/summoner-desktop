@@ -2226,7 +2226,7 @@ button:disabled {
   position: absolute;
   inset: 0;
   z-index: 100;
-  background: var(--color-background-primary, var(--bg-primary, #1a1a1a));
+  background: transparent;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2252,24 +2252,33 @@ button:disabled {
 
 .fork-setup-subtitle {
   font-size: 16px;
-  color: var(--text-tertiary);
+  color: #555555;
   font-style: italic;
+  background: #ffffff;
+  padding: 4px 16px;
+  border-radius: 20px;
+  display: inline-block;
 }
 
 .fork-setup-section {
   width: 100%;
   max-width: 900px;
   margin-bottom: 40px;
+  text-align: center;
 }
 
 .fork-setup-section-title {
   font-size: 14px;
-  font-weight: 600;
-  color: var(--text-tertiary);
+  font-weight: 700;
+  color: #1a1a1a;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   margin-bottom: 16px;
   text-align: center;
+  background: #ffffff;
+  padding: 4px 12px;
+  border-radius: 20px;
+  display: inline-block;
 }
 
 .fork-setup-cards {
@@ -2281,8 +2290,9 @@ button:disabled {
 .fork-setup-card {
   position: relative;
   z-index: 10;
-  background: var(--color-background-primary, var(--bg-primary, #1a1a1a));
-  border: 1px solid var(--color-border-secondary, var(--border, #333));
+  background: #ffffff;
+  color: #1a1a1a;
+  border: 1px solid rgba(0, 0, 0, 0.12);
   border-radius: 12px;
   padding: 20px;
   cursor: pointer;
@@ -2290,13 +2300,13 @@ button:disabled {
 }
 
 .fork-setup-card:hover {
-  border-color: var(--text-secondary);
+  border-color: rgba(0, 0, 0, 0.3);
   transform: translateY(-2px);
 }
 
 .fork-setup-card.selected {
-  border: 2px solid var(--color-text-primary, var(--text-primary, #fff));
-  background: var(--bg-tertiary, #2a2a2a);
+  background: #ffffff;
+  border: 2px solid #1a1a1a;
 }
 
 .fork-setup-card-header {
@@ -2309,16 +2319,17 @@ button:disabled {
 .fork-setup-card-name {
   font-size: 18px;
   font-weight: 700;
+  color: #1a1a1a;
 }
 
 .fork-setup-card-year {
   font-size: 14px;
-  color: var(--text-tertiary);
+  color: #666666;
 }
 
 .fork-setup-card-desc {
   font-size: 13px;
-  color: var(--text-secondary);
+  color: #444444;
   line-height: 1.5;
   margin-bottom: 12px;
 }
@@ -2328,7 +2339,7 @@ button:disabled {
   flex-direction: column;
   gap: 6px;
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: #666666;
 }
 
 .fork-setup-card-dot {
@@ -2356,8 +2367,8 @@ button:disabled {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  background: var(--color-text-primary, var(--text-primary, #e5e5e5));
-  color: var(--color-background-primary, var(--bg-primary, #1a1a1a));
+  background: #1a1a1a;
+  color: #ffffff;
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -2373,6 +2384,6 @@ button:disabled {
 }
 
 .fork-setup-begin-btn:not(:disabled):hover {
-  background: var(--text-secondary);
+  background: #333333;
   transform: scale(1.05);
 }

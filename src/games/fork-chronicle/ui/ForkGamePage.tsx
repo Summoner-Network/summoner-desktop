@@ -2,7 +2,7 @@
  * ForkGamePage - Main Fork Chronicle UI component
  */
 
-import React, { useMemo, useState, useEffect, useCallback } from "react";
+import React, { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import type { MercatorParamsV1 } from "../../../utils/mercator";
 import { latLonToPixel } from "../../../utils/mercator";
 import type { GameState, GameConfig } from "../src/types/game-state";
@@ -116,6 +116,38 @@ export default function ForkGamePage(props: ForkGamePageProps) {
   const [exportConfirmed, setExportConfirmed] = useState(false);
   const [showingReveal, setShowingReveal] = useState(false);
   const [cardRevealed, setCardRevealed] = useState(false);
+  // Map zoom state
+  const [zoomedViewBox, setZoomedViewBox] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const baseViewBox = useMemo(() => {
+    if (!mapViewBox) return null;
+    const parts = mapViewBox.split(/\s+/).map(Number);
+    if (parts.length !== 4 || parts.some(isNaN)) return null;
+    return { x: parts[0], y: parts[1], width: parts[2], height: parts[3] };
+  }, [mapViewBox]);
+
+  const isZoomedIn = !!(zoomedViewBox && baseViewBox && zoomedViewBox.width < baseViewBox.width * 0.9);
+
+  const zoomToTerritory = useCallback((territoryId: string) => {
+    const coords = territoryCoords[territoryId as keyof typeof territoryCoords];
+    if (!coords || !mapParams || !baseViewBox) return;
+    const projected = latLonToPixel(coords.lat, coords.lon, mapParams);
+    const zoomWidth = baseViewBox.width * 0.25;
+    const zoomHeight = baseViewBox.height * 0.25;
+    setZoomedViewBox({
+      x: Math.max(baseViewBox.x, Math.min(projected.x - zoomWidth / 2, baseViewBox.x + baseViewBox.width - zoomWidth)),
+      y: Math.max(baseViewBox.y, Math.min(projected.y - zoomHeight / 2, baseViewBox.y + baseViewBox.height - zoomHeight)),
+      width: zoomWidth,
+      height: zoomHeight,
+    });
+  }, [mapParams, baseViewBox]);
+
+  const resetZoom = useCallback(() => setZoomedViewBox(null), []);
+
+  const [activeCombat, setActiveCombat] = useState<Record<string, {
+    type: 'conquest' | 'attack';
+    attackerColor: string;
+  }>>({});
+  const prevTerritoriesRef = useRef<Record<string, { controlledBy: string | null }> | null>(null);
   const [hoveredTerritory, setHoveredTerritory] = useState<{
     name: string;
     faction: string;
@@ -312,6 +344,44 @@ export default function ForkGamePage(props: ForkGamePageProps) {
     setCardRevealed(false);
   }, [playerState?.currentDrawnCard?.id]);
 
+  // Detect territory control changes for combat animations
+  useEffect(() => {
+    if (!gameState) return;
+    const prev = prevTerritoriesRef.current;
+    if (prev) {
+      const newCombat: Record<string, { type: 'conquest' | 'attack'; attackerColor: string }> = {};
+      Object.entries(gameState.territories).forEach(([id, territory]) => {
+        const prevT = prev[id];
+        if (!prevT) return;
+        if (territory.controlledBy !== prevT.controlledBy) {
+          const attackerFaction = territory.controlledBy
+            ? gameState.factions[territory.controlledBy]
+            : null;
+          newCombat[id] = {
+            type: 'conquest',
+            attackerColor: attackerFaction?.color ?? '#888',
+          };
+        }
+      });
+      if (Object.keys(newCombat).length > 0) {
+        setActiveCombat(p => ({ ...p, ...newCombat }));
+        setTimeout(() => {
+          setActiveCombat(p => {
+            const next = { ...p };
+            Object.keys(newCombat).forEach(id => delete next[id]);
+            return next;
+          });
+        }, 2000);
+      }
+    }
+    // Snapshot current for next diff
+    const snapshot: Record<string, { controlledBy: string | null }> = {};
+    Object.entries(gameState.territories).forEach(([id, t]) => {
+      snapshot[id] = { controlledBy: t.controlledBy };
+    });
+    prevTerritoriesRef.current = snapshot;
+  }, [gameState]);
+
   // Debug map rendering
   useEffect(() => {
     console.log('[Fork Map Debug]', {
@@ -369,12 +439,12 @@ export default function ForkGamePage(props: ForkGamePageProps) {
                       fontSize: 14,
                       fontWeight: 600,
                       background: factionCount === n
-                        ? 'var(--text-primary, #e5e5e5)'
-                        : 'var(--bg-secondary, #222)',
+                        ? '#1a1a1a'
+                        : '#f5f5f5',
                       color: factionCount === n
-                        ? 'var(--bg-primary, #1a1a1a)'
-                        : 'var(--text-secondary, #aaa)',
-                      border: '1px solid var(--border, #333)',
+                        ? '#ffffff'
+                        : '#333333',
+                      border: '1px solid rgba(0,0,0,0.15)',
                       borderRadius: 8,
                       cursor: 'pointer',
                     }}
@@ -385,9 +455,13 @@ export default function ForkGamePage(props: ForkGamePageProps) {
               </div>
               <div style={{
                 fontSize: 12,
-                color: 'var(--text-tertiary)',
+                color: '#666666',
                 marginTop: 6,
                 textAlign: 'center',
+                background: '#ffffff',
+                padding: '4px 12px',
+                borderRadius: 20,
+                display: 'inline-block',
               }}>
                 {factionCount === 2 ? 'Two dominant powers compete for the world'
                   : factionCount === 3 ? 'Three factions in an unstable balance of power'
@@ -415,11 +489,10 @@ export default function ForkGamePage(props: ForkGamePageProps) {
                     style={{
                       padding: '10px 12px',
                       background: selectedCountryId === country.id
-                        ? 'var(--bg-tertiary, #2a2a2a)'
-                        : 'var(--bg-primary, #1a1a1a)',
+                        ? '#f0f0f0' : '#ffffff',
                       border: selectedCountryId === country.id
-                        ? '2px solid var(--text-primary, #e5e5e5)'
-                        : '1px solid var(--border, #333)',
+                        ? '2px solid #1a1a1a'
+                        : '1px solid rgba(0,0,0,0.10)',
                       borderRadius: 8,
                       cursor: 'pointer',
                       textAlign: 'center',
@@ -429,10 +502,10 @@ export default function ForkGamePage(props: ForkGamePageProps) {
                     <div style={{ fontSize: 24, marginBottom: 4 }}>
                       {country.flag || '🏳️'}
                     </div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#1a1a1a' }}>
                       {country.name}
                     </div>
-                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                    <div style={{ fontSize: 10, color: '#666666', marginTop: 2 }}>
                       {country.continent}
                     </div>
                   </div>
@@ -1186,10 +1259,32 @@ export default function ForkGamePage(props: ForkGamePageProps) {
           </div>
         )}
 
+        {isZoomedIn && (
+          <button
+            onClick={resetZoom}
+            style={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              zIndex: 20,
+              padding: '6px 12px',
+              fontSize: 12,
+              background: 'rgba(0,0,0,0.6)',
+              color: 'white',
+              border: 'none',
+              borderRadius: 6,
+              cursor: 'pointer',
+            }}
+          >
+            Reset zoom
+          </button>
+        )}
         <svg
-          viewBox={mapViewBox}
+          viewBox={zoomedViewBox
+            ? `${zoomedViewBox.x} ${zoomedViewBox.y} ${zoomedViewBox.width} ${zoomedViewBox.height}`
+            : mapViewBox}
           preserveAspectRatio="xMidYMid meet"
-          style={{ width: "100%", height: "100%" }}
+          style={{ width: "100%", height: "100%", transition: 'all 0.4s ease' }}
           {...mapRootAttrs}
         >
           <g dangerouslySetInnerHTML={{ __html: mapSvgInner }} />
@@ -1217,9 +1312,9 @@ export default function ForkGamePage(props: ForkGamePageProps) {
                 cy={rect.y + rect.height / 2}
                 rx={rect.width / 2}
                 ry={rect.height / 2}
-                fill={faction ? faction.color : '#888888'}
+                fill={activeCombat[id]?.type === 'conquest' ? 'white' : (faction ? faction.color : '#888888')}
                 opacity={ellipseOpacity}
-                style={{ pointerEvents: 'none' }}
+                style={{ pointerEvents: 'none', transition: 'fill 0.3s ease' }}
               />
             );
           })}
@@ -1257,6 +1352,7 @@ export default function ForkGamePage(props: ForkGamePageProps) {
                     })
                   }
                   onMouseLeave={() => setHoveredTerritory(null)}
+                  onClick={() => zoomToTerritory(territory.id)}
                   style={{ cursor: "pointer" }}
                 >
                   {isContested && (
@@ -1280,6 +1376,33 @@ export default function ForkGamePage(props: ForkGamePageProps) {
                 >
                   {territory.strength}
                 </text>
+
+                {/* Conquest ring animation */}
+                {activeCombat[territory.id]?.type === 'conquest' && (
+                  <>
+                    <circle
+                      cx={x}
+                      cy={y}
+                      r={4}
+                      fill="none"
+                      stroke={activeCombat[territory.id].attackerColor}
+                      strokeWidth={2}
+                    >
+                      <animate attributeName="r" from="4" to="30" dur="1.5s" fill="freeze" />
+                      <animate attributeName="opacity" from="0.8" to="0" dur="1.5s" fill="freeze" />
+                    </circle>
+                    <circle
+                      cx={x}
+                      cy={y}
+                      r={dotRadius}
+                      fill="white"
+                      opacity={0.9}
+                    >
+                      <animate attributeName="r" from={String(dotRadius)} to={String(dotRadius + 10)} dur="0.5s" fill="freeze" />
+                      <animate attributeName="opacity" from="0.9" to="0" dur="0.5s" fill="freeze" />
+                    </circle>
+                  </>
+                )}
               </g>
             );
           })}
