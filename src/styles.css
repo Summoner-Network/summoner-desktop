@@ -1803,3 +1803,143 @@ button:disabled {
   height: 16px;
   display: inline-block;
 }
+
+/* Fork Chronicle Styles */
+
+.fork-page {
+  display: grid;
+  grid-template-columns: 240px 1fr 280px;
+  gap: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.fork-left-panel {
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fork-right-panel {
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fork-map-panel {
+  position: relative;
+  overflow: hidden;
+}
+
+.fork-faction-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.fork-faction-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.fork-odds-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--bg-secondary);
+  margin-left: auto;
+}
+
+.fork-era-card {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid var(--border-subtle);
+}
+
+.fork-narrative {
+  font-style: italic;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  border-left: 2px solid var(--border);
+  padding-left: 10px;
+  margin-top: 8px;
+}
+
+.fork-chronicle-entry {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.fork-chronicle-era-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.fork-card-hidden {
+  background: var(--bg-secondary);
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  padding: 10px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.fork-tier-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.fork-tier-1 {
+  background: #E1F5EE;
+  color: #085041;
+}
+
+.fork-tier-2 {
+  background: #FAEEDA;
+  color: #633806;
+}
+
+.fork-tier-3 {
+  background: #FAECE7;
+  color: #712B13;
+}
+
+.fork-ip-display {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.fork-game-over {
+  text-align: center;
+  padding: 24px 16px;
+}
+
+.fork-winner-name {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}

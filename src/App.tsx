@@ -9,7 +9,10 @@ import IdentitiesPage from "./components/IdentitiesPage";
 import ProjectsPage, { ProjectItem, ProjectSpec } from "./components/ProjectsPage";
 import HelpPage from "./components/HelpPage";
 import PlaceholderPanel from "./components/PlaceholderPanel";
+import ForkGamePage from "./games/fork-chronicle/ui/ForkGamePage";
 import { formatValue, parseServerMessage } from "./utils/message";
+import { useMapData } from "./hooks/useMapData";
+import { useForkGame } from "./games/fork-chronicle/ui/useForkGame";
 import logoMage from "../assets/icons/logo_mage.png";
 
 export type ServerProfile = {
@@ -21,7 +24,7 @@ export type ServerProfile = {
 
 export type ConnectionStatus = "disconnected" | "connecting" | "connected";
 export type Identity = { id: string; name: string; value: Record<string, unknown> };
-type View = "chat" | "servers" | "projects" | "agents" | "network" | "identities" | "help" | "dashboard";
+type View = "chat" | "servers" | "projects" | "agents" | "network" | "identities" | "help" | "dashboard" | "fork";
 type RemoteAgent = {
   addr: string;
   firstSeen: number;
@@ -105,6 +108,10 @@ export default function App() {
   const selectedIdentity = identities.find((id) => id.id === selectedIdentityId) ?? null;
   const [identitiesHydrated, setIdentitiesHydrated] = useState(false);
   const identitiesSaveTimerRef = React.useRef<number | null>(null);
+
+  // Fork Chronicle hooks
+  const mapData = useMapData();
+  const forkGame = useForkGame();
 
   useEffect(() => {
     let active = true;
@@ -762,6 +769,7 @@ export default function App() {
         identities={identities}
         selectedIdentityId={selectedIdentityId}
         onSelectIdentityId={setSelectedIdentityId}
+        onSelectPage={(page) => setView(page as View)}
       />
 
       <div className="main">
@@ -887,6 +895,24 @@ export default function App() {
                 onSelectIdentityId={setSelectedIdentityId}
                 onAddIdentity={handleAddIdentity}
                 onUpdateIdentity={handleUpdateIdentity}
+              />
+            ) : null}
+            {view === "fork" ? (
+              <ForkGamePage
+                mapParams={mapData.mapParams}
+                mapSvgInner={mapData.mapSvgInner}
+                mapRootAttrs={mapData.mapRootAttrs}
+                mapViewBox={mapData.mapViewBox}
+                gameState={forkGame.gameState}
+                isRunning={forkGame.isRunning}
+                turnSpeed={forkGame.turnSpeed}
+                playerState={forkGame.playerState}
+                onStartGame={forkGame.startGame}
+                onStopGame={forkGame.stopGame}
+                onSetTurnSpeed={forkGame.setTurnSpeed}
+                onPlaceBet={forkGame.placeBet}
+                onPlayEventCard={forkGame.playEventCard}
+                onPatronBacking={forkGame.patronBacking}
               />
             ) : null}
             {view === "help" ? <HelpPage onWorkspaceChange={refreshWorkspaceData} /> : null}

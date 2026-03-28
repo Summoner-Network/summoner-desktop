@@ -27,6 +27,7 @@ export default function Sidebar(props: {
   identities: Identity[];
   selectedIdentityId: string | null;
   onSelectIdentityId: (id: string | null) => void;
+  onSelectPage?: (page: string) => void;
 }) {
   const {
     servers,
@@ -42,7 +43,8 @@ export default function Sidebar(props: {
     onSelectAgent,
     identities,
     selectedIdentityId,
-    onSelectIdentityId
+    onSelectIdentityId,
+    onSelectPage
   } = props;
   const remotes = Object.values(remoteByAddr).sort((a, b) => b.lastSeen - a.lastSeen);
   const serversListRef = useRef<HTMLDivElement | null>(null);
@@ -53,13 +55,15 @@ export default function Sidebar(props: {
     servers: false,
     agents: false,
     network: false,
-    ids: false
+    ids: false,
+    fork: false
   });
   const [collapsed, setCollapsed] = useState({
     servers: false,
     agents: false,
     network: false,
-    ids: false
+    ids: false,
+    fork: false
   });
 
   useEffect(() => {
@@ -68,7 +72,8 @@ export default function Sidebar(props: {
         servers: !!serversListRef.current && serversListRef.current.scrollHeight > serversListRef.current.clientHeight + 1,
         agents: !!agentsListRef.current && agentsListRef.current.scrollHeight > agentsListRef.current.clientHeight + 1,
         network: !!networkListRef.current && networkListRef.current.scrollHeight > networkListRef.current.clientHeight + 1,
-        ids: !!idsListRef.current && idsListRef.current.scrollHeight > idsListRef.current.clientHeight + 1
+        ids: !!idsListRef.current && idsListRef.current.scrollHeight > idsListRef.current.clientHeight + 1,
+        fork: false
       });
     };
     const raf = requestAnimationFrame(checkScrollable);
@@ -267,6 +272,46 @@ export default function Sidebar(props: {
             </div>
           </div>
           ))}
+          </div>
+        </div>
+      </div>
+
+      <div className={`sidebar-section sidebar-fork ${collapsed.fork ? "collapsed" : ""}`}>
+        <button
+          type="button"
+          className="sidebar-section-title"
+          onClick={() => setCollapsed((prev) => ({ ...prev, fork: !prev.fork }))}
+          aria-expanded={!collapsed.fork}
+        >
+          <span className="section-caret" aria-hidden="true" />
+          <span>Fork Chronicle</span>
+        </button>
+        <div className="sidebar-list-frame">
+          <div className="list sidebar-list" aria-hidden={collapsed.fork}>
+            <div
+              className="list-item clickable"
+              onClick={() => onSelectPage?.("fork")}
+              role="button"
+              tabIndex={0}
+            >
+              <div className="row align-center gap12">
+                <div className="list-icon-wrap">
+                  <svg
+                    className="list-icon"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path d="M8 2 L8 6 M8 10 L8 14 M5 5 L8 2 L11 5 M5 11 L8 14 L11 11 M4 8 L12 8" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+                  </svg>
+                </div>
+                <div className="sidebar-text">
+                  <div className="fw600 sidebar-title">Launch Fork Chronicle</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
