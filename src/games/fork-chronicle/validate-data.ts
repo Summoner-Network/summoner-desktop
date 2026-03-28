@@ -73,7 +73,7 @@ async function validateData() {
     console.log(`\n══════ ${epochId.toUpperCase()} ══════`);
 
     try {
-      const state = initializeGame({
+      const state = await initializeGame({
         seed: `validate-${epochId}`,
         factionCount: 4,
         players: [{ playerId: "validator", displayName: "Validator", startingInfluencePoints: 100 }],

@@ -324,7 +324,7 @@ function phaseAgentAction(state: GameState): GameState {
  * Phase 6: Resolution
  * Apply territory changes, recalculate resources, evaluate bets, check win condition
  */
-function phaseResolution(state: GameState): GameState {
+async function phaseResolution(state: GameState): Promise<GameState> {
   logEvent(state, "Resolving turn outcomes");
 
   const events: string[] = ["Turn resolution phase"];
@@ -372,7 +372,7 @@ function phaseResolution(state: GameState): GameState {
   state.currentTurn += 1;
 
   // Capture hash for the new turn (for events in era_summary and beyond)
-  state.currentTurnStateHash = generateStateHash(state);
+  state.currentTurnStateHash = await generateStateHash(state);
 
   return state;
 }
@@ -381,7 +381,7 @@ function phaseResolution(state: GameState): GameState {
  * Phase 7: Era Summary
  * Fires every 5 turns, produces EraCard and narrative summary
  */
-function phaseEraSummary(state: GameState): GameState {
+async function phaseEraSummary(state: GameState): Promise<GameState> {
   logEvent(state, "Generating era summary");
 
   const events: string[] = [`Era ${state.currentEra} summary`];
@@ -425,7 +425,7 @@ function phaseEraSummary(state: GameState): GameState {
   }
 
   // Recapture hash after patron effects so era_summary event has correct hash
-  state.currentTurnStateHash = generateStateHash(state);
+  state.currentTurnStateHash = await generateStateHash(state);
 
   // Emit to Summoner Analytics AFTER all state modifications
   emitEraSummary(state, eraCard);
@@ -457,7 +457,7 @@ function phaseEraSummary(state: GameState): GameState {
 
   // Recapture hash so next executeTurn uses consistent hash
   // (next executeTurn will start with event_reveal phase)
-  state.currentTurnStateHash = generateStateHash(state);
+  state.currentTurnStateHash = await generateStateHash(state);
 
   return state;
 }
@@ -544,10 +544,10 @@ async function executePhase(state: GameState): Promise<GameState> {
       return phaseAgentAction(state);
 
     case "resolution":
-      return phaseResolution(state);
+      return await phaseResolution(state);
 
     case "era_summary":
-      return phaseEraSummary(state);
+      return await phaseEraSummary(state);
 
     case "game_over":
       logEvent(state, "Game over");

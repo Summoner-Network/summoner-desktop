@@ -18,7 +18,7 @@ import {
 describe("Analytics Integration", () => {
   describe("State Hashing", () => {
     it("generates different hashes when territory ownership changes", async () => {
-      const state = initializeGame({
+      const state = await initializeGame({
         seed: "hash-test-1",
         factionCount: 4,
         players: [{ playerId: "player1", displayName: "Player 1", startingInfluencePoints: 100 }],
@@ -27,7 +27,7 @@ describe("Analytics Integration", () => {
       });
 
       // Capture hash before any changes
-      const hashBefore = generateStateHash(state);
+      const hashBefore = await generateStateHash(state);
 
       // Simulate a territory transfer by modifying faction territories directly
       const factions = Object.values(state.factions);
@@ -53,7 +53,7 @@ describe("Analytics Integration", () => {
       state.factions[factionBId].territories.push(territoryToTransfer);
 
       // Capture hash after change
-      const hashAfter = generateStateHash(state);
+      const hashAfter = await generateStateHash(state);
 
       expect(hashBefore).not.toBe(hashAfter);
       expect(hashBefore).toBeTruthy();
@@ -61,7 +61,7 @@ describe("Analytics Integration", () => {
     });
 
     it("generates identical hashes for identical game states", async () => {
-      const state1 = initializeGame({
+      const state1 = await initializeGame({
         seed: "identical-test",
         factionCount: 4,
         players: [{ playerId: "player1", displayName: "Player 1", startingInfluencePoints: 100 }],
@@ -69,7 +69,7 @@ describe("Analytics Integration", () => {
         eventPackIds: ["base"],
       });
 
-      const state2 = initializeGame({
+      const state2 = await initializeGame({
         seed: "identical-test",
         factionCount: 4,
         players: [{ playerId: "player1", displayName: "Player 1", startingInfluencePoints: 100 }],
@@ -77,14 +77,14 @@ describe("Analytics Integration", () => {
         eventPackIds: ["base"],
       });
 
-      const hash1 = generateStateHash(state1);
-      const hash2 = generateStateHash(state2);
+      const hash1 = await generateStateHash(state1);
+      const hash2 = await generateStateHash(state2);
 
       expect(hash1).toBe(hash2);
     });
 
     it("generates different hashes when faction reputation changes", async () => {
-      const state = initializeGame({
+      const state = await initializeGame({
         seed: "reputation-test",
         factionCount: 4,
         players: [{ playerId: "player1", displayName: "Player 1", startingInfluencePoints: 100 }],
@@ -92,14 +92,14 @@ describe("Analytics Integration", () => {
         eventPackIds: ["base"],
       });
 
-      const hashBefore = generateStateHash(state);
+      const hashBefore = await generateStateHash(state);
 
       // Change a faction's reputation directly in state
       const factionId = Object.keys(state.factions)[0];
       const originalReputation = state.factions[factionId].reputation;
       state.factions[factionId].reputation = originalReputation + 10;
 
-      const hashAfter = generateStateHash(state);
+      const hashAfter = await generateStateHash(state);
 
       expect(hashBefore).not.toBe(hashAfter);
     });
@@ -107,7 +107,7 @@ describe("Analytics Integration", () => {
 
   describe("Event Emission", () => {
     it("emits all 9 event types during a complete game flow", async () => {
-      const state = initializeGame({
+      const state = await initializeGame({
         seed: "complete-flow-test",
         factionCount: 4,
         players: [
@@ -160,7 +160,7 @@ describe("Analytics Integration", () => {
     });
 
     it("includes all required fields in each event", async () => {
-      const state = initializeGame({
+      const state = await initializeGame({
         seed: "field-validation-test",
         factionCount: 4,
         players: [{ playerId: "player1", displayName: "Player 1", startingInfluencePoints: 100 }],
@@ -188,7 +188,7 @@ describe("Analytics Integration", () => {
     });
 
     it("maintains consistent stateHash within a single turn", async () => {
-      const state = initializeGame({
+      const state = await initializeGame({
         seed: "hash-consistency-test",
         factionCount: 4,
         players: [{ playerId: "player1", displayName: "Player 1", startingInfluencePoints: 100 }],
@@ -225,7 +225,7 @@ describe("Analytics Integration", () => {
 
   describe("Replay Validation", () => {
     it("validates a clean replay with no hash mismatches", async () => {
-      const state = initializeGame({
+      const state = await initializeGame({
         seed: "clean-replay-test",
         factionCount: 4,
         players: [{ playerId: "player1", displayName: "Player 1", startingInfluencePoints: 100 }],
@@ -248,7 +248,7 @@ describe("Analytics Integration", () => {
     });
 
     it("catches deliberately injected hash mismatch", async () => {
-      const state = initializeGame({
+      const state = await initializeGame({
         seed: "corrupted-replay-test",
         factionCount: 4,
         players: [{ playerId: "player1", displayName: "Player 1", startingInfluencePoints: 100 }],
@@ -297,7 +297,7 @@ describe("Analytics Integration", () => {
 
   describe("Filter Methods", () => {
     it("getEventsByType filters correctly", async () => {
-      const state = initializeGame({
+      const state = await initializeGame({
         seed: "filter-type-test",
         factionCount: 4,
         players: [{ playerId: "player1", displayName: "Player 1", startingInfluencePoints: 100 }],
@@ -326,7 +326,7 @@ describe("Analytics Integration", () => {
     });
 
     it("getEventsByTurn filters correctly", async () => {
-      const state = initializeGame({
+      const state = await initializeGame({
         seed: "filter-turn-test",
         factionCount: 4,
         players: [{ playerId: "player1", displayName: "Player 1", startingInfluencePoints: 100 }],
@@ -355,7 +355,7 @@ describe("Analytics Integration", () => {
     });
 
     it("returns empty array for non-existent turn", async () => {
-      const state = initializeGame({
+      const state = await initializeGame({
         seed: "nonexistent-turn-test",
         factionCount: 4,
         players: [{ playerId: "player1", displayName: "Player 1", startingInfluencePoints: 100 }],
@@ -371,7 +371,7 @@ describe("Analytics Integration", () => {
     });
 
     it("returns empty array for non-existent event type", async () => {
-      const state = initializeGame({
+      const state = await initializeGame({
         seed: "nonexistent-type-test",
         factionCount: 4,
         players: [{ playerId: "player1", displayName: "Player 1", startingInfluencePoints: 100 }],
@@ -389,7 +389,7 @@ describe("Analytics Integration", () => {
 
   describe("25-Turn Integration Test", () => {
     it("runs complete 25-turn game with comprehensive analytics", async () => {
-      const state = initializeGame({
+      const state = await initializeGame({
         seed: "25-turn-integration",
         factionCount: 4,
         players: [
@@ -453,7 +453,7 @@ describe("Analytics Integration", () => {
 
   describe("Agent Decision Audit Compliance", () => {
     it("includes all required fields in agent_decision events", async () => {
-      const state = initializeGame({
+      const state = await initializeGame({
         seed: "audit-compliance-test",
         factionCount: 4,
         players: [{ playerId: "player1", displayName: "Player 1", startingInfluencePoints: 100 }],
@@ -485,7 +485,7 @@ describe("Analytics Integration", () => {
 
   describe("Patron Activation Events", () => {
     it("emits patron_activated when player commits patron backing", async () => {
-      const state = initializeGame({
+      const state = await initializeGame({
         seed: "patron-activation-test",
         factionCount: 4,
         players: [{ playerId: "player1", displayName: "Player 1", startingInfluencePoints: 100 }],

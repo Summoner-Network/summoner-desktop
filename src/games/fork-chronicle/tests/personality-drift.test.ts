@@ -11,7 +11,7 @@ import type { Agent } from "../src/types/agent";
 /**
  * Test 1: Lost territory increases aggression
  */
-function testLostTerritoryRule() {
+async function testLostTerritoryRule() {
   console.log("\n[TEST 1] Lost territory increases aggression");
 
   const config: GameConfig = {
@@ -22,7 +22,7 @@ function testLostTerritoryRule() {
     seed: "drift-test-001"
   };
 
-  const state = initializeGame(config);
+  const state = await initializeGame(config);
 
   const faction1 = state.factions["faction_1"];
   const agent = faction1.agents[0];
@@ -61,7 +61,7 @@ function testLostTerritoryRule() {
 /**
  * Test 2: Betrayal increases aggression and decreases loyalty
  */
-function testBetrayalRule() {
+async function testBetrayalRule() {
   console.log("\n[TEST 2] Betrayal increases aggression and decreases loyalty");
 
   const config: GameConfig = {
@@ -72,7 +72,7 @@ function testBetrayalRule() {
     seed: "drift-test-002"
   };
 
-  const state = initializeGame(config);
+  const state = await initializeGame(config);
 
   const faction1 = state.factions["faction_1"];
   const agent = faction1.agents[0];
@@ -111,7 +111,7 @@ function testBetrayalRule() {
 /**
  * Test 3: Long alliance increases loyalty
  */
-function testLongAllianceRule() {
+async function testLongAllianceRule() {
   console.log("\n[TEST 3] Long alliance (3+ eras) increases loyalty");
 
   const config: GameConfig = {
@@ -122,7 +122,7 @@ function testLongAllianceRule() {
     seed: "drift-test-003"
   };
 
-  const state = initializeGame(config);
+  const state = await initializeGame(config);
 
   const faction1 = state.factions["faction_1"];
   const agent = faction1.agents[0];
@@ -156,7 +156,7 @@ function testLongAllianceRule() {
 /**
  * Test 4: Successful attack increases aggression and expansionism
  */
-function testSuccessfulAttackRule() {
+async function testSuccessfulAttackRule() {
   console.log("\n[TEST 4] Successful attack increases aggression and expansionism");
 
   const config: GameConfig = {
@@ -167,7 +167,7 @@ function testSuccessfulAttackRule() {
     seed: "drift-test-004"
   };
 
-  const state = initializeGame(config);
+  const state = await initializeGame(config);
 
   const faction1 = state.factions["faction_1"];
   const agent = faction1.agents[0];
@@ -206,7 +206,7 @@ function testSuccessfulAttackRule() {
 /**
  * Test 5: Failed attack decreases aggression and risk tolerance
  */
-function testFailedAttackRule() {
+async function testFailedAttackRule() {
   console.log("\n[TEST 5] Failed attack decreases aggression and risk tolerance");
 
   const config: GameConfig = {
@@ -217,7 +217,7 @@ function testFailedAttackRule() {
     seed: "drift-test-005"
   };
 
-  const state = initializeGame(config);
+  const state = await initializeGame(config);
 
   const faction1 = state.factions["faction_1"];
   const agent = faction1.agents[0];
@@ -256,7 +256,7 @@ function testFailedAttackRule() {
 /**
  * Test 6: High reputation (>80) increases loyalty
  */
-function testHighReputationRule() {
+async function testHighReputationRule() {
   console.log("\n[TEST 6] High reputation (>80) increases loyalty");
 
   const config: GameConfig = {
@@ -267,7 +267,7 @@ function testHighReputationRule() {
     seed: "drift-test-006"
   };
 
-  const state = initializeGame(config);
+  const state = await initializeGame(config);
 
   const faction1 = state.factions["faction_1"];
   const agent = faction1.agents[0];
@@ -293,7 +293,7 @@ function testHighReputationRule() {
 /**
  * Test 7: Low reputation (<30) increases risk tolerance
  */
-function testLowReputationRule() {
+async function testLowReputationRule() {
   console.log("\n[TEST 7] Low reputation (<30) increases risk tolerance");
 
   const config: GameConfig = {
@@ -304,7 +304,7 @@ function testLowReputationRule() {
     seed: "drift-test-007"
   };
 
-  const state = initializeGame(config);
+  const state = await initializeGame(config);
 
   const faction1 = state.factions["faction_1"];
   const agent = faction1.agents[0];
@@ -330,7 +330,7 @@ function testLowReputationRule() {
 /**
  * Test 8: Values never exceed 1.0 or drop below 0.0 after 50 turns
  */
-function testClampingAfter50Turns() {
+async function testClampingAfter50Turns() {
   console.log("\n[TEST 8] Values clamped to [0.0, 1.0] after 50 turns of drift");
 
   const config: GameConfig = {
@@ -341,7 +341,7 @@ function testClampingAfter50Turns() {
     seed: "drift-test-008"
   };
 
-  const state = initializeGame(config);
+  const state = await initializeGame(config);
 
   const faction1 = state.factions["faction_1"];
   const agent = faction1.agents[0];
@@ -419,7 +419,7 @@ function testClampingAfter50Turns() {
 /**
  * Test 9: Betrayed agent measurably more aggressive after 5 turns
  */
-function testBetrayedAgentAccumulation() {
+async function testBetrayedAgentAccumulation() {
   console.log("\n[TEST 9] Betrayed agent becomes more aggressive after 5 turns");
 
   const config: GameConfig = {
@@ -430,7 +430,7 @@ function testBetrayedAgentAccumulation() {
     seed: "drift-test-009"
   };
 
-  const state = initializeGame(config);
+  const state = await initializeGame(config);
 
   const faction1 = state.factions["faction_1"];
   const agent = faction1.agents[0];
@@ -466,7 +466,7 @@ function testBetrayedAgentAccumulation() {
 /**
  * Test 10: High reputation agent more loyal after 5 turns
  */
-function testHighReputationAccumulation() {
+async function testHighReputationAccumulation() {
   console.log("\n[TEST 10] High reputation agent becomes more loyal after 5 turns");
 
   const config: GameConfig = {
@@ -477,7 +477,7 @@ function testHighReputationAccumulation() {
     seed: "drift-test-010"
   };
 
-  const state = initializeGame(config);
+  const state = await initializeGame(config);
 
   const faction1 = state.factions["faction_1"];
   const agent = faction1.agents[0];
@@ -507,22 +507,22 @@ function testHighReputationAccumulation() {
 /**
  * Run all drift tests
  */
-export function runAllDriftTests() {
+export async function runAllDriftTests() {
   console.log("╔════════════════════════════════════════════════════════════════╗");
   console.log("║  Personality Drift System - Test Suite                       ║");
   console.log("╚════════════════════════════════════════════════════════════════╝");
 
   try {
-    testLostTerritoryRule();
-    testBetrayalRule();
-    testLongAllianceRule();
-    testSuccessfulAttackRule();
-    testFailedAttackRule();
-    testHighReputationRule();
-    testLowReputationRule();
-    testClampingAfter50Turns();
-    testBetrayedAgentAccumulation();
-    testHighReputationAccumulation();
+    await testLostTerritoryRule();
+    await testBetrayalRule();
+    await testLongAllianceRule();
+    await testSuccessfulAttackRule();
+    await testFailedAttackRule();
+    await testHighReputationRule();
+    await testLowReputationRule();
+    await testClampingAfter50Turns();
+    await testBetrayedAgentAccumulation();
+    await testHighReputationAccumulation();
 
     console.log("\n╔════════════════════════════════════════════════════════════════╗");
     console.log("║  ✅ ALL DRIFT TESTS PASSED (10/10)                            ║");

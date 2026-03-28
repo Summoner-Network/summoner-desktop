@@ -25,8 +25,10 @@ console.log("\n╔════════════════════�
 console.log("║  Fork: A Chronicle of Alternate Histories - Demo        ║");
 console.log("╚══════════════════════════════════════════════════════════╝\n");
 
+// Run the demo (wrap in async IIFE)
+(async () => {
 console.log("Initializing game...\n");
-const initialState = initializeGame(config);
+const initialState = await initializeGame(config);
 
 console.log("Game initialized successfully!");
 console.log(`  Game ID: ${initialState.gameId}`);
@@ -51,7 +53,7 @@ console.log("Starting game simulation (limited to 10 turns)...");
 console.log("─".repeat(60));
 
 // Run the game for 10 turns
-const finalState = runGame(initialState, 10);
+const finalState = await runGame(initialState, 10);
 
 console.log("\n" + "═".repeat(60));
 console.log("Game simulation complete!");
@@ -77,3 +79,7 @@ console.log("  • Step 5: Implement win condition checks");
 console.log("  • Step 6: Implement agent deliberation logic");
 console.log("  • Step 7: Implement alliance negotiation");
 console.log("\n");
+})().catch((error) => {
+  console.error("\nDemo failed:", error);
+  process.exit(1);
+});

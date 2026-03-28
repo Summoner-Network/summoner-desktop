@@ -35,7 +35,7 @@ console.log();
 // Run the simulation
 async function runChronicleSimulation() {
   // Initialize game
-  const state = initializeGame(config);
+  const state = await initializeGame(config);
 
   // Capture opening odds for player scoring
   const openingOdds: Record<FactionId, number> = {

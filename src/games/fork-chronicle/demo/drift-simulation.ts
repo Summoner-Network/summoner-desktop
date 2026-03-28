@@ -30,8 +30,10 @@ console.log(`  Turns: 25`);
 console.log(`  Seed: ${config.seed}`);
 console.log();
 
+// Run the simulation (wrap in async IIFE)
+(async () => {
 // Initialize game
-const state = initializeGame(config);
+const state = await initializeGame(config);
 
 console.log("════════════════════════════════════════════════════════════════");
 console.log("  TRACKING AGENTS");
@@ -303,8 +305,9 @@ async function runSimulation() {
   console.log();
 }
 
-// Run the simulation
-runSimulation().catch((error) => {
+// Continue with simulation
+await runSimulation();
+})().catch((error) => {
   console.error("Simulation failed:", error);
   process.exit(1);
 });

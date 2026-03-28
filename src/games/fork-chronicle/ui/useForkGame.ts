@@ -7,14 +7,30 @@ import { initializeGame } from "../src/engine/setup";
 import { executeTurn } from "../src/engine/turn-loop";
 import type { GameState, GameConfig } from "../src/types/game-state";
 import type { PlayerState, BetAction, EventInjectionAction, PatronAction } from "../src/types/player";
+import { fetchWikipediaEventsForToday, wikiEventToGameEvent } from "../src/utils/wikipedia-events";
+
+export interface LiveLogEntry {
+  turn: number;
+  era: number;
+  type: 'event' | 'combat' | 'alliance' | 'investment' | 'ip' | 'general';
+  message: string;
+  emoji: string;
+}
 
 export interface UseForkGameReturn {
   gameState: GameState | null;
   playerState: PlayerState | null;
   isRunning: boolean;
+  isPaused: boolean;
+  gameEnded: boolean;
   turnSpeed: number;
-  startGame: (config: GameConfig) => void;
+  error: string | null;
+  liveLog: LiveLogEntry[];
+  startGame: (config: GameConfig) => Promise<void>;
   stopGame: () => void;
+  newGame: () => void;
+  pauseGame: () => void;
+  resumeGame: () => void;
   setTurnSpeed: (ms: number) => void;
   placeBet: (bet: Omit<BetAction, "type" | "placedOnTurn" | "odds">) => void;
   playEventCard: () => void;
@@ -24,48 +40,249 @@ export interface UseForkGameReturn {
 export function useForkGame(): UseForkGameReturn {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [isRunning, setIsRunning] = useState(false);
-  const [turnSpeed, setTurnSpeedState] = useState(1500);
+  const [isPaused, setIsPaused] = useState(false);
+  const [turnSpeed, setTurnSpeedState] = useState(3000);
+  const [gameEnded, setGameEnded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [liveLog, setLiveLog] = useState<LiveLogEntry[]>([]);
   const turnTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const startGame = useCallback((config: GameConfig) => {
-    const state = initializeGame(config);
+  // Draw a Wikipedia event card for the player
+  const drawPlayerEventCard = useCallback(async (state: GameState): Promise<GameState> => {
+    const playerId = "player_1";
+    const playerState = state.playerStates[playerId];
+    if (!playerState) return state;
+
+    try {
+      const wikiEvents = await fetchWikipediaEventsForToday();
+      if (wikiEvents && wikiEvents.length > 0) {
+        const randomIndex = Math.floor(Math.random() * Math.min(wikiEvents.length, 20));
+        const picked = wikiEvents[randomIndex];
+        const tier: 1 | 2 | 3 = Math.random() < 0.15 ? 3 : Math.random() < 0.45 ? 2 : 1;
+        const gameEvent = wikiEventToGameEvent(picked, tier);
+        console.log('[Fork] Wikipedia event drawn:', gameEvent.title);
+        return {
+          ...state,
+          playerStates: {
+            ...state.playerStates,
+            [playerId]: { ...playerState, currentDrawnCard: gameEvent },
+          },
+        };
+      }
+    } catch (e) {
+      console.warn('[Fork] Wikipedia fetch failed, using deck:', e);
+    }
+
+    // Fallback to deck
+    const deck = state.eventDeck;
+    if (deck.length > 0) {
+      return {
+        ...state,
+        playerStates: {
+          ...state.playerStates,
+          [playerId]: { ...playerState, currentDrawnCard: deck[0] },
+        },
+        eventDeck: deck.slice(1),
+      };
+    }
+    if (state.eventDiscard.length > 0) {
+      return {
+        ...state,
+        playerStates: {
+          ...state.playerStates,
+          [playerId]: { ...playerState, currentDrawnCard: state.eventDiscard[0] },
+        },
+      };
+    }
+    return state;
+  }, []);
+
+  const startGame = useCallback(async (config: GameConfig) => {
+    setError(null);
+    setLiveLog([]);
+    let state = await initializeGame(config);
+    // Draw initial Wikipedia event card for the player
+    state = await drawPlayerEventCard(state);
     setGameState(state);
     setIsRunning(true);
-  }, []);
+  }, [drawPlayerEventCard]);
 
   const stopGame = useCallback(() => {
     setIsRunning(false);
+    setIsPaused(false);
+    setGameEnded(true);
     if (turnTimerRef.current) {
       clearTimeout(turnTimerRef.current);
       turnTimerRef.current = null;
     }
   }, []);
 
+  const newGame = useCallback(() => {
+    // Clear all timers
+    if (turnTimerRef.current) {
+      clearTimeout(turnTimerRef.current);
+      turnTimerRef.current = null;
+    }
+    // Reset all refs
+    isRunningRef.current = false;
+    isPausedRef.current = false;
+    gameStateRef.current = null;
+    // Reset all state
+    setGameState(null);
+    setIsRunning(false);
+    setIsPaused(false);
+    setGameEnded(false);
+    setLiveLog([]);
+    setError(null);
+  }, []);
+
+  const pauseGame = useCallback(() => {
+    setIsPaused(true);
+    if (turnTimerRef.current) {
+      clearTimeout(turnTimerRef.current);
+      turnTimerRef.current = null;
+    }
+  }, []);
+
+  const resumeGame = useCallback(() => {
+    setIsPaused(false);
+  }, []);
+
   const setTurnSpeed = useCallback((ms: number) => {
     setTurnSpeedState(ms);
   }, []);
 
-  // Auto-advance turns when running
-  useEffect(() => {
-    if (!isRunning || !gameState || gameState.phase === "game_over") {
-      if (gameState?.phase === "game_over") {
-        setIsRunning(false);
-      }
+  // Refs to avoid stale closures
+  const isRunningRef = useRef(false);
+  const isPausedRef = useRef(false);
+  const gameStateRef = useRef<GameState | null>(null);
+  const turnSpeedRef = useRef(3000);
+
+  // Keep refs in sync with state
+  useEffect(() => { isRunningRef.current = isRunning; }, [isRunning]);
+  useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
+  useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
+  useEffect(() => { turnSpeedRef.current = turnSpeed; }, [turnSpeed]);
+
+  // Turn loop function that uses refs (no stale closures)
+  const runLoop = useCallback(async () => {
+    if (!isRunningRef.current || isPausedRef.current) return;
+    const current = gameStateRef.current;
+    if (!current || current.phase === 'game_over') {
+      isRunningRef.current = false;
+      setIsRunning(false);
+      setGameEnded(true);
       return;
     }
+    try {
+      console.log('[Fork] Executing turn', current.currentTurn);
+      let next = await executeTurn(current);
 
-    turnTimerRef.current = setTimeout(async () => {
-      const nextState = await executeTurn(gameState);
-      setGameState(nextState);
-    }, turnSpeed);
-
-    return () => {
-      if (turnTimerRef.current) {
-        clearTimeout(turnTimerRef.current);
-        turnTimerRef.current = null;
+      // Draw a new Wikipedia card if the player has none
+      const player = next.playerStates["player_1"];
+      if (player && !player.currentDrawnCard) {
+        next = await drawPlayerEventCard(next);
       }
+
+      gameStateRef.current = next;
+      setGameState(next);
+
+      // Extract new log entries from the latest turn record
+      if (next.history.length > 0) {
+        const latestRecord = next.history[next.history.length - 1];
+
+        // Filter out engine noise — keep only meaningful agent actions
+        const noisePatterns = [
+          /No events remaining/i,
+          /Advancing to phase/i,
+          /Player actions window/i,
+          /Waiting for player/i,
+          /Agents deliberating/i,
+          /Agent negotiation phase/i,
+          /Agent action execution/i,
+          /Resolving turn outcomes/i,
+          /Generating era summary/i,
+          /Personality drift/i,
+          /agents completed deliberation/i,
+          /Players may now act/i,
+          /Odds updated/i,
+        ];
+
+        const meaningfulEvents = latestRecord.events.filter(event =>
+          !noisePatterns.some(pattern => pattern.test(event))
+        );
+
+        const newEntries: LiveLogEntry[] = meaningfulEvents.map(event => {
+          // Pattern matching for event types and icons
+          const patterns = [
+            { match: /conquered/i, emoji: '⚔️', type: 'combat' as const },
+            { match: /defended/i, emoji: '🛡️', type: 'combat' as const },
+            { match: /reinforced/i, emoji: '🔰', type: 'combat' as const },
+            { match: /invested/i, emoji: '💰', type: 'investment' as const },
+            { match: /formed an alliance/i, emoji: '🤝', type: 'alliance' as const },
+            { match: /rejected.*alliance/i, emoji: '🚫', type: 'alliance' as const },
+            { match: /Event:|World event/i, emoji: '🎴', type: 'event' as const },
+            { match: /earned.*IP/i, emoji: '📈', type: 'ip' as const },
+            { match: /Ripple/i, emoji: '⏱️', type: 'event' as const },
+          ];
+
+          let type: LiveLogEntry['type'] = 'general';
+          let emoji = '📝';
+
+          for (const pattern of patterns) {
+            if (pattern.match.test(event)) {
+              emoji = pattern.emoji;
+              type = pattern.type;
+              break;
+            }
+          }
+
+          // Clean up message text
+          let message = event.replace(/^[📝🤝⚔️🎴📈💰🛡️🔰🚫⏱️]\s*/, '');
+
+          // Replace faction_1, faction_2, etc. with actual faction names
+          Object.entries(next.factions).forEach(([factionId, faction]) => {
+            message = message.replace(new RegExp(factionId, 'g'), faction.name);
+          });
+
+          // Remove archetype instance numbers (e.g., "diplomat 1" -> "Diplomat")
+          message = message.replace(/\b(diplomat|conqueror|merchant|scholar|general)\s+\d+\b/gi, (match) => {
+            return match.split(' ')[0].charAt(0).toUpperCase() + match.split(' ')[0].slice(1).toLowerCase();
+          });
+
+          return {
+            turn: latestRecord.turn,
+            era: latestRecord.era,
+            type,
+            message,
+            emoji
+          };
+        });
+
+        // Newest first — prepend new entries
+        setLiveLog(prev => [...newEntries, ...prev].slice(0, 100));
+      }
+    } catch (err) {
+      console.error('[Fork] Turn failed:', err);
+      setError(String(err));
+      setIsRunning(false);
+      return;
+    }
+    if (isRunningRef.current && !isPausedRef.current) {
+      turnTimerRef.current = setTimeout(runLoop, turnSpeedRef.current);
+    }
+  }, []); // empty deps — uses refs only
+
+  // Start loop when isRunning becomes true
+  useEffect(() => {
+    if (isRunning && !isPaused) {
+      if (turnTimerRef.current) clearTimeout(turnTimerRef.current);
+      turnTimerRef.current = setTimeout(runLoop, turnSpeedRef.current);
+    }
+    return () => {
+      if (turnTimerRef.current) clearTimeout(turnTimerRef.current);
     };
-  }, [isRunning, gameState, turnSpeed]);
+  }, [isRunning, isPaused, runLoop]);
 
   const placeBet = useCallback(
     (bet: Omit<BetAction, "type" | "placedOnTurn" | "odds">) => {
@@ -205,9 +422,16 @@ export function useForkGame(): UseForkGameReturn {
     gameState,
     playerState: gameState?.playerStates["player_1"] ?? null,
     isRunning,
+    isPaused,
+    gameEnded,
     turnSpeed,
+    error,
+    liveLog,
     startGame,
     stopGame,
+    newGame,
+    pauseGame,
+    resumeGame,
     setTurnSpeed,
     placeBet,
     playEventCard,

@@ -27,8 +27,10 @@ console.log(`  Seed: ${config.seed}`);
 console.log(`  Duration: 5 eras (25 turns) or until win condition`);
 console.log();
 
+// Run the simulation (wrap in async IIFE)
+(async () => {
 // Initialize game
-const initialState = initializeGame(config);
+const initialState = await initializeGame(config);
 
 console.log("════════════════════════════════════════════════════════════════");
 console.log("  INITIAL STATE");
@@ -177,8 +179,9 @@ async function runSimulation() {
   console.log("════════════════════════════════════════════════════════════════");
 }
 
-// Run the simulation
-runSimulation().catch((error) => {
+// Continue with simulation
+await runSimulation();
+})().catch((error) => {
   console.error("Simulation failed:", error);
   process.exit(1);
 });

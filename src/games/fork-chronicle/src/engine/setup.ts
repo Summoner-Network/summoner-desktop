@@ -241,7 +241,7 @@ function initializePlayerStates(config: GameConfig): Record<string, PlayerState>
  * Main game initialization function
  * Implements all setup steps from Section 2
  */
-export function initializeGame(config: GameConfig): GameState {
+export async function initializeGame(config: GameConfig): Promise<GameState> {
   let attempts = 0;
   let seed = config.seed || Date.now().toString();
 
@@ -317,7 +317,7 @@ export function initializeGame(config: GameConfig): GameState {
       };
 
       // Initialize state hash for turn 1
-      gameState.currentTurnStateHash = generateStateHash(gameState);
+      gameState.currentTurnStateHash = await generateStateHash(gameState);
 
       return gameState;
     } catch (error) {

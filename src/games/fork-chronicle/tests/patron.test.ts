@@ -13,7 +13,7 @@ import type { AgentDecision } from "../src/types/agent";
 /**
  * Test 1: Player cannot back two factions simultaneously
  */
-function testCannotBackTwoFactions() {
+async function testCannotBackTwoFactions() {
   console.log("\n[TEST 1] Player cannot back two factions simultaneously");
 
   const config: GameConfig = {
@@ -24,7 +24,7 @@ function testCannotBackTwoFactions() {
     seed: "patron-test-001"
   };
 
-  const state = initializeGame(config);
+  const state = await initializeGame(config);
 
   const faction1 = Object.keys(state.factions)[0] as FactionId;
   const faction2 = Object.keys(state.factions)[1] as FactionId;
@@ -60,7 +60,7 @@ function testCannotBackTwoFactions() {
 /**
  * Test 2: Switching factions costs 20 IP and resets patronBacking to 0
  */
-function testSwitchingCostsIPAndResetsPatronBacking() {
+async function testSwitchingCostsIPAndResetsPatronBacking() {
   console.log("\n[TEST 2] Switching factions costs 20 IP and resets patronBacking");
 
   const config: GameConfig = {
@@ -71,7 +71,7 @@ function testSwitchingCostsIPAndResetsPatronBacking() {
     seed: "patron-test-002"
   };
 
-  const state = initializeGame(config);
+  const state = await initializeGame(config);
 
   const faction1 = Object.keys(state.factions)[0] as FactionId;
   const faction2 = Object.keys(state.factions)[1] as FactionId;
@@ -109,7 +109,7 @@ function testSwitchingCostsIPAndResetsPatronBacking() {
 /**
  * Test 3: reputation_shield prevents reputation from dropping below 30
  */
-function testReputationShieldFloor() {
+async function testReputationShieldFloor() {
   console.log("\n[TEST 3] reputation_shield prevents reputation from dropping below 30");
 
   const config: GameConfig = {
@@ -120,7 +120,7 @@ function testReputationShieldFloor() {
     seed: "patron-test-003"
   };
 
-  const state = initializeGame(config);
+  const state = await initializeGame(config);
 
   const factionId = Object.keys(state.factions)[0] as FactionId;
   const faction = state.factions[factionId];
@@ -149,7 +149,7 @@ function testReputationShieldFloor() {
 /**
  * Test 4: negotiation_edge increases alliance acceptance rates
  */
-function testNegotiationEdgeBonus() {
+async function testNegotiationEdgeBonus() {
   console.log("\n[TEST 4] negotiation_edge increases alliance acceptance rates");
 
   const config: GameConfig = {
@@ -160,7 +160,7 @@ function testNegotiationEdgeBonus() {
     seed: "patron-test-004"
   };
 
-  const state = initializeGame(config);
+  const state = await initializeGame(config);
 
   const faction1 = Object.keys(state.factions)[0] as FactionId;
   const faction2 = Object.keys(state.factions)[1] as FactionId;
@@ -194,7 +194,7 @@ function testNegotiationEdgeBonus() {
 /**
  * Test 5: resource_bonus applies to lowest-resource territory
  */
-function testResourceBonusTargetsLowestTerritory() {
+async function testResourceBonusTargetsLowestTerritory() {
   console.log("\n[TEST 5] resource_bonus applies to lowest-resource territory");
 
   const config: GameConfig = {
@@ -205,7 +205,7 @@ function testResourceBonusTargetsLowestTerritory() {
     seed: "patron-test-005"
   };
 
-  const state = initializeGame(config);
+  const state = await initializeGame(config);
 
   const factionId = Object.keys(state.factions)[0] as FactionId;
   const faction = state.factions[factionId];
@@ -248,7 +248,7 @@ function testResourceBonusTargetsLowestTerritory() {
 /**
  * Test 6: Patron benefit expires when player cannot afford era cost
  */
-function testBenefitExpiresWithInsufficientIP() {
+async function testBenefitExpiresWithInsufficientIP() {
   console.log("\n[TEST 6] Patron benefit expires when player cannot afford era cost");
 
   const config: GameConfig = {
@@ -259,7 +259,7 @@ function testBenefitExpiresWithInsufficientIP() {
     seed: "patron-test-006"
   };
 
-  const state = initializeGame(config);
+  const state = await initializeGame(config);
 
   const factionId = Object.keys(state.factions)[0] as FactionId;
 
@@ -293,7 +293,7 @@ function testBenefitExpiresWithInsufficientIP() {
 /**
  * Test 7: patronBacking accumulation increases negotiation patron_factor
  */
-function testPatronBackingAccumulation() {
+async function testPatronBackingAccumulation() {
   console.log("\n[TEST 7] patronBacking accumulates each turn and increases patron_factor");
 
   const config: GameConfig = {
@@ -304,7 +304,7 @@ function testPatronBackingAccumulation() {
     seed: "patron-test-007"
   };
 
-  const state = initializeGame(config);
+  const state = await initializeGame(config);
 
   const factionId = Object.keys(state.factions)[0] as FactionId;
   const faction = state.factions[factionId];
@@ -338,7 +338,7 @@ function testPatronBackingAccumulation() {
 /**
  * Test 8: negotiation_edge expires after 2 eras
  */
-function testNegotiationEdgeExpiry() {
+async function testNegotiationEdgeExpiry() {
   console.log("\n[TEST 8] negotiation_edge expires after 2 eras");
 
   const config: GameConfig = {
@@ -349,7 +349,7 @@ function testNegotiationEdgeExpiry() {
     seed: "patron-test-008"
   };
 
-  const state = initializeGame(config);
+  const state = await initializeGame(config);
 
   const factionId = Object.keys(state.factions)[0] as FactionId;
 
@@ -383,20 +383,20 @@ function testNegotiationEdgeExpiry() {
 /**
  * Run all patron tests
  */
-export function runAllPatronTests() {
+export async function runAllPatronTests() {
   console.log("╔════════════════════════════════════════════════════════════════╗");
   console.log("║  Patron Backing System - Test Suite                          ║");
   console.log("╚════════════════════════════════════════════════════════════════╝");
 
   try {
-    testCannotBackTwoFactions();
-    testSwitchingCostsIPAndResetsPatronBacking();
-    testReputationShieldFloor();
-    testNegotiationEdgeBonus();
-    testResourceBonusTargetsLowestTerritory();
-    testBenefitExpiresWithInsufficientIP();
-    testPatronBackingAccumulation();
-    testNegotiationEdgeExpiry();
+    await testCannotBackTwoFactions();
+    await testSwitchingCostsIPAndResetsPatronBacking();
+    await testReputationShieldFloor();
+    await testNegotiationEdgeBonus();
+    await testResourceBonusTargetsLowestTerritory();
+    await testBenefitExpiresWithInsufficientIP();
+    await testPatronBackingAccumulation();
+    await testNegotiationEdgeExpiry();
 
     console.log("\n╔════════════════════════════════════════════════════════════════╗");
     console.log("║  ✅ ALL PATRON TESTS PASSED (8/8)                             ║");

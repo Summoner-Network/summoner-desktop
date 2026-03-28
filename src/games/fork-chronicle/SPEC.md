@@ -851,6 +851,27 @@ These are intentionally deferred from MVP:
 - [ ] Mobile map rendering — desktop first
 - [ ] Community event pack registry — designed for in Section 10 but not implemented in MVP
 
+## v1.1 Gameplay Redesign: Country-First Mode
+
+Instead of pre-assigned faction teams, players 
+choose a starting country (e.g. France, Japan, 
+Brazil). Factions emerge dynamically as agents 
+negotiate alliances in response to historical 
+events. The player's country gets pulled into 
+coalitions organically — their faction identity 
+is earned through the simulation, not given at 
+setup. This creates stronger personal investment 
+and more historically authentic coalition 
+formation. Alternate history events become more 
+meaningful because they disrupt expected 
+historical alliances.
+
+Implementation requires:
+- Country selection UI at setup
+- Dynamic faction formation via negotiation engine
+- Player country tracking separate from faction ID
+- "Your country joined X faction" notification
+
 ---
 
 ## 16. Claude Code Handoff Guide

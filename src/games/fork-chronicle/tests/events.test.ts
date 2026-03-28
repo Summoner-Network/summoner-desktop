@@ -17,7 +17,7 @@ import type { HistoricalEvent } from "../src/types/event";
 /**
  * Test 1: Player can play event card with sufficient IP
  */
-function testPlayEventCardSuccess() {
+async function testPlayEventCardSuccess() {
   console.log("\n[TEST 1] Play event card successfully");
 
   const config: GameConfig = {
@@ -28,7 +28,7 @@ function testPlayEventCardSuccess() {
     seed: "event-test-001"
   };
 
-  const state = initializeGame(config);
+  const state = await initializeGame(config);
 
   // Manually give player a Tier 1 event card
   const tier1Event: HistoricalEvent = {
@@ -89,7 +89,7 @@ function testPlayEventCardSuccess() {
 /**
  * Test 2: Cannot play event card on Turn 1
  */
-function testCannotPlayOnTurn1() {
+async function testCannotPlayOnTurn1() {
   console.log("\n[TEST 2] Cannot play event card on Turn 1");
 
   const config: GameConfig = {
@@ -100,7 +100,7 @@ function testCannotPlayOnTurn1() {
     seed: "event-test-002"
   };
 
-  const state = initializeGame(config);
+  const state = await initializeGame(config);
 
   // Give player an event card
   const event: HistoricalEvent = {
@@ -137,7 +137,7 @@ function testCannotPlayOnTurn1() {
 /**
  * Test 3: Cannot play event card with insufficient IP
  */
-function testInsufficientIP() {
+async function testInsufficientIP() {
   console.log("\n[TEST 3] Cannot play event with insufficient IP");
 
   const config: GameConfig = {
@@ -148,7 +148,7 @@ function testInsufficientIP() {
     seed: "event-test-003"
   };
 
-  const state = initializeGame(config);
+  const state = await initializeGame(config);
 
   // Give player a Tier 3 event (50 IP cost)
   const tier3Event: HistoricalEvent = {
@@ -183,7 +183,7 @@ function testInsufficientIP() {
 /**
  * Test 4: Global event effects apply to all territories
  */
-function testGlobalEffects() {
+async function testGlobalEffects() {
   console.log("\n[TEST 4] Global effects apply to all territories");
 
   const config: GameConfig = {
@@ -194,7 +194,7 @@ function testGlobalEffects() {
     seed: "event-test-004"
   };
 
-  const state = initializeGame(config);
+  const state = await initializeGame(config);
 
   const globalEvent: HistoricalEvent = {
     id: "test_global",
@@ -241,7 +241,7 @@ function testGlobalEffects() {
 /**
  * Test 5: Ripple effects queue correctly
  */
-function testRippleEffectsQueue() {
+async function testRippleEffectsQueue() {
   console.log("\n[TEST 5] Ripple effects queue for next era");
 
   const config: GameConfig = {
@@ -252,7 +252,7 @@ function testRippleEffectsQueue() {
     seed: "event-test-005"
   };
 
-  const state = initializeGame(config);
+  const state = await initializeGame(config);
 
   const eventWithRipple: HistoricalEvent = {
     id: "test_ripple",
@@ -308,7 +308,7 @@ function testRippleEffectsQueue() {
 /**
  * Test 6: Ripple effects process at era start
  */
-function testRippleEffectsProcess() {
+async function testRippleEffectsProcess() {
   console.log("\n[TEST 6] Ripple effects process at era start");
 
   const config: GameConfig = {
@@ -319,7 +319,7 @@ function testRippleEffectsProcess() {
     seed: "event-test-006"
   };
 
-  const state = initializeGame(config);
+  const state = await initializeGame(config);
 
   // Manually add a ripple effect ready to fire
   const rippleEvent: HistoricalEvent = {
@@ -376,7 +376,7 @@ function testRippleEffectsProcess() {
 /**
  * Test 7: Unplayed cards expire at era end
  */
-function testCardExpiry() {
+async function testCardExpiry() {
   console.log("\n[TEST 7] Unplayed cards expire at era end");
 
   const config: GameConfig = {
@@ -387,7 +387,7 @@ function testCardExpiry() {
     seed: "event-test-007"
   };
 
-  const state = initializeGame(config);
+  const state = await initializeGame(config);
 
   // Give player an unplayed card
   const unplayedCard: HistoricalEvent = {
@@ -429,7 +429,7 @@ function testCardExpiry() {
 /**
  * Test 8: Faction-targeted effects
  */
-function testFactionTargetedEffects() {
+async function testFactionTargetedEffects() {
   console.log("\n[TEST 8] Faction-targeted effects apply to all faction territories");
 
   const config: GameConfig = {
@@ -440,7 +440,7 @@ function testFactionTargetedEffects() {
     seed: "event-test-008"
   };
 
-  const state = initializeGame(config);
+  const state = await initializeGame(config);
 
   // Find a faction with multiple territories
   const faction = Object.values(state.factions).find((f) => f.territories.length > 1);
@@ -486,20 +486,20 @@ function testFactionTargetedEffects() {
 /**
  * Run all event tests
  */
-export function runAllEventTests() {
+export async function runAllEventTests() {
   console.log("╔════════════════════════════════════════════════════════════════╗");
   console.log("║  Event Injection System - Test Suite                         ║");
   console.log("╚════════════════════════════════════════════════════════════════╝");
 
   try {
-    testPlayEventCardSuccess();
-    testCannotPlayOnTurn1();
-    testInsufficientIP();
-    testGlobalEffects();
-    testRippleEffectsQueue();
-    testRippleEffectsProcess();
-    testCardExpiry();
-    testFactionTargetedEffects();
+    await testPlayEventCardSuccess();
+    await testCannotPlayOnTurn1();
+    await testInsufficientIP();
+    await testGlobalEffects();
+    await testRippleEffectsQueue();
+    await testRippleEffectsProcess();
+    await testCardExpiry();
+    await testFactionTargetedEffects();
 
     console.log("\n╔════════════════════════════════════════════════════════════════╗");
     console.log("║  ✅ ALL EVENT TESTS PASSED (8/8)                              ║");

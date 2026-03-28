@@ -11,7 +11,7 @@ import type { Agent, AgentArchetype, PersonalityProfile } from "../src/types/age
 /**
  * Create a test game state with controlled setup
  */
-function createTestGameState(): GameState {
+async function createTestGameState(): Promise<GameState> {
   const config: GameConfig = {
     epochId: "1914_brink",
     factionCount: 4,
@@ -19,7 +19,7 @@ function createTestGameState(): GameState {
     eventPackIds: ["base"],
     seed: "agent_intelligence_test"
   };
-  return initializeGame(config);
+  return await initializeGame(config);
 }
 
 /**
@@ -46,7 +46,7 @@ function createTestAgent(
  * [SPEC] conqueror: attack 0.5, alliance 0.1, invest 0.1, reinforce 0.3
  */
 export async function testConquerorPrefersAttack(): Promise<void> {
-  const state = createTestGameState();
+  const state = await createTestGameState();
   const intelligence = new RuleBasedIntelligence();
 
   // Verify faction_1 has adjacent enemies (sanity check)
@@ -132,7 +132,7 @@ export async function testConquerorPrefersAttack(): Promise<void> {
  * [SPEC] diplomat: attack 0.1, alliance 0.5, invest 0.2, reinforce 0.2
  */
 export async function testDiplomatPrefersAlliance(): Promise<void> {
-  const state = createTestGameState();
+  const state = await createTestGameState();
   const intelligence = new RuleBasedIntelligence();
 
   // Create diplomat with high loyalty
@@ -175,7 +175,7 @@ export async function testDiplomatPrefersAlliance(): Promise<void> {
  * [SPEC] economist: attack 0.1, alliance 0.2, invest 0.5, reinforce 0.2
  */
 export async function testEconomistPrefersInvest(): Promise<void> {
-  const state = createTestGameState();
+  const state = await createTestGameState();
   const intelligence = new RuleBasedIntelligence();
 
   // Create economist with high expansionism
@@ -222,7 +222,7 @@ export async function testEconomistPrefersInvest(): Promise<void> {
  * [SPEC] historian: attack 0.2, alliance 0.3, invest 0.2, reinforce 0.3
  */
 export async function testHistorianBalanced(): Promise<void> {
-  const state = createTestGameState();
+  const state = await createTestGameState();
   const intelligence = new RuleBasedIntelligence();
 
   // Create historian with balanced personality
@@ -266,7 +266,7 @@ export async function testHistorianBalanced(): Promise<void> {
  * [RULE] Every AgentAction must produce a rationale string
  */
 export async function testRationaleNeverEmpty(): Promise<void> {
-  const state = createTestGameState();
+  const state = await createTestGameState();
   const intelligence = new RuleBasedIntelligence();
 
   const archetypes: AgentArchetype[] = ["conqueror", "diplomat", "economist", "historian"];
@@ -314,8 +314,8 @@ export async function testRationaleNeverEmpty(): Promise<void> {
  * [SPEC] Weights are multiplied by patronBacking bonus
  */
 export async function testPatronBackingInfluencesWeights(): Promise<void> {
-  const stateNoBacking = createTestGameState();
-  const stateWithBacking = createTestGameState();
+  const stateNoBacking = await createTestGameState();
+  const stateWithBacking = await createTestGameState();
 
   // Set patronBacking to 0 for baseline
   stateNoBacking.factions["faction_1"].patronBacking = 0;
@@ -359,7 +359,7 @@ export async function testPatronBackingInfluencesWeights(): Promise<void> {
  * Test using invest actions since attack may not have valid targets
  */
 export async function testPersonalityAffectsActions(): Promise<void> {
-  const state = createTestGameState();
+  const state = await createTestGameState();
   const intelligence = new RuleBasedIntelligence();
 
   // Economist with LOW expansionism
@@ -409,7 +409,7 @@ export async function testPersonalityAffectsActions(): Promise<void> {
  * Agent should not attack allies with active non-aggression or defense pacts
  */
 export async function testRespectsAllianceConstraints(): Promise<void> {
-  const state = createTestGameState();
+  const state = await createTestGameState();
   const intelligence = new RuleBasedIntelligence();
 
   // Create alliance between faction_1 and faction_2

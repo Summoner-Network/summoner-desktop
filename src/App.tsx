@@ -905,10 +905,17 @@ export default function App() {
                 mapViewBox={mapData.mapViewBox}
                 gameState={forkGame.gameState}
                 isRunning={forkGame.isRunning}
+                isPaused={forkGame.isPaused}
+                gameEnded={forkGame.gameEnded}
                 turnSpeed={forkGame.turnSpeed}
                 playerState={forkGame.playerState}
+                error={forkGame.error}
+                liveLog={forkGame.liveLog}
                 onStartGame={forkGame.startGame}
                 onStopGame={forkGame.stopGame}
+                onNewGame={forkGame.newGame}
+                onPauseGame={forkGame.pauseGame}
+                onResumeGame={forkGame.resumeGame}
                 onSetTurnSpeed={forkGame.setTurnSpeed}
                 onPlaceBet={forkGame.placeBet}
                 onPlayEventCard={forkGame.playEventCard}

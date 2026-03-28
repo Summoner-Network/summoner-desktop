@@ -7,7 +7,6 @@
  * Summoner Analytics system via Electron IPC.
  */
 
-import crypto from "crypto";
 import type { GameState } from "../types/game-state";
 import type { AgentAction } from "../types/agent";
 
@@ -43,8 +42,10 @@ export interface SummonerAnalyticsBridge {
 /**
  * Generate a SHA-256 hash of the relevant GameState slice
  * for replay validation and audit trail
+ *
+ * Uses Web Crypto API (available in browsers and Electron renderer)
  */
-export function generateStateHash(state: GameState): string {
+export async function generateStateHash(state: GameState): Promise<string> {
   const relevantState = {
     turn: state.currentTurn,
     territories: state.territories,
@@ -69,7 +70,11 @@ export function generateStateHash(state: GameState): string {
     return value;
   });
 
-  return crypto.createHash("sha256").update(stateString).digest("hex");
+  // Use Web Crypto API instead of Node.js crypto
+  const msgBuffer = new TextEncoder().encode(stateString);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 /**

@@ -35,6 +35,10 @@ export interface HistoricalEvent {
   effects: EventEffect[];
   rippleEffects: EventEffect[]; // Secondary effects that fire 1 era later
   probability: number; // 0.0–1.0, base draw probability from deck
+  // Wikipedia metadata (optional)
+  wikiYear?: number;
+  wikiText?: string;
+  wikiThumbnail?: string;
 }
 
 export interface ActiveEvent {

@@ -5,8 +5,13 @@
 import type { Territory } from "../types/territory";
 import type { Epoch } from "../types/epoch";
 import type { HistoricalEvent } from "../types/event";
-import * as fs from "fs";
-import * as path from "path";
+
+// Static imports for Electron renderer (Vite bundles these at build time)
+import territoriesJson from "../../data/territories/base.json";
+import eventsJson from "../../data/events/base.json";
+import epoch1914Json from "../../data/epochs/1914_brink.json";
+import epoch1945Json from "../../data/epochs/1945_aftermath.json";
+import epoch1991Json from "../../data/epochs/1991_unipolar.json";
 
 // Data is inlined for MVP to avoid JSON import issues
 // In production, this would load from the file system or API
@@ -932,28 +937,31 @@ const eventsData: HistoricalEvent[] = [
 ];
 
 export function loadTerritories(): Territory[] {
-  const territoriesPath = path.join(__dirname, `../../data/territories/base.json`);
-  const territoriesData = JSON.parse(fs.readFileSync(territoriesPath, 'utf-8'));
-  return territoriesData.map((t: Territory) => ({ ...t }));
+  // Use statically imported JSON (bundled at build time by Vite)
+  return (territoriesJson as Territory[]).map((t) => ({ ...t }));
 }
 
 export function loadEpoch(epochId: string): Epoch {
-  const epochPath = path.join(__dirname, `../../data/epochs/${epochId}.json`);
+  // Use statically imported JSON (bundled at build time by Vite)
+  const epochMap: Record<string, Epoch> = {
+    "1914_brink": epoch1914Json as Epoch,
+    "1945_aftermath": epoch1945Json as Epoch,
+    "1991_unipolar": epoch1991Json as Epoch,
+  };
 
-  if (!fs.existsSync(epochPath)) {
+  const epoch = epochMap[epochId];
+  if (!epoch) {
     throw new Error(`Unknown epoch: ${epochId}`);
   }
 
-  const epochData = JSON.parse(fs.readFileSync(epochPath, 'utf-8'));
-  return epochData as Epoch;
+  return epoch;
 }
 
 export function loadEvents(eventPackIds: string[]): HistoricalEvent[] {
   // For MVP, only support "base" pack
   if (eventPackIds.length === 1 && eventPackIds[0] === "base") {
-    const eventsPath = path.join(__dirname, `../../data/events/base.json`);
-    const eventsData = JSON.parse(fs.readFileSync(eventsPath, 'utf-8'));
-    return eventsData.map((e: HistoricalEvent) => ({ ...e }));
+    // Use statically imported JSON (bundled at build time by Vite)
+    return (eventsJson as HistoricalEvent[]).map((e) => ({ ...e }));
   }
   throw new Error(`Unsupported event pack IDs: ${eventPackIds.join(", ")}`);
 }

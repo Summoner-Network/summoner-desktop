@@ -23,7 +23,7 @@ async function testEraCardPopulation() {
     seed: "era-test-001"
   };
 
-  const state = initializeGame(config);
+  const state = await initializeGame(config);
 
   // Run 5 turns to complete an era
   await runGame(state, 5);
@@ -73,7 +73,7 @@ async function testNarrativeLanguage() {
     seed: "era-test-002"
   };
 
-  const state = initializeGame(config);
+  const state = await initializeGame(config);
 
   // Run 10 turns to get 2 era cards
   await runGame(state, 10);
@@ -118,7 +118,7 @@ async function testChronicleExport() {
     seed: "era-test-003"
   };
 
-  const state = initializeGame(config);
+  const state = await initializeGame(config);
 
   // Run 15 turns to get 3 era cards
   await runGame(state, 15);
@@ -173,7 +173,7 @@ async function testOracleTitle() {
     seed: "era-test-004"
   };
 
-  const state = initializeGame(config);
+  const state = await initializeGame(config);
 
   // Simulate 4 bet wins in history
   state.history.push({
@@ -224,7 +224,7 @@ async function testContrarianTitle() {
     seed: "era-test-005"
   };
 
-  const state = initializeGame(config);
+  const state = await initializeGame(config);
 
   // Commit patron backing
   const { commitPatronBacking } = require("../src/engine/patron");
@@ -278,7 +278,7 @@ async function testKingmakerTitle() {
     seed: "era-test-006"
   };
 
-  const state = initializeGame(config);
+  const state = await initializeGame(config);
 
   // Commit patron backing
   const { commitPatronBacking } = require("../src/engine/patron");

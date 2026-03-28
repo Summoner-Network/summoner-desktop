@@ -30,8 +30,10 @@ console.log(`  Players: ${config.players.length}`);
 console.log(`  Seed: ${config.seed}`);
 console.log();
 
+// Run the simulation (wrap in async IIFE)
+(async () => {
 // Initialize game
-const initialState = initializeGame(config);
+const initialState = await initializeGame(config);
 
 console.log("════════════════════════════════════════════════════════════════");
 console.log("  INITIAL FACTION SETUP");
@@ -244,8 +246,9 @@ async function runSimulation() {
   console.log("════════════════════════════════════════════════════════════════");
 }
 
-// Run the simulation
-runSimulation().catch((error) => {
+// Continue with simulation
+await runSimulation();
+})().catch((error) => {
   console.error("Simulation failed:", error);
   process.exit(1);
 });

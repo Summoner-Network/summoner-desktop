@@ -27,7 +27,7 @@ function createTestConfig(): GameConfig {
  */
 export async function testPhaseProgression(): Promise<void> {
   const config = createTestConfig();
-  let state = initializeGame(config);
+  let state = await initializeGame(config);
 
   // Turn 1 should start with player_actions (event_reveal is skipped)
   if (state.phase !== "player_actions") {
@@ -62,7 +62,7 @@ export async function testPhaseProgression(): Promise<void> {
  */
 export async function testTurn1SkipsEventReveal(): Promise<void> {
   const config = createTestConfig();
-  const state = initializeGame(config);
+  const state = await initializeGame(config);
 
   if (state.currentTurn !== 1) {
     throw new Error("Should start at turn 1");
@@ -80,7 +80,7 @@ export async function testTurn1SkipsEventReveal(): Promise<void> {
  */
 export async function testEraSummaryEvery5Turns(): Promise<void> {
   const config = createTestConfig();
-  let state = initializeGame(config);
+  let state = await initializeGame(config);
 
   // Run through 5 complete turns
   for (let i = 0; i < 5; i++) {
@@ -105,7 +105,7 @@ export async function testEraSummaryEvery5Turns(): Promise<void> {
  */
 export async function testTurnCounterAdvances(): Promise<void> {
   const config = createTestConfig();
-  let state = initializeGame(config);
+  let state = await initializeGame(config);
 
   const initialTurn = state.currentTurn;
 
@@ -126,7 +126,7 @@ export async function testTurnCounterAdvances(): Promise<void> {
  */
 export async function testHistoryLogging(): Promise<void> {
   const config = createTestConfig();
-  let state = initializeGame(config);
+  let state = await initializeGame(config);
 
   const initialHistoryLength = state.history.length;
 
@@ -152,7 +152,7 @@ export async function testHistoryLogging(): Promise<void> {
  */
 export async function testRunGameMultipleTurns(): Promise<void> {
   const config = createTestConfig();
-  let state = initializeGame(config);
+  let state = await initializeGame(config);
 
   // Run game for a limited number of turns
   state = await runGame(state, 10);
@@ -173,7 +173,7 @@ export async function testRunGameMultipleTurns(): Promise<void> {
  */
 export async function testRunGameMaxTurnLimit(): Promise<void> {
   const config = createTestConfig();
-  let state = initializeGame(config);
+  let state = await initializeGame(config);
 
   const maxTurns = 3;
   state = await runGame(state, maxTurns);
@@ -191,7 +191,7 @@ export async function testRunGameMaxTurnLimit(): Promise<void> {
  */
 export async function testTurnRecordCreation(): Promise<void> {
   const config = createTestConfig();
-  let state = initializeGame(config);
+  let state = await initializeGame(config);
 
   const initialRecords = state.history.length;
 
@@ -229,7 +229,7 @@ export async function testTurnRecordCreation(): Promise<void> {
  */
 export async function testEventDeckDepletion(): Promise<void> {
   const config = createTestConfig();
-  let state = initializeGame(config);
+  let state = await initializeGame(config);
 
   // Remember initial deck size
   const initialDeckSize = state.eventDeck.length;

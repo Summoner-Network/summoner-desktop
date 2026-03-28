@@ -1943,3 +1943,428 @@ button:disabled {
   font-weight: 700;
   margin-bottom: 8px;
 }
+
+/* Fork Scoreboard */
+.fork-scoreboard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+}
+
+.score-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.score-item.commander {
+  font-weight: 600;
+}
+
+.score-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.score-name {
+  min-width: 100px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.score-bar-wrap {
+  flex: 1;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.score-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.8s ease;
+}
+
+.score-pct {
+  min-width: 32px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.score-leader-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: #f59e0b;
+  letter-spacing: 0.05em;
+}
+
+.win-condition-note {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  text-align: center;
+  margin-top: 6px;
+  font-style: italic;
+}
+
+/* Fork Game Over Screen */
+.fork-game-over-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  padding: 40px;
+  animation: fadeIn 0.6s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes eraFlash {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); color: var(--text-warning); }
+  100% { transform: scale(1); }
+}
+
+.game-over-result {
+  font-size: 64px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.game-over-result.victory {
+  color: #fbbf24;
+  text-shadow: 0 0 20px rgba(251, 191, 36, 0.6);
+}
+
+.game-over-result.defeated {
+  color: #ef4444;
+  text-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+}
+
+.game-over-winner-section {
+  text-align: center;
+}
+
+.game-over-winner-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  margin-bottom: 8px;
+}
+
+.game-over-winner-name {
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.game-over-stats {
+  display: flex;
+  gap: 48px;
+  margin-top: 16px;
+}
+
+.game-over-stat {
+  text-align: center;
+}
+
+.game-over-stat-value {
+  font-size: 36px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.game-over-stat-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 4px;
+}
+
+.game-over-standings {
+  width: 100%;
+  max-width: 500px;
+}
+
+.game-over-standings-title {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.game-over-standings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.game-over-standing-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: white;
+}
+
+.game-over-standing-rank {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  min-width: 32px;
+}
+
+.game-over-standing-item:first-child {
+  background: rgba(255, 215, 0, 0.15);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.game-over-standing-rank.first {
+  color: #fbbf24;
+}
+
+.game-over-standing-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.game-over-standing-name {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+}
+
+.game-over-standing-pct {
+  font-size: 16px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.game-over-actions {
+  display: flex;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.game-over-btn {
+  padding: 12px 32px;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.game-over-btn.primary {
+  background: var(--text-primary);
+  color: var(--bg-primary);
+  border-color: var(--text-primary);
+}
+
+.game-over-btn.primary:hover {
+  background: var(--text-secondary);
+  border-color: var(--text-secondary);
+}
+
+.game-over-btn.secondary {
+  background: transparent;
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+
+.game-over-btn.secondary:hover {
+  background: var(--bg-secondary);
+  border-color: var(--text-primary);
+}
+
+/* Fork Game Setup Screen */
+.fork-setup-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  background: var(--color-background-primary, var(--bg-primary));
+  opacity: 1.0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px;
+  overflow-y: auto;
+}
+
+.fork-setup-header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.fork-setup-title {
+  font-size: 48px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.fork-setup-subtitle {
+  font-size: 16px;
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+.fork-setup-section {
+  width: 100%;
+  max-width: 900px;
+  margin-bottom: 40px;
+}
+
+.fork-setup-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.fork-setup-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+}
+
+.fork-setup-card {
+  position: relative;
+  z-index: 10;
+  background: var(--color-background-primary, var(--bg-primary));
+  border: 1px solid var(--color-border-secondary, var(--border));
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: none;
+}
+
+.fork-setup-card:hover {
+  border-color: var(--text-secondary);
+  transform: translateY(-2px);
+}
+
+.fork-setup-card.selected {
+  border: 2px solid var(--color-text-primary, var(--text-primary));
+  background: var(--bg-tertiary);
+}
+
+.fork-setup-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.fork-setup-card-name {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.fork-setup-card-year {
+  font-size: 14px;
+  color: var(--text-tertiary);
+}
+
+.fork-setup-card-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.fork-setup-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.fork-setup-card-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+}
+
+.fork-setup-card.selected .fork-setup-card-dot {
+  border-color: var(--text-primary);
+}
+
+.fork-setup-begin {
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+.fork-setup-begin-btn {
+  width: 100%;
+  max-width: 900px;
+  padding: 14px 32px;
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  background: var(--color-text-primary, var(--text-primary));
+  color: var(--color-background-primary, var(--bg-primary));
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  opacity: 1.0;
+  margin-top: 24px;
+}
+
+.fork-setup-begin-btn:disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+  opacity: 0.4;
+}
+
+.fork-setup-begin-btn:not(:disabled):hover {
+  background: var(--text-secondary);
+  transform: scale(1.05);
+}

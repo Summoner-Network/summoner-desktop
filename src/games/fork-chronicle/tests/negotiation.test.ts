@@ -12,7 +12,7 @@ import type { Alliance } from "../src/types/alliance";
 /**
  * Create a test game state with controlled setup
  */
-function createTestGameState(): GameState {
+async function createTestGameState(): Promise<GameState> {
   const config: GameConfig = {
     epochId: "1914_brink",
     factionCount: 4,
@@ -20,15 +20,15 @@ function createTestGameState(): GameState {
     eventPackIds: ["base"],
     seed: "negotiation_test"
   };
-  return initializeGame(config);
+  return await initializeGame(config);
 }
 
 /**
  * Test: High loyalty and reputation increases acceptance probability
  * [SPEC] p_accept = base_trust * loyalty_factor * reputation_factor * patron_factor
  */
-export function testAcceptanceProbabilityFactors(): void {
-  const state = createTestGameState();
+export async function testAcceptanceProbabilityFactors(): Promise<void> {
+  const state = await createTestGameState();
 
   // Set high reputation for proposer
   state.factions["faction_1"].reputation = 90;
@@ -77,8 +77,8 @@ export function testAcceptanceProbabilityFactors(): void {
  * Test: Faction with 3 active alliances rejects all new proposals
  * [RULE] A faction may not be in more than 3 active alliances simultaneously
  */
-export function testMaxThreeAlliancesRule(): void {
-  const state = createTestGameState();
+export async function testMaxThreeAlliancesRule(): Promise<void> {
+  const state = await createTestGameState();
 
   // Create 3 existing alliances for faction_2
   for (let i = 0; i < 3; i++) {
@@ -124,8 +124,8 @@ export function testMaxThreeAlliancesRule(): void {
 /**
  * Test: Betrayal updates InteractionMemory and reduces base_trust
  */
-export function testBetrayalUpdatesMemory(): void {
-  const state = createTestGameState();
+export async function testBetrayalUpdatesMemory(): Promise<void> {
+  const state = await createTestGameState();
 
   const proposerAgent = state.factions["faction_1"].agents[0];
   const targetAgent = state.factions["faction_2"].agents[0];
@@ -183,8 +183,8 @@ export function testBetrayalUpdatesMemory(): void {
 /**
  * Test: Alliance terms are stored correctly
  */
-export function testAllianceTermsStored(): void {
-  const state = createTestGameState();
+export async function testAllianceTermsStored(): Promise<void> {
+  const state = await createTestGameState();
 
   // Set high acceptance factors
   state.factions["faction_1"].reputation = 90;
@@ -242,8 +242,8 @@ export function testAllianceTermsStored(): void {
 /**
  * Test: InteractionMemory updated after negotiation attempt
  */
-export function testInteractionMemoryUpdated(): void {
-  const state = createTestGameState();
+export async function testInteractionMemoryUpdated(): Promise<void> {
+  const state = await createTestGameState();
 
   const proposerAgent = state.factions["faction_1"].agents[0];
   const targetAgent = state.factions["faction_2"].agents[0];
@@ -295,9 +295,9 @@ export function testInteractionMemoryUpdated(): void {
  * Test: patronBacking increases acceptance probability
  * [SPEC] patron_factor = 1.0 + (target.faction.patronBacking / 500)
  */
-export function testPatronBackingInfluencesAcceptance(): void {
-  const stateNoBacking = createTestGameState();
-  const stateWithBacking = createTestGameState();
+export async function testPatronBackingInfluencesAcceptance(): Promise<void> {
+  const stateNoBacking = await createTestGameState();
+  const stateWithBacking = await createTestGameState();
 
   // Set same base conditions
   stateNoBacking.factions["faction_1"].reputation = 70;
@@ -352,8 +352,8 @@ export function testPatronBackingInfluencesAcceptance(): void {
 /**
  * Test: Multiple alliance proposals in single turn
  */
-export function testMultipleProposals(): void {
-  const state = createTestGameState();
+export async function testMultipleProposals(): Promise<void> {
+  const state = await createTestGameState();
 
   // Set high acceptance probability for all
   Object.values(state.factions).forEach((faction) => {
@@ -399,17 +399,17 @@ export function testMultipleProposals(): void {
 /**
  * Run all negotiation tests
  */
-export function runAllNegotiationTests(): void {
+export async function runAllNegotiationTests(): Promise<void> {
   console.log("\n=== Running Negotiation Tests ===\n");
 
   try {
-    testAcceptanceProbabilityFactors();
-    testMaxThreeAlliancesRule();
-    testBetrayalUpdatesMemory();
-    testAllianceTermsStored();
-    testInteractionMemoryUpdated();
-    testPatronBackingInfluencesAcceptance();
-    testMultipleProposals();
+    await testAcceptanceProbabilityFactors();
+    await testMaxThreeAlliancesRule();
+    await testBetrayalUpdatesMemory();
+    await testAllianceTermsStored();
+    await testInteractionMemoryUpdated();
+    await testPatronBackingInfluencesAcceptance();
+    await testMultipleProposals();
 
     console.log("\n✓ All negotiation tests passed!\n");
   } catch (error) {

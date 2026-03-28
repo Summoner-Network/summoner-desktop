@@ -10,7 +10,7 @@ import { SeededRandom } from "../src/utils/random";
 /**
  * Test: Basic game initialization
  */
-export function testBasicInitialization(): void {
+export async function testBasicInitialization(): Promise<void> {
   const config: GameConfig = {
     epochId: "1914_brink",
     factionCount: 4,
@@ -21,7 +21,7 @@ export function testBasicInitialization(): void {
     seed: "test_seed_123"
   };
 
-  const gameState = initializeGame(config);
+  const gameState = await initializeGame(config);
 
   // Verify basic structure
   if (!gameState.gameId) throw new Error("Game ID not set");
@@ -65,7 +65,7 @@ export function testBasicInitialization(): void {
  * Test: Seed reproducibility
  * Same seed should produce identical game state after 10 turns
  */
-export function testSeedReproducibility(): void {
+export async function testSeedReproducibility(): Promise<void> {
   const config: GameConfig = {
     epochId: "1914_brink",
     factionCount: 3,
@@ -76,8 +76,8 @@ export function testSeedReproducibility(): void {
     seed: "reproducibility_test_42"
   };
 
-  const gameState1 = initializeGame(config);
-  const gameState2 = initializeGame(config);
+  const gameState1 = await initializeGame(config);
+  const gameState2 = await initializeGame(config);
 
   // Verify faction territories match
   const faction1_game1 = gameState1.factions["faction_1"].territories.sort();
@@ -115,7 +115,7 @@ export function testSeedReproducibility(): void {
  * Test: Faction balance check
  * Verify that no faction starts with >60% advantage over another
  */
-export function testFactionBalance(): void {
+export async function testFactionBalance(): Promise<void> {
   const config: GameConfig = {
     epochId: "1914_brink",
     factionCount: 4,
@@ -126,7 +126,7 @@ export function testFactionBalance(): void {
     seed: "balance_test_789"
   };
 
-  const gameState = initializeGame(config);
+  const gameState = await initializeGame(config);
 
   // Calculate advantages for all factions
   const calculateAdvantage = (factionId: string): number => {
@@ -187,7 +187,7 @@ export function testFactionBalance(): void {
  * Test: Agent personality constraints
  * [RULE] Personality values are uniform random within 0.2–0.8 per trait
  */
-export function testAgentPersonalityConstraints(): void {
+export async function testAgentPersonalityConstraints(): Promise<void> {
   const config: GameConfig = {
     epochId: "1914_brink",
     factionCount: 4,
@@ -198,7 +198,7 @@ export function testAgentPersonalityConstraints(): void {
     seed: "personality_test_456"
   };
 
-  const gameState = initializeGame(config);
+  const gameState = await initializeGame(config);
 
   // Check all agents
   Object.values(gameState.factions).forEach((faction) => {
@@ -226,7 +226,7 @@ export function testAgentPersonalityConstraints(): void {
 /**
  * Test: Each faction has 2-4 agents
  */
-export function testFactionAgentCount(): void {
+export async function testFactionAgentCount(): Promise<void> {
   const config: GameConfig = {
     epochId: "1914_brink",
     factionCount: 4,
@@ -237,7 +237,7 @@ export function testFactionAgentCount(): void {
     seed: "agent_count_test"
   };
 
-  const gameState = initializeGame(config);
+  const gameState = await initializeGame(config);
 
   Object.values(gameState.factions).forEach((faction) => {
     const agentCount = faction.agents.length;
@@ -252,7 +252,7 @@ export function testFactionAgentCount(): void {
 /**
  * Test: Player dealt event card from deck
  */
-export function testPlayerEventCardDealt(): void {
+export async function testPlayerEventCardDealt(): Promise<void> {
   const config: GameConfig = {
     epochId: "1914_brink",
     factionCount: 2,
@@ -264,7 +264,7 @@ export function testPlayerEventCardDealt(): void {
     seed: "card_deal_test"
   };
 
-  const gameState = initializeGame(config);
+  const gameState = await initializeGame(config);
 
   // Each player should have a drawn card
   if (!gameState.playerStates["player1"].currentDrawnCard) {
@@ -318,17 +318,17 @@ export function testSeededRandom(): void {
 /**
  * Run all tests
  */
-export function runAllTests(): void {
+export async function runAllTests(): Promise<void> {
   console.log("\n=== Running Fork Chronicle Setup Tests ===\n");
 
   try {
     testSeededRandom();
-    testBasicInitialization();
-    testSeedReproducibility();
-    testFactionBalance();
-    testAgentPersonalityConstraints();
-    testFactionAgentCount();
-    testPlayerEventCardDealt();
+    await testBasicInitialization();
+    await testSeedReproducibility();
+    await testFactionBalance();
+    await testAgentPersonalityConstraints();
+    await testFactionAgentCount();
+    await testPlayerEventCardDealt();
 
     console.log("\n✓ All tests passed!\n");
   } catch (error) {

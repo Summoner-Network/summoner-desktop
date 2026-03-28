@@ -10,7 +10,7 @@ import type { FactionId } from "../src/types/faction";
 /**
  * Create a test game state with controlled setup
  */
-function createTestGameState(): GameState {
+async function createTestGameState(): Promise<GameState> {
   const config: GameConfig = {
     epochId: "1914_brink",
     factionCount: 4,
@@ -18,7 +18,7 @@ function createTestGameState(): GameState {
     eventPackIds: ["base"],
     seed: "win_test"
   };
-  return initializeGame(config);
+  return await initializeGame(config);
 }
 
 /**
@@ -72,8 +72,8 @@ function setFactionTerritories(
  * Test: Faction wins after controlling ≥70% for 2 consecutive eras
  * [RULE] A faction wins when it controls ≥70% of territories for 2 consecutive eras
  */
-export function testConsecutiveEraWin(): void {
-  const state = createTestGameState();
+export async function testConsecutiveEraWin(): Promise<void> {
+  const state = await createTestGameState();
 
   const totalTerritories = Object.keys(state.territories).length;
   const threshold = Math.ceil(totalTerritories * 0.7); // 70% rounded up
@@ -119,8 +119,8 @@ export function testConsecutiveEraWin(): void {
 /**
  * Test: Dominance resets if a different faction takes control
  */
-export function testDominanceReset(): void {
-  const state = createTestGameState();
+export async function testDominanceReset(): Promise<void> {
+  const state = await createTestGameState();
 
   const totalTerritories = Object.keys(state.territories).length;
   const threshold = Math.ceil(totalTerritories * 0.7);
@@ -161,8 +161,8 @@ export function testDominanceReset(): void {
 /**
  * Test: No faction wins if no one reaches 70% before era 20
  */
-export function testNoEarlyWinBelow70Percent(): void {
-  const state = createTestGameState();
+export async function testNoEarlyWinBelow70Percent(): Promise<void> {
+  const state = await createTestGameState();
 
   const totalTerritories = Object.keys(state.territories).length;
   const belowThreshold = Math.floor(totalTerritories * 0.69); // Just below 70%
@@ -195,8 +195,8 @@ export function testNoEarlyWinBelow70Percent(): void {
  * Test: Era 20 timeout - faction with most territories wins
  * [RULE] If no faction achieves 70% after 20 eras, faction with most territories wins
  */
-export function testEra20TimeoutWin(): void {
-  const state = createTestGameState();
+export async function testEra20TimeoutWin(): Promise<void> {
+  const state = await createTestGameState();
 
   const allTerritoryIds = Object.keys(state.territories);
 
@@ -258,8 +258,8 @@ export function testEra20TimeoutWin(): void {
  * Test: Era 20 tiebreaker uses reputation
  * [RULE] Tiebreaker: highest reputation score
  */
-export function testEra20TiebreakerReputation(): void {
-  const state = createTestGameState();
+export async function testEra20TiebreakerReputation(): Promise<void> {
+  const state = await createTestGameState();
 
   const allTerritoryIds = Object.keys(state.territories);
 
@@ -321,8 +321,8 @@ export function testEra20TiebreakerReputation(): void {
 /**
  * Test: Win condition check happens in era_summary phase
  */
-export function testWinConditionCheckedInEraSummary(): void {
-  const state = createTestGameState();
+export async function testWinConditionCheckedInEraSummary(): Promise<void> {
+  const state = await createTestGameState();
 
   const totalTerritories = Object.keys(state.territories).length;
   const threshold = Math.ceil(totalTerritories * 0.7);
@@ -367,16 +367,16 @@ export function testWinConditionCheckedInEraSummary(): void {
 /**
  * Run all win condition tests
  */
-export function runAllWinConditionTests(): void {
+export async function runAllWinConditionTests(): Promise<void> {
   console.log("\n=== Running Win Condition Tests ===\n");
 
   try {
-    testConsecutiveEraWin();
-    testDominanceReset();
-    testNoEarlyWinBelow70Percent();
-    testEra20TimeoutWin();
-    testEra20TiebreakerReputation();
-    testWinConditionCheckedInEraSummary();
+    await testConsecutiveEraWin();
+    await testDominanceReset();
+    await testNoEarlyWinBelow70Percent();
+    await testEra20TimeoutWin();
+    await testEra20TiebreakerReputation();
+    await testWinConditionCheckedInEraSummary();
 
     console.log("\n✓ All win condition tests passed!\n");
   } catch (error) {
