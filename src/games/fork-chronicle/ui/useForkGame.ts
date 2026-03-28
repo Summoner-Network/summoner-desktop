@@ -8,7 +8,7 @@ import { executeTurn } from "../src/engine/turn-loop";
 import { playEventCard as enginePlayEventCard } from "../src/engine/events";
 import type { GameState, GameConfig } from "../src/types/game-state";
 import type { PlayerState, BetAction, EventInjectionAction, PatronAction } from "../src/types/player";
-import { fetchWikipediaEventsForToday, wikiEventToGameEvent } from "../src/utils/wikipedia-events";
+import { fetchWikipediaEventsForYear, wikiEventToGameEvent } from "../src/utils/wikipedia-events";
 
 export interface LiveLogEntry {
   turn: number;
@@ -63,13 +63,15 @@ export function useForkGame(): UseForkGameReturn {
     if (!playerState) return state;
 
     try {
-      const wikiEvents = await fetchWikipediaEventsForToday();
+      const epochStartYear = state.epoch?.year ?? 1914;
+      const currentGameYear = epochStartYear + (state.currentEra - 1) * 5;
+      const wikiEvents = await fetchWikipediaEventsForYear(currentGameYear);
       if (wikiEvents && wikiEvents.length > 0) {
-        const randomIndex = Math.floor(Math.random() * Math.min(wikiEvents.length, 20));
+        const randomIndex = Math.floor(Math.random() * Math.min(wikiEvents.length, 10));
         const picked = wikiEvents[randomIndex];
         const tier: 1 | 2 | 3 = Math.random() < 0.15 ? 3 : Math.random() < 0.45 ? 2 : 1;
         const gameEvent = wikiEventToGameEvent(picked, tier);
-        console.log('[Fork] Wikipedia event drawn:', gameEvent.title);
+        console.log('[Fork] Wikipedia event drawn for year', currentGameYear, ':', gameEvent.title, '(Wikipedia year:', picked.year, ')');
         return {
           ...state,
           playerStates: {

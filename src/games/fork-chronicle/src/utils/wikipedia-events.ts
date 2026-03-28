@@ -44,6 +44,47 @@ export async function fetchWikipediaEventsForToday(): Promise<WikipediaEvent[]> 
 }
 
 /**
+ * Fetch Wikipedia events filtered to match a specific game year.
+ * Returns events within a ±20 year window of the game year.
+ */
+export async function fetchWikipediaEventsForYear(
+  gameYear: number
+): Promise<WikipediaEvent[]> {
+  const now = new Date();
+  const month = now.getMonth() + 1;
+  const day = now.getDate();
+
+  console.log('[Fork] Fetching Wikipedia events via IPC...', month, day);
+
+  const result = await window.api.wikipedia.fetchOnThisDay(month, day);
+
+  if (!result.ok || !('data' in result)) {
+    console.warn('[Fork] Wikipedia IPC fetch failed:', 'error' in result ? result.error : 'unknown');
+    return [];
+  }
+
+  const allEvents = result.data.events as WikipediaEvent[];
+  const yearMin = gameYear - 5;
+  const yearMax = gameYear + 20;
+
+  const filtered = allEvents.filter(e => e.year >= yearMin && e.year <= yearMax);
+
+  console.log('[Fork] Wikipedia events for year', gameYear,
+    '- total:', allEvents.length,
+    'filtered to range', yearMin, '-', yearMax, ':', filtered.length);
+
+  // If no events in range, fall back to nearest events
+  if (filtered.length === 0) {
+    console.log('[Fork] No events in year range, using closest events');
+    return allEvents
+      .sort((a, b) => Math.abs(a.year - gameYear) - Math.abs(b.year - gameYear))
+      .slice(0, 5);
+  }
+
+  return filtered;
+}
+
+/**
  * Convert a Wikipedia event to a Fork Chronicle HistoricalEvent
  */
 export function wikiEventToGameEvent(

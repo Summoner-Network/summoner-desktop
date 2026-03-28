@@ -535,7 +535,7 @@ export default function ForkGamePage(props: ForkGamePageProps) {
                 </svg>
 
                 <div>
-                  {/* Era: large */}
+                  {/* Year: large */}
                   <div style={{
                     fontSize: 22,
                     fontWeight: 700,
@@ -543,15 +543,15 @@ export default function ForkGamePage(props: ForkGamePageProps) {
                     lineHeight: 1.1,
                   }}
                   key={gameState.currentEra}>
-                    Era {gameState.currentEra}
+                    {(gameState.epoch?.year ?? 1914) + (gameState.currentEra - 1) * 5}
                   </div>
-                  {/* Turn: smaller */}
+                  {/* Era · Turn: smaller */}
                   <div style={{
                     fontSize: 13,
                     color: 'var(--text-secondary)',
                     marginTop: 2,
                   }}>
-                    Turn {gameState.currentTurn}
+                    Era {gameState.currentEra} · Turn {gameState.currentTurn}
                   </div>
                 </div>
               </div>
@@ -940,6 +940,15 @@ export default function ForkGamePage(props: ForkGamePageProps) {
         {/* Live Scoreboard */}
         {gameState && (
           <div className="fork-scoreboard">
+            <div style={{
+              fontSize: 11,
+              color: 'var(--text-tertiary)',
+              textAlign: 'center',
+              padding: '4px 0',
+              borderBottom: '1px solid var(--border-subtle)',
+            }}>
+              {gameState.epoch?.name ?? 'Unknown Epoch'} · {(gameState.epoch?.year ?? 1914) + (gameState.currentEra - 1) * 5}
+            </div>
             {Object.values(gameState.factions)
               .sort((a, b) => b.territories.length - a.territories.length)
               .map((faction) => {
@@ -1010,9 +1019,10 @@ export default function ForkGamePage(props: ForkGamePageProps) {
             <div style={{
               display: 'inline-flex',
               gap: 32,
-              animation: tickerMessages.length > 0
-                ? `tickerScroll ${turnSpeed <= 1500 ? 15 : turnSpeed <= 3000 ? 25 : 40}s linear infinite`
-                : 'none',
+              animationName: tickerMessages.length > 0 ? 'tickerScroll' : 'none',
+              animationDuration: `${turnSpeed <= 1500 ? 15 : turnSpeed <= 3000 ? 25 : 40}s`,
+              animationTimingFunction: 'linear',
+              animationIterationCount: 'infinite',
               animationPlayState: isPaused ? 'paused' : 'running',
               fontSize: 12,
               color: 'var(--text-secondary)',
