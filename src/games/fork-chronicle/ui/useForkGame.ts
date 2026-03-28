@@ -63,9 +63,7 @@ export function useForkGame(): UseForkGameReturn {
     if (!playerState) return state;
 
     try {
-      console.log('[Fork] Fetching Wikipedia events for today...');
       const wikiEvents = await fetchWikipediaEventsForToday();
-      console.log('[Fork] Wikipedia returned', wikiEvents?.length ?? 0, 'events');
       if (wikiEvents && wikiEvents.length > 0) {
         const randomIndex = Math.floor(Math.random() * Math.min(wikiEvents.length, 20));
         const picked = wikiEvents[randomIndex];
@@ -207,6 +205,7 @@ export function useForkGame(): UseForkGameReturn {
     }
     try {
       console.log('[Fork] Executing turn', current.currentTurn);
+      const historyLenBefore = current.history.length;
       let next = await executeTurn(current);
 
       // Draw a new Wikipedia card if the player has none
@@ -239,10 +238,16 @@ export function useForkGame(): UseForkGameReturn {
       }
       lastEraRef.current = next.currentEra;
 
+      // Collect ALL events from ALL new history records added this turn
+      // (executeTurn adds one record per phase: event_reveal, player_actions,
+      //  agent_deliberation, agent_negotiation, agent_action, resolution, [era_summary])
+      const newRecords = next.history.slice(historyLenBefore);
+      const allTurnEvents = newRecords.flatMap(r => r.events);
+      const turnMeta = newRecords[0] ?? next.history[next.history.length - 1];
+
       // Extract ticker messages — agent actions only (combat, diplomacy, investment)
-      if (next.history.length > 0) {
-        const latestRecord = next.history[next.history.length - 1];
-        const agentActionEvents = latestRecord.events
+      {
+        const agentActionEvents = allTurnEvents
           .filter(msg =>
             msg.includes('conquered') ||
             msg.includes('defended') ||
@@ -277,10 +282,8 @@ export function useForkGame(): UseForkGameReturn {
         }
       }
 
-      // Extract new log entries from the latest turn record
-      if (next.history.length > 0) {
-        const latestRecord = next.history[next.history.length - 1];
-
+      // Extract live log entries from all new records
+      {
         // Filter out engine noise — keep only meaningful agent actions
         const noisePatterns = [
           /No events remaining/i,
@@ -290,15 +293,22 @@ export function useForkGame(): UseForkGameReturn {
           /Agents deliberating/i,
           /Agent negotiation phase/i,
           /Agent action execution/i,
+          /Agent actions being executed/i,
           /Resolving turn outcomes/i,
           /Generating era summary/i,
           /Personality drift/i,
           /agents completed deliberation/i,
           /Players may now act/i,
           /Odds updated/i,
+          /Turn resolution phase/i,
+          /Alliance negotiation phase/i,
+          /Agent deliberation phase/i,
+          /No agent actions/i,
+          /No alliance proposals/i,
+          /Recalculating faction/i,
         ];
 
-        const meaningfulEvents = latestRecord.events.filter(event =>
+        const meaningfulEvents = allTurnEvents.filter(event =>
           !noisePatterns.some(pattern => pattern.test(event))
         );
 
@@ -341,8 +351,8 @@ export function useForkGame(): UseForkGameReturn {
           });
 
           return {
-            turn: latestRecord.turn,
-            era: latestRecord.era,
+            turn: turnMeta?.turn ?? next.currentTurn,
+            era: turnMeta?.era ?? next.currentEra,
             type,
             message,
             emoji

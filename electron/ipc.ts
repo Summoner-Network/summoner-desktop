@@ -2051,6 +2051,26 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
     }
   });
 
+  // Wikipedia "On This Day" API — routed through main process to bypass CSP
+  ipcMain.handle("wikipedia:fetchOnThisDay", async (_e, month: number, day: number) => {
+    try {
+      const url = `https://en.wikipedia.org/api/rest_v1/feed/onthisday/events/${month}/${day}`;
+      const response = await fetch(url, {
+        headers: {
+          "Accept": "application/json",
+          "User-Agent": "ForkChronicle/1.0 (summoner-desktop)"
+        }
+      });
+      if (!response.ok) {
+        throw new Error(`Wikipedia API returned ${response.status}`);
+      }
+      const data = await response.json();
+      return { ok: true as const, data };
+    } catch (e) {
+      return { ok: false as const, error: safeError(e) };
+    }
+  });
+
   const safeSend = (channel: string, payload: unknown) => {
     if (win.isDestroyed()) return;
     const wc = win.webContents;

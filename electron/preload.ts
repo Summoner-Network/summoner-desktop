@@ -252,6 +252,10 @@ const api: Api = {
   servers: {
     list: () => ipcRenderer.invoke("servers:list"),
     save: (args) => ipcRenderer.invoke("servers:save", args)
+  },
+  wikipedia: {
+    fetchOnThisDay: (month: number, day: number) =>
+      ipcRenderer.invoke("wikipedia:fetchOnThisDay", month, day)
   }
 };
 

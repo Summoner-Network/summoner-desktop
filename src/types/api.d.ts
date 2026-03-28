@@ -143,6 +143,12 @@ declare global {
           | { ok: false; error: string }
         >;
       };
+      wikipedia: {
+        fetchOnThisDay: (month: number, day: number) => Promise<
+          | { ok: true; data: { events: Array<{ year: number; text: string; pages: Array<{ title: string; extract: string; thumbnail?: { source: string; width: number; height: number } }> }> } }
+          | { ok: false; error: string }
+        >;
+      };
     };
   }
 }

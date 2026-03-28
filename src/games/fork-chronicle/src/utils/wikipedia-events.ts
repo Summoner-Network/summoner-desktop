@@ -22,20 +22,24 @@ export interface WikipediaEvent {
 
 /**
  * Fetch today's historical events from Wikipedia API
+ * Routes through Electron's main process via IPC to bypass CSP
  */
 export async function fetchWikipediaEventsForToday(): Promise<WikipediaEvent[]> {
   const now = new Date();
   const month = now.getMonth() + 1;
   const day = now.getDate();
 
-  const res = await fetch(
-    `https://en.wikipedia.org/api/rest_v1/feed/onthisday/events/${month}/${day}`,
-    { headers: { 'Accept': 'application/json' } }
-  );
+  console.log('[Fork] Fetching Wikipedia events via IPC...', month, day);
 
-  if (!res.ok) throw new Error('Wikipedia API failed');
-  const data = await res.json();
-  return data.events as WikipediaEvent[];
+  const result = await window.api.wikipedia.fetchOnThisDay(month, day);
+
+  if (!result.ok || !('data' in result)) {
+    console.warn('[Fork] Wikipedia IPC fetch failed:', 'error' in result ? result.error : 'unknown');
+    return [];
+  }
+
+  console.log('[Fork] Wikipedia returned', result.data.events.length, 'events');
+  return result.data.events as WikipediaEvent[];
 }
 
 /**
@@ -68,7 +72,7 @@ export function wikiEventToGameEvent(
     // Add Wikipedia metadata
     wikiYear: wikiEvent.year,
     wikiText: wikiEvent.text,
-    wikiThumbnail: getWikipediaThumbnail(wikiEvent),
+    wikiThumbnail: getWikipediaThumbnail(wikiEvent) ?? undefined,
   };
 }
 
