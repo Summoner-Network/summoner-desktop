@@ -7,6 +7,7 @@ import type { GameState } from "../types/game-state";
 import type { PatronAction, PatronBenefit } from "../types/player";
 import type { FactionId } from "../types/faction";
 import { emitPatronActivated } from "../analytics/analytics-emitter";
+import { safeAddIP } from "./betting";
 
 /**
  * Commit patron backing to a faction
@@ -43,7 +44,7 @@ export function commitPatronBacking(
         return { success: false, error: "Switching factions costs 20 IP (insufficient funds)" };
       }
 
-      player.influencePoints -= 20;
+      player.influencePoints = safeAddIP(player.influencePoints, -20);
 
       // Remove accumulated patronBacking from old faction
       const oldFaction = state.factions[existingCommitment.targetFactionId];
@@ -78,7 +79,7 @@ export function commitPatronBacking(
       return { success: false, error: "negotiation_edge requires 40 IP upfront" };
     }
 
-    player.influencePoints -= 40;
+    player.influencePoints = safeAddIP(player.influencePoints, -40);
     results.push(`💰 ${playerId} paid 40 IP upfront for negotiation_edge (2 eras)`);
   }
 
@@ -185,7 +186,7 @@ export function applyPatronEraEffects(state: GameState): string[] {
             break;
           }
 
-          player.influencePoints -= 30;
+          player.influencePoints = safeAddIP(player.influencePoints, -30);
 
           // Ensure reputation is at least 30
           if (faction.reputation < 30) {

@@ -12,6 +12,43 @@ import type { Epoch } from "../src/types/epoch";
 import { loadEpoch } from "../src/utils/data-loader";
 import territoryCoords from "../data/territory-coords.json";
 
+const COUNTRY_FLAGS: Record<string, string> = {
+  USA: '🇺🇸', GBR: '🇬🇧', FRA: '🇫🇷', DEU: '🇩🇪', RUS: '🇷🇺',
+  CHN: '🇨🇳', JPN: '🇯🇵', IND: '🇮🇳', BRA: '🇧🇷', ARG: '🇦🇷',
+  EGY: '🇪🇬', NGA: '🇳🇬', ZAF: '🇿🇦', AUS: '🇦🇺', SAU: '🇸🇦',
+  TUR: '🇹🇷', IRN: '🇮🇷', PAK: '🇵🇰', MEX: '🇲🇽', CAN: '🇨🇦',
+  KAZ: '🇰🇿', MNG: '🇲🇳', VNM: '🇻🇳', THA: '🇹🇭', POL: '🇵🇱',
+  ITA: '🇮🇹', ESP: '🇪🇸', COL: '🇨🇴', PER: '🇵🇪', MAR: '🇲🇦',
+  ETH: '🇪🇹', COD: '🇨🇩', IRQ: '🇮🇶', CUB: '🇨🇺', PNG: '🇵🇬',
+  NZL: '🇳🇿', FJI: '🇫🇯', GTM: '🇬🇹', HTI: '🇭🇹', PAN: '🇵🇦',
+  DOM: '🇩🇴', NLD: '🇳🇱',
+};
+
+const COUNTRY_NAMES: Record<string, string> = {
+  USA: 'United States', GBR: 'United Kingdom', FRA: 'France', DEU: 'Germany',
+  RUS: 'Russia', CHN: 'China', JPN: 'Japan', IND: 'India', BRA: 'Brazil',
+  ARG: 'Argentina', EGY: 'Egypt', NGA: 'Nigeria', ZAF: 'South Africa',
+  AUS: 'Australia', SAU: 'Saudi Arabia', TUR: 'Turkey', IRN: 'Iran',
+  PAK: 'Pakistan', MEX: 'Mexico', CAN: 'Canada', KAZ: 'Kazakhstan',
+  MNG: 'Mongolia', VNM: 'Vietnam', THA: 'Thailand', POL: 'Poland',
+  ITA: 'Italy', ESP: 'Spain', COL: 'Colombia', PER: 'Peru', MAR: 'Morocco',
+  ETH: 'Ethiopia', COD: 'DR Congo', IRQ: 'Iraq', CUB: 'Cuba', PNG: 'Papua New Guinea',
+  NZL: 'New Zealand', FJI: 'Fiji', GTM: 'Guatemala', HTI: 'Haiti', PAN: 'Panama',
+  DOM: 'Dominican Republic', NLD: 'Netherlands',
+};
+
+const COUNTRY_CONTINENTS: Record<string, string> = {
+  USA: 'Americas', GBR: 'Europe', FRA: 'Europe', DEU: 'Europe', RUS: 'Europe/Asia',
+  CHN: 'Asia', JPN: 'Asia', IND: 'Asia', BRA: 'Americas', ARG: 'Americas',
+  EGY: 'Africa', NGA: 'Africa', ZAF: 'Africa', AUS: 'Oceania', SAU: 'Middle East',
+  TUR: 'Middle East', IRN: 'Middle East', PAK: 'Asia', MEX: 'Americas', CAN: 'Americas',
+  KAZ: 'Asia', MNG: 'Asia', VNM: 'Asia', THA: 'Asia', POL: 'Europe',
+  ITA: 'Europe', ESP: 'Europe', COL: 'Americas', PER: 'Americas', MAR: 'Africa',
+  ETH: 'Africa', COD: 'Africa', IRQ: 'Middle East', CUB: 'Americas', PNG: 'Oceania',
+  NZL: 'Oceania', FJI: 'Oceania', GTM: 'Americas', HTI: 'Americas', PAN: 'Americas',
+  DOM: 'Americas', NLD: 'Europe',
+};
+
 export interface ForkGamePageProps {
   mapParams: MercatorParamsV1 | null;
   mapSvgInner: string;
@@ -69,9 +106,11 @@ export default function ForkGamePage(props: ForkGamePageProps) {
 
   const [selectedEpochId, setSelectedEpochId] = useState<string | null>(null);
   const [selectedFactionId, setSelectedFactionId] = useState<string | null>(null);
+  const [selectedCountryId, setSelectedCountryId] = useState<string | null>(null);
   const [factionCount, setFactionCount] = useState<2 | 3 | 4>(4);
   const [directive, setDirective] = useState<string>("");
   const [exportConfirmed, setExportConfirmed] = useState(false);
+  const [showingReveal, setShowingReveal] = useState(false);
   const [hoveredTerritory, setHoveredTerritory] = useState<{
     name: string;
     faction: string;
@@ -133,6 +172,35 @@ export default function ForkGamePage(props: ForkGamePageProps) {
     });
   }, [selectedEpochData]);
 
+  // Available countries for selected epoch (derived from territory control)
+  const availableCountries = useMemo(() => {
+    if (!selectedEpochData) return [];
+    return Object.keys(selectedEpochData.startingTerritoryControl)
+      .map(id => ({
+        id,
+        name: COUNTRY_NAMES[id] || id,
+        flag: COUNTRY_FLAGS[id] || '',
+        continent: COUNTRY_CONTINENTS[id] || '',
+        factionId: selectedEpochData.startingTerritoryControl[id],
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [selectedEpochData]);
+
+  // Derived faction from selected country
+  const selectedCountryFaction = useMemo(() => {
+    if (!selectedCountryId || !selectedEpochData) return null;
+    const factionId = selectedEpochData.startingTerritoryControl[selectedCountryId];
+    if (!factionId) return null;
+    const factionColors = ["#3b82f6", "#ef4444", "#10b981", "#f59e0b"];
+    const factionIds = Object.keys(selectedEpochData.factionNames || {});
+    const index = factionIds.indexOf(factionId);
+    return {
+      id: factionId,
+      name: (selectedEpochData.factionNames as Record<string, string>)?.[factionId] ?? factionId,
+      color: factionColors[index] ?? '#888888',
+    };
+  }, [selectedCountryId, selectedEpochData]);
+
   // Convert territory bounding box to SVG rectangle coordinates
   const territoryBoxToSvgRect = useCallback(
     (box: { latN: number; latS: number; lonW: number; lonE: number }) => {
@@ -166,9 +234,17 @@ export default function ForkGamePage(props: ForkGamePageProps) {
     }).filter((t): t is NonNullable<typeof t> => t !== null);
   }, [mapParams, gameState]);
 
-  // Handle game start
+  // Handle game start — derive faction from country, show reveal
   const handleStartGame = async () => {
-    if (!selectedEpochId || !selectedFactionId) return;
+    if (!selectedEpochId || !selectedCountryId || !selectedCountryFaction) return;
+
+    // Set the faction from the country's allegiance
+    setSelectedFactionId(selectedCountryFaction.id);
+
+    // Show faction reveal animation
+    setShowingReveal(true);
+    await new Promise(resolve => setTimeout(resolve, 2500));
+    setShowingReveal(false);
 
     const config: GameConfig = {
       epochId: selectedEpochId,
@@ -268,28 +344,44 @@ export default function ForkGamePage(props: ForkGamePageProps) {
             </div>
           </div>
 
-          {/* Faction Selection */}
+          {/* Country Selection */}
           {selectedEpochId && (
             <div className="fork-setup-section">
-              <div className="fork-setup-section-title">Choose Your Faction</div>
-              <div className="fork-setup-cards">
-                {availableFactions.map((faction) => (
+              <div className="fork-setup-section-title">Choose Your Country</div>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(4, 1fr)',
+                gap: 8,
+                maxHeight: 280,
+                overflowY: 'auto',
+                padding: 4,
+              }}>
+                {availableCountries.map((country) => (
                   <div
-                    key={faction.id}
-                    className={`fork-setup-card ${selectedFactionId === faction.id ? 'selected' : ''}`}
-                    onClick={() => setSelectedFactionId(faction.id)}
+                    key={country.id}
+                    onClick={() => setSelectedCountryId(country.id)}
+                    style={{
+                      padding: '10px 12px',
+                      background: selectedCountryId === country.id
+                        ? 'var(--bg-tertiary)'
+                        : 'var(--bg-primary)',
+                      border: selectedCountryId === country.id
+                        ? '2px solid var(--text-primary)'
+                        : '1px solid var(--border)',
+                      borderRadius: 8,
+                      cursor: 'pointer',
+                      textAlign: 'center',
+                      transition: 'all 0.15s ease',
+                    }}
                   >
-                    <div className="fork-setup-card-header">
-                      <div className="fork-setup-card-name" style={{ color: faction.color }}>
-                        {faction.name}
-                      </div>
-                      <div
-                        className="fork-setup-card-dot"
-                        style={{ background: faction.color }}
-                      />
+                    <div style={{ fontSize: 24, marginBottom: 4 }}>
+                      {country.flag || '🏳️'}
                     </div>
-                    <div className="fork-setup-card-meta">
-                      <div>Starting Territories: {faction.startingTerritories}</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
+                      {country.name}
+                    </div>
+                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                      {country.continent}
                     </div>
                   </div>
                 ))}
@@ -301,12 +393,54 @@ export default function ForkGamePage(props: ForkGamePageProps) {
           <div className="fork-setup-begin">
             <button
               className="fork-setup-begin-btn"
-              disabled={!selectedEpochId || !selectedFactionId}
+              disabled={!selectedEpochId || !selectedCountryId}
               onClick={handleStartGame}
             >
               Begin the Chronicle
             </button>
           </div>
+
+          {/* Faction Reveal Screen */}
+          {showingReveal && selectedCountryFaction && (
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              zIndex: 150,
+              background: 'var(--bg-primary)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 12,
+              animation: 'fadeOut 0.5s ease 2s forwards',
+            }}>
+              <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
+                You are playing as
+              </div>
+              <div style={{ fontSize: 32, fontWeight: 700 }}>
+                {COUNTRY_FLAGS[selectedCountryId!] || ''} {COUNTRY_NAMES[selectedCountryId!] || selectedCountryId}
+              </div>
+              <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 8 }}>
+                Your faction is
+              </div>
+              <div style={{
+                fontSize: 28,
+                fontWeight: 700,
+                color: selectedCountryFaction.color,
+              }}>
+                {selectedCountryFaction.name}
+              </div>
+              <div style={{
+                fontSize: 13,
+                color: 'var(--text-tertiary)',
+                maxWidth: 280,
+                textAlign: 'center',
+                marginTop: 8,
+              }}>
+                Guide your agents. Shape history. One directive per era.
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -452,7 +586,11 @@ export default function ForkGamePage(props: ForkGamePageProps) {
                     <span style={{ fontSize: 13, flex: 1, fontWeight: isCommander ? 600 : 400 }}>
                       {isCommander && '★ '}
                       {faction.name}
-                      {isCommander && ' (YOUR FACTION)'}
+                      {isCommander && selectedCountryId && (
+                        <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 4 }}>
+                          {COUNTRY_FLAGS[selectedCountryId]} {COUNTRY_NAMES[selectedCountryId]}
+                        </span>
+                      )}
                     </span>
                     <span style={{ fontSize: 12, color: "#999" }}>
                       {faction.territories.length}
@@ -664,7 +802,7 @@ export default function ForkGamePage(props: ForkGamePageProps) {
             {playerState && (
               <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid #444" }}>
                 <div className="fork-ip-display">
-                  Influence: {playerState.influencePoints} IP
+                  Influence: {isNaN(playerState.influencePoints) ? 100 : playerState.influencePoints} IP
                 </div>
 
                 <div style={{ marginTop: 12 }}>
@@ -817,6 +955,11 @@ export default function ForkGamePage(props: ForkGamePageProps) {
                     <div className="score-name">
                       {isCommander && '★ '}
                       {faction.name}
+                      {isCommander && selectedCountryId && (
+                        <span style={{ fontSize: 10, marginLeft: 4, opacity: 0.7 }}>
+                          {COUNTRY_FLAGS[selectedCountryId]}
+                        </span>
+                      )}
                     </div>
                     <div className="score-bar-wrap">
                       <div

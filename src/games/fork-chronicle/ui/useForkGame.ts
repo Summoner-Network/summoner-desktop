@@ -239,32 +239,41 @@ export function useForkGame(): UseForkGameReturn {
       }
       lastEraRef.current = next.currentEra;
 
-      // Extract ticker messages from combat/conquest/alliance events
+      // Extract ticker messages — agent actions only (combat, diplomacy, investment)
       if (next.history.length > 0) {
         const latestRecord = next.history[next.history.length - 1];
-        const combatEvents = latestRecord.events
+        const agentActionEvents = latestRecord.events
           .filter(msg =>
             msg.includes('conquered') ||
             msg.includes('defended') ||
+            msg.includes('reinforced') ||
+            msg.includes('invested') ||
             msg.includes('formed an alliance') ||
-            msg.includes('Event:')
+            msg.includes('rejected') ||
+            msg.includes('passed')
           )
+          .filter(msg => !msg.includes('Ripple'))
+          .filter(msg => !msg.includes('event_reveal'))
           .map(msg => {
             let clean = msg;
-            Object.entries(next.factions).forEach(([id, f]) => {
-              clean = clean.replaceAll(id, f.name);
-            });
+            if (next.factions) {
+              Object.entries(next.factions).forEach(([id, f]) => {
+                clean = clean.replaceAll(id, (f as any).name);
+              });
+            }
             clean = clean
-              .replace(/diplomat \d+/gi, '')
-              .replace(/conqueror \d+/gi, '')
-              .replace(/economist \d+/gi, '')
-              .replace(/historian \d+/gi, '')
+              .replace(/diplomat \d+/gi, 'Diplomat')
+              .replace(/conqueror \d+/gi, 'Conqueror')
+              .replace(/economist \d+/gi, 'Economist')
+              .replace(/historian \d+/gi, 'Historian')
+              .replace(/\s+/g, ' ')
               .trim();
             return clean;
-          });
+          })
+          .filter(msg => msg.length > 0);
 
-        if (combatEvents.length > 0) {
-          setTickerMessages(prev => [...combatEvents, ...prev].slice(0, 20));
+        if (agentActionEvents.length > 0) {
+          setTickerMessages(prev => [...agentActionEvents, ...prev].slice(0, 30));
         }
       }
 
@@ -389,7 +398,7 @@ export function useForkGame(): UseForkGameReturn {
         // Deduct stake from player's influence points
         const updatedPlayerState: PlayerState = {
           ...playerState,
-          influencePoints: playerState.influencePoints - bet.stake,
+          influencePoints: Math.max(0, (isNaN(playerState.influencePoints) ? 100 : playerState.influencePoints) - (bet.stake || 0)),
           bets: [...playerState.bets, completeBet],
           actionsThisTurn: [...playerState.actionsThisTurn, completeBet],
         };
@@ -466,7 +475,7 @@ export function useForkGame(): UseForkGameReturn {
         // Deduct investment and add patron commitment
         const updatedPlayerState: PlayerState = {
           ...playerState,
-          influencePoints: playerState.influencePoints - action.investmentAmount,
+          influencePoints: Math.max(0, (isNaN(playerState.influencePoints) ? 100 : playerState.influencePoints) - (action.investmentAmount || 0)),
           patronCommitments: [...playerState.patronCommitments, completeAction],
           actionsThisTurn: [...playerState.actionsThisTurn, completeAction],
         };

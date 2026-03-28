@@ -8,6 +8,7 @@ import type { HistoricalEvent, EventEffect } from "../types/event";
 import type { FactionId } from "../types/faction";
 import { emitEventInjected } from "../analytics/analytics-emitter";
 import { applyReputationFloor } from "./patron";
+import { safeAddIP } from "./betting";
 
 /**
  * Apply a single event effect to the game state
@@ -308,7 +309,7 @@ export function playEventCard(
   }
 
   // Deduct IP cost
-  player.influencePoints -= event.ipCost;
+  player.influencePoints = safeAddIP(player.influencePoints, -event.ipCost);
 
   // Apply event effects
   const results: string[] = [];

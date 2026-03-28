@@ -9,6 +9,16 @@ import type { FactionId } from "../types/faction";
 import { emitBetResolved } from "../analytics/analytics-emitter";
 
 /**
+ * Safe IP arithmetic — prevents NaN propagation.
+ * If current or delta is NaN/undefined/null, uses safe defaults.
+ */
+export function safeAddIP(current: number, delta: number): number {
+  const c = (current == null || isNaN(current)) ? 100 : current;
+  const d = (delta == null || isNaN(delta)) ? 0 : delta;
+  return Math.max(0, c + d);
+}
+
+/**
  * Calculate odds for all bet types based on current game state
  * [SPEC] Section 7: Odds Calculation
  *
@@ -236,8 +246,10 @@ export function resolveBets(
         resolvedBets.push(bet);
 
         if (won) {
-          const payout = bet.stake * bet.odds;
-          player.influencePoints += payout;
+          const safeOdds = (bet.odds == null || isNaN(bet.odds)) ? 1.3 : bet.odds;
+          const safeStake = (bet.stake == null || isNaN(bet.stake)) ? 0 : bet.stake;
+          const payout = safeStake * safeOdds;
+          player.influencePoints = safeAddIP(player.influencePoints, payout);
 
           results.push(
             `💰 ${player.playerId} won bet (${bet.betType} on ${bet.targetId}): ${bet.stake} IP → ${payout.toFixed(1)} IP (${bet.odds}x odds)`
@@ -247,7 +259,7 @@ export function resolveBets(
           emitBetResolved(state, player.playerId, bet.betType, bet.targetId, true, payout);
         } else {
           // Consolation prize
-          player.influencePoints += 2;
+          player.influencePoints = safeAddIP(player.influencePoints, 2);
 
           results.push(
             `💸 ${player.playerId} lost bet (${bet.betType} on ${bet.targetId}): -${bet.stake} IP (+2 IP consolation)`
@@ -303,7 +315,7 @@ export function placeBet(
   }
 
   // Deduct stake from player's IP
-  player.influencePoints -= stake;
+  player.influencePoints = safeAddIP(player.influencePoints, -stake);
 
   // Create bet action with current odds (hedge bets use current odds)
   const bet: BetAction = {
@@ -346,7 +358,7 @@ export function awardInfluencePoints(state: GameState, turnEvents: string[]): st
     // TODO: +2 if backed faction formed alliance (requires tracking alliances formed this turn)
     // TODO: +5 if played event card affecting 3+ territories (requires event injection tracking)
 
-    player.influencePoints += earned;
+    player.influencePoints = safeAddIP(player.influencePoints, earned);
 
     if (earned > 0) {
       results.push(`📈 ${player.playerId} earned ${earned} IP this turn (total: ${player.influencePoints})`);

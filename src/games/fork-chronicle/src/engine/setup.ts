@@ -226,7 +226,7 @@ function initializePlayerStates(config: GameConfig): Record<string, PlayerState>
   config.players.forEach((playerConfig) => {
     playerStates[playerConfig.playerId] = {
       playerId: playerConfig.playerId,
-      influencePoints: playerConfig.startingInfluencePoints,
+      influencePoints: playerConfig.startingInfluencePoints ?? 100,
       currentDrawnCard: null, // Will be dealt from deck
       bets: [],
       patronCommitments: [],
