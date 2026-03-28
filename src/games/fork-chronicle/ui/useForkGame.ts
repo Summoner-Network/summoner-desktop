@@ -179,6 +179,13 @@ export function useForkGame(): UseForkGameReturn {
 
   const setTurnSpeed = useCallback((ms: number) => {
     setTurnSpeedState(ms);
+    turnSpeedRef.current = ms;
+    // Cancel current timer so the next tick uses the new speed
+    if (turnTimerRef.current) {
+      clearTimeout(turnTimerRef.current);
+      turnTimerRef.current = null;
+    }
+    // The isRunning/isPaused useEffect will restart the loop with new speed
   }, []);
 
   // Refs to avoid stale closures
@@ -382,7 +389,7 @@ export function useForkGame(): UseForkGameReturn {
     return () => {
       if (turnTimerRef.current) clearTimeout(turnTimerRef.current);
     };
-  }, [isRunning, isPaused, runLoop]);
+  }, [isRunning, isPaused, turnSpeed, runLoop]);
 
   const placeBet = useCallback(
     (bet: Omit<BetAction, "type" | "placedOnTurn" | "odds">) => {

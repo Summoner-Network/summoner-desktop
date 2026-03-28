@@ -2065,6 +2065,28 @@ export function registerIpc(win: BrowserWindow, tcp: TcpManager) {
         throw new Error(`Wikipedia API returned ${response.status}`);
       }
       const data = await response.json();
+
+      // Fetch the first available thumbnail as base64 data URL to bypass img-src CSP
+      for (const event of (data.events || [])) {
+        const thumbUrl = event.pages?.[0]?.thumbnail?.source;
+        if (thumbUrl) {
+          try {
+            const imgRes = await fetch(thumbUrl, {
+              headers: { "User-Agent": "ForkChronicle/1.0 (summoner-desktop)" }
+            });
+            if (imgRes.ok) {
+              const buffer = await imgRes.arrayBuffer();
+              const base64 = Buffer.from(buffer).toString("base64");
+              const contentType = imgRes.headers.get("content-type") || "image/jpeg";
+              event.pages[0].thumbnailDataUrl = `data:${contentType};base64,${base64}`;
+            }
+          } catch {
+            // thumbnail fetch failed, skip
+          }
+          break; // only fetch first thumbnail to keep it fast
+        }
+      }
+
       return { ok: true as const, data };
     } catch (e) {
       return { ok: false as const, error: safeError(e) };

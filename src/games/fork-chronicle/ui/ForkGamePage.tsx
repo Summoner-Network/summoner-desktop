@@ -809,18 +809,22 @@ export default function ForkGamePage(props: ForkGamePageProps) {
                   <h4 style={{ fontSize: 12, marginBottom: 8 }}>Event Card</h4>
                   {playerState.currentDrawnCard ? (
                     <div>
-                      {/* Wikipedia Thumbnail */}
-                      {playerState.currentDrawnCard.wikiThumbnail && (
+                      {/* Wikipedia Thumbnail (prefer base64 data URL to bypass CSP) */}
+                      {(playerState.currentDrawnCard.wikiThumbnailDataUrl || playerState.currentDrawnCard.wikiThumbnail) && (
                         <img
-                          src={playerState.currentDrawnCard.wikiThumbnail}
+                          src={
+                            playerState.currentDrawnCard.wikiThumbnailDataUrl
+                            || playerState.currentDrawnCard.wikiThumbnail
+                          }
                           style={{
                             width: '100%',
-                            height: 80,
+                            height: 72,
                             objectFit: 'cover',
-                            borderRadius: 4,
+                            borderRadius: 6,
                             marginBottom: 8,
                           }}
-                          alt="Wikipedia event"
+                          alt="Historical event"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                         />
                       )}
 
@@ -1007,7 +1011,7 @@ export default function ForkGamePage(props: ForkGamePageProps) {
               display: 'inline-flex',
               gap: 32,
               animation: tickerMessages.length > 0
-                ? 'tickerScroll 30s linear infinite'
+                ? `tickerScroll ${turnSpeed <= 1500 ? 15 : turnSpeed <= 3000 ? 25 : 40}s linear infinite`
                 : 'none',
               animationPlayState: isPaused ? 'paused' : 'running',
               fontSize: 12,

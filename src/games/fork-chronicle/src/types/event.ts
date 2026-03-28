@@ -39,6 +39,7 @@ export interface HistoricalEvent {
   wikiYear?: number;
   wikiText?: string;
   wikiThumbnail?: string;
+  wikiThumbnailDataUrl?: string;
 }
 
 export interface ActiveEvent {

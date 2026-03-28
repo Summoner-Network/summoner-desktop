@@ -17,6 +17,7 @@ export interface WikipediaEvent {
       width: number;
       height: number;
     };
+    thumbnailDataUrl?: string;
   }>;
 }
 
@@ -73,6 +74,7 @@ export function wikiEventToGameEvent(
     wikiYear: wikiEvent.year,
     wikiText: wikiEvent.text,
     wikiThumbnail: getWikipediaThumbnail(wikiEvent) ?? undefined,
+    wikiThumbnailDataUrl: wikiEvent.pages[0]?.thumbnailDataUrl,
   };
 }
 
